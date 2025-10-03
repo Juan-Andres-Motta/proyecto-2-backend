@@ -46,6 +46,11 @@ DATABASE_URL=postgresql://postgres:password@catalog-db:5432/catalog
 
 # For local development
 # DATABASE_URL=postgresql://juan:@localhost:5432/catalog
+
+DEBUG_SQL=false
+
+# Logging
+LOG_LEVEL=INFO
 ```
 
 ### Poetry Virtual Environment
