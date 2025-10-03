@@ -1,0 +1,18 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Install all dependencies (including dev)
+RUN poetry install --no-root --no-interaction --no-ansi
+
+# Copy source code and tests
+COPY . .
+
+# Run tests
+CMD ["poetry", "run", "pytest"]

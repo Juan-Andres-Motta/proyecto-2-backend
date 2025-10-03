@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  bff-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: poetry run pytest -v

@@ -1,0 +1,165 @@
+networks:
+  microservices:
+    driver: bridge
+
+services:
+  bff:
+    build: ./bff
+    ports:
+      - "8000:8000"
+    networks:
+      - microservices
+
+  catalog:
+    build: ./catalog
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./catalog/.env
+    depends_on:
+      - catalog-db
+      - localstack
+    networks:
+      - microservices
+
+  catalog-db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=catalog
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  client:
+    build: ./client
+    ports:
+      - "8002:8000"
+    env_file:
+      - ./client/.env
+    depends_on:
+      - client-db
+      - localstack
+    networks:
+      - microservices
+
+  client-db:
+    image: postgres:15
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=client
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  delivery:
+    build: ./delivery
+    ports:
+      - "8003:8000"
+    env_file:
+      - ./delivery/.env
+    depends_on:
+      - delivery-db
+      - localstack
+    networks:
+      - microservices
+
+  delivery-db:
+    image: postgres:15
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=delivery
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  inventory:
+    build: ./inventory
+    ports:
+      - "8004:8000"
+    env_file:
+      - ./inventory/.env
+    depends_on:
+      - inventory-db
+      - localstack
+    networks:
+      - microservices
+
+  inventory-db:
+    image: postgres:15
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=inventory
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  order:
+    build: ./order
+    ports:
+      - "8005:8000"
+    env_file:
+      - ./order/.env
+    depends_on:
+      - order-db
+      - localstack
+    networks:
+      - microservices
+
+  order-db:
+    image: postgres:15
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_DB=order
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  seller:
+    build: ./seller
+    ports:
+      - "8006:8000"
+    env_file:
+      - ./seller/.env
+    depends_on:
+      - seller-db
+      - localstack
+    networks:
+      - microservices
+
+  seller-db:
+    image: postgres:15
+    ports:
+      - "5437:5432"
+    environment:
+      - POSTGRES_DB=seller
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    networks:
+      - microservices
+
+  localstack:
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+      - "8007:8007"
+    environment:
+      - SERVICES=s3,sqs
+      - DEBUG=1
+      - LOCALSTACK_WEB_UI=1
+      - LOCALSTACK_WEB_UI_PORT=8007
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - microservices
