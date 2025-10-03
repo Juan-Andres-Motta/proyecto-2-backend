@@ -31,14 +31,29 @@ All services share a Docker network called `microservices` for inter-service com
 
 ## Running the Application
 
-### Basic Setup (Services + Databases)
+### All Services + Databases
 ```bash
 docker-compose up
 ```
 
-### Full Setup (Services + Databases + LocalStack for AWS Simulation)
+### All Services + Databases + LocalStack for AWS Simulation
 ```bash
 docker-compose -f docker-compose.local.yml up
+```
+
+### Individual Services
+
+Each service directory contains Docker Compose files for running individually:
+
+- `docker-compose.yml`: Runs only the service (assumes external database)
+- `docker-compose.with-db.yml`: Runs the service with its own PostgreSQL database
+
+Example for catalog service:
+```bash
+cd catalog
+docker-compose up  # Service only
+# or
+docker-compose -f docker-compose.with-db.yml up  # Service + DB
 ```
 
 LocalStack simulates S3 and SQS services locally. Access the web UI at `http://localhost:8007`.
