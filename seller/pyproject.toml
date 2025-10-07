@@ -1,5 +1,5 @@
 [project]
-name = "bff"
+name = "seller"
 version = "0.1.0"
 description = ""
 authors = [
@@ -7,6 +7,9 @@ authors = [
 ]
 readme = "README.md"
 packages = [{include = "src"}]
+
+[tool.poetry]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.13"

@@ -2,6 +2,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# Set PYTHONPATH
+ENV PYTHONPATH=/app
+
 # Install Poetry
 RUN pip install --no-cache-dir poetry
 
