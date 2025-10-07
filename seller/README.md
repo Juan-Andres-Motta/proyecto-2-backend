@@ -6,6 +6,11 @@ Seller service built with FastAPI.
 
 - Health check endpoint
 - Root endpoint returning service name
+- Seller management (create, list with pagination)
+- Sales plan management (create, list with pagination)
+- Hexagonal architecture with clean separation of concerns
+- PostgreSQL database with SQLAlchemy ORM
+- Pydantic schemas for request/response validation
 
 ## Installation
 
@@ -19,7 +24,7 @@ Seller service built with FastAPI.
 To run the service locally:
 
 ```
-poetry run uvicorn main:app --reload
+poetry run uvicorn app:app --reload
 ```
 
 The service will be available at `http://localhost:8000`.
@@ -40,8 +45,19 @@ docker-compose -f docker-compose.test.yml up --build
 
 ## API Endpoints
 
+### Common
 - `GET /`: Returns service information
 - `GET /health`: Health check endpoint
+
+### Sellers
+- `POST /sellers`: Create a new seller
+- `GET /sellers`: List sellers with pagination (use `?all=true` for non-paginated list)
+
+### Sales Plans
+- `POST /sales-plans`: Create a new sales plan
+- `GET /sales-plans`: List sales plans with pagination
+
+All endpoints are documented at `http://localhost:8000/docs` when running locally.
 
 ## Testing
 
@@ -53,7 +69,15 @@ poetry run pytest
 
 ## Project Structure
 
-- `main.py`: Main FastAPI application
+- `app.py`: Main FastAPI application
+- `main.py`: CLI commands for running, migrations, and testing
+- `src/`: Source code organized in hexagonal architecture
+  - `adapters/`: Input/output adapters
+    - `input/`: Controllers, schemas, examples
+    - `output/`: Repositories
+  - `application/`: Use cases and business logic
+  - `domain/`: Domain entities and services
+  - `infrastructure/`: Database models, config, logging
 - `tests/`: Test files
 - `Dockerfile`: Production Docker image
 - `Dockerfile.test`: Test Docker image
