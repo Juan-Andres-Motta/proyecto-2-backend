@@ -1,13 +1,35 @@
+import logging
+
 from fastapi import FastAPI
 
-app = FastAPI()
+from src.adapters.input.controllers.common_controller import router as common_router
+from src.adapters.input.controllers.inventory_controller import (
+    router as inventory_router,
+)
+from src.adapters.input.controllers.store_controller import router as store_router
+from src.infrastructure.config.logger import setup_logging
+from src.infrastructure.config.settings import settings
 
+# Setup logging
+setup_logging()
 
-@app.get("/")
-async def read_root():
-    return {"name": "Inventory Service"}
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
+app = FastAPI(
+    title=settings.app_name,
+    description=settings.app_description,
+    version=settings.app_version,
+    contact={
+        "name": settings.app_contact_name,
+        "email": settings.app_contact_email,
+    },
+    docs_url=settings.docs_url,
+    redoc_url=settings.redoc_url,
+)
 
-@app.get("/health")
-async def read_health():
-    return {"status": "ok"}
+logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+
+app.include_router(common_router)
+app.include_router(store_router)
+app.include_router(inventory_router)
