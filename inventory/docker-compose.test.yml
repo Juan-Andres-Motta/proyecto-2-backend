@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  bff-test:
+  inventory-test:
     build:
       context: .
       dockerfile: Dockerfile.test
