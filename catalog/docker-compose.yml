@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   catalog:
     build: .
@@ -9,4 +7,4 @@ services:
       - .env
     volumes:
       - .:/app
-    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: poetry run python main.py runserver
