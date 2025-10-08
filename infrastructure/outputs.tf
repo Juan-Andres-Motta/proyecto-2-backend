@@ -1,0 +1,76 @@
+# VPC Outputs
+output "vpc_id" {
+  description = "ID of the VPC"
+  value       = module.vpc.vpc_id
+}
+
+output "public_subnet_ids" {
+  description = "IDs of public subnets"
+  value       = module.vpc.public_subnet_ids
+}
+
+output "private_subnet_ids" {
+  description = "IDs of private subnets"
+  value       = module.vpc.private_subnet_ids
+}
+
+# ALB Outputs
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_url" {
+  description = "URL to access the Application Load Balancer"
+  value       = "http://${module.alb.alb_dns_name}"
+}
+
+# Service URLs (via ALB)
+output "service_urls" {
+  description = "URLs to access each service via ALB"
+  value = {
+    for service in var.services : service => "http://${module.alb.alb_dns_name}/${service}/"
+  }
+}
+
+# ECS Cluster Outputs
+output "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
+  value       = module.ecs_cluster.cluster_name
+}
+
+output "ecs_cluster_arn" {
+  description = "ARN of the ECS cluster"
+  value       = module.ecs_cluster.cluster_arn
+}
+
+# Service Connect Namespace
+output "service_connect_namespace" {
+  description = "Service Connect namespace for internal communication"
+  value       = module.ecs_cluster.service_connect_namespace_name
+}
+
+# ECR Repository URLs
+output "ecr_repository_urls" {
+  description = "Map of service names to their ECR repository URLs"
+  value = {
+    for service, repo in module.ecr : service => repo.repository_url
+  }
+}
+
+# ECS Service Names
+output "ecs_service_names" {
+  description = "Map of service names to ECS service names"
+  value = {
+    for service, svc in module.ecs_service : service => svc.service_name
+  }
+}
+
+# CloudWatch Log Groups
+output "log_group_names" {
+  description = "Map of service names to CloudWatch log group names"
+  value = {
+    for service, log in module.cloudwatch : service => log.log_group_name
+  }
+}
+
