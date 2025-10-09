@@ -27,5 +27,5 @@ app = FastAPI(
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-app.include_router(common_router)
-app.include_router(provider_router)
+app.include_router(common_router, prefix="/catalog")
+app.include_router(provider_router, prefix="/catalog")

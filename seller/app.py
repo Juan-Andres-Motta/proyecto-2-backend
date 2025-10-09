@@ -30,6 +30,6 @@ app = FastAPI(
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-app.include_router(common_router)
-app.include_router(seller_router)
-app.include_router(sales_plan_router)
+app.include_router(common_router, prefix="/seller")
+app.include_router(seller_router, prefix="/seller")
+app.include_router(sales_plan_router, prefix="/seller")

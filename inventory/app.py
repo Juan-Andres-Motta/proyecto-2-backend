@@ -30,6 +30,6 @@ app = FastAPI(
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-app.include_router(common_router)
-app.include_router(store_router)
-app.include_router(inventory_router)
+app.include_router(common_router, prefix="/inventory")
+app.include_router(store_router, prefix="/inventory")
+app.include_router(inventory_router, prefix="/inventory")
