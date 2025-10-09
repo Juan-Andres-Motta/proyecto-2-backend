@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
+import httpx
 
 from ..schemas import PaginatedProvidersResponse
 from ..services import CatalogService
@@ -36,8 +37,18 @@ async def get_providers(
             limit=limit, offset=offset
         )
         return providers_data
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching providers: Catalog service returned {e.response.status_code}",
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching providers: Unable to connect to catalog service",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error fetching providers: {str(e)}",
+            detail=f"Error fetching providers: {type(e).__name__}",
         )

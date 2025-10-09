@@ -83,20 +83,22 @@ def test_paginated_providers_response_schema():
     )
 
     paginated_response = PaginatedProvidersResponse(
-        items=[provider], total=1, limit=10, offset=0
+        items=[provider], total=1, page=1, size=10, has_next=False, has_previous=False
     )
 
     assert len(paginated_response.items) == 1
     assert paginated_response.total == 1
-    assert paginated_response.limit == 10
-    assert paginated_response.offset == 0
+    assert paginated_response.page == 1
+    assert paginated_response.size == 10
+    assert paginated_response.has_next is False
+    assert paginated_response.has_previous is False
     assert paginated_response.items[0].id == provider_id
 
 
 def test_paginated_providers_response_empty():
     """Test PaginatedProvidersResponse with empty items."""
     paginated_response = PaginatedProvidersResponse(
-        items=[], total=0, limit=10, offset=0
+        items=[], total=0, page=1, size=10, has_next=False, has_previous=False
     )
 
     assert len(paginated_response.items) == 0
@@ -123,20 +125,22 @@ def test_paginated_products_response_schema():
     )
 
     paginated_response = PaginatedProductsResponse(
-        items=[product], total=1, limit=10, offset=0
+        items=[product], total=1, page=1, size=10, has_next=False, has_previous=False
     )
 
     assert len(paginated_response.items) == 1
     assert paginated_response.total == 1
-    assert paginated_response.limit == 10
-    assert paginated_response.offset == 0
+    assert paginated_response.page == 1
+    assert paginated_response.size == 10
+    assert paginated_response.has_next is False
+    assert paginated_response.has_previous is False
     assert paginated_response.items[0].id == product_id
 
 
 def test_paginated_products_response_empty():
     """Test PaginatedProductsResponse with empty items."""
     paginated_response = PaginatedProductsResponse(
-        items=[], total=0, limit=10, offset=0
+        items=[], total=0, page=1, size=10, has_next=False, has_previous=False
     )
 
     assert len(paginated_response.items) == 0

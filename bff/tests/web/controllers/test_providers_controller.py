@@ -29,8 +29,10 @@ async def test_get_providers_success():
             }
         ],
         "total": 1,
-        "limit": 10,
-        "offset": 0,
+        "page": 1,
+        "size": 10,
+        "has_next": False,
+        "has_previous": False,
     }
 
     with patch(
@@ -60,8 +62,10 @@ async def test_get_providers_with_pagination():
     mock_providers_data = {
         "items": [],
         "total": 0,
-        "limit": 20,
-        "offset": 10,
+        "page": 2,
+        "size": 20,
+        "has_next": False,
+        "has_previous": True,
     }
 
     with patch(
@@ -133,8 +137,10 @@ async def test_get_providers_empty_response():
     mock_providers_data = {
         "items": [],
         "total": 0,
-        "limit": 10,
-        "offset": 0,
+        "page": 1,
+        "size": 10,
+        "has_next": False,
+        "has_previous": False,
     }
 
     with patch(
