@@ -1,61 +1,91 @@
-import asyncio
-import os
-from typing import Dict, List
+import subprocess
+from datetime import datetime
 
-import httpx
-from fastapi import FastAPI
+import typer
+import uvicorn
 
-app = FastAPI(root_path="/bff")
-
-# Microservices to check (URLs from environment variables)
-SERVICES = {
-    "catalog": os.getenv("CATALOG_URL", "http://catalog:8000"),
-    "client": os.getenv("CLIENT_URL", "http://client:8000"),
-    "delivery": os.getenv("DELIVERY_URL", "http://delivery:8000"),
-    "inventory": os.getenv("INVENTORY_URL", "http://inventory:8000"),
-    "order": os.getenv("ORDER_URL", "http://order:8000"),
-    "seller": os.getenv("SELLER_URL", "http://seller:8000"),
-}
+app = typer.Typer()
 
 
-async def check_service_health(service_name: str, service_url: str) -> Dict[str, str]:
-    """Check health status of a single service."""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{service_url}/health")
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("status") == "ok":
-                    return {service_name: "healthy"}
-            return {service_name: "unhealthy"}
-    except (httpx.RequestError, httpx.TimeoutException):
-        return {service_name: "unreachable"}
-    except Exception:
-        return {service_name: "error"}
+@app.command()
+def runserver(
+    host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
+    port: int = typer.Option(8000, help="Port to bind the server to"),
+    reload: bool = typer.Option(True, help="Enable auto-reload"),
+):
+    """Run the FastAPI server."""
+    typer.echo(f"Starting server on {host}:{port} with reload={reload}")
+    uvicorn.run("app:app", host=host, port=port, reload=reload)
 
 
-@app.get("/")
-async def read_root():
-    return {"name": "BFF Service"}
+@app.command()
+def makemigrations(
+    message: str = typer.Option("Auto migration", help="Migration message")
+):
+    """Create a new Alembic migration."""
+    date_prefix = datetime.now().strftime("%Y_%m_%d")
+    full_message = f"{date_prefix}_{message}"
+    typer.echo(f"Creating migration with message: {full_message}")
+    result = subprocess.run(
+        ["alembic", "revision", "--autogenerate", "-m", full_message],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        typer.echo("Migration created successfully")
+        typer.echo(result.stdout)
+    else:
+        typer.echo("Error creating migration")
+        typer.echo(result.stderr)
 
 
-@app.get("/health")
-async def read_health():
-    return {"status": "ok"}
+@app.command()
+def migrate():
+    """Apply all pending Alembic migrations."""
+    typer.echo("Applying migrations...")
+    result = subprocess.run(
+        ["alembic", "upgrade", "head"], capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        typer.echo("Migrations applied successfully")
+        typer.echo(result.stdout)
+    else:
+        typer.echo("Error applying migrations")
+        typer.echo(result.stderr)
 
 
-@app.get("/check-all")
-async def check_all_services() -> List[Dict[str, str]]:
-    """
-    Check health status of all microservices.
+@app.command()
+def lint():
+    """Run code quality tools: black, isort, and flake8."""
+    typer.echo("Running code quality checks...")
 
-    Returns:
-        List of dictionaries with service name as key and health status as value.
-        Example: [{"catalog": "healthy"}, {"order": "unhealthy"}, ...]
-    """
-    tasks = [
-        check_service_health(service_name, service_url)
-        for service_name, service_url in SERVICES.items()
-    ]
-    results = await asyncio.gather(*tasks)
-    return results
+    # Run black
+    typer.echo("Formatting with Black...")
+    result_black = subprocess.run(["black", "."], capture_output=True, text=True)
+    if result_black.returncode == 0:
+        typer.echo("Black formatting completed")
+    else:
+        typer.echo("Black formatting failed")
+        typer.echo(result_black.stderr)
+
+    # Run isort
+    typer.echo("Sorting imports with isort...")
+    result_isort = subprocess.run(["isort", "."], capture_output=True, text=True)
+    if result_isort.returncode == 0:
+        typer.echo("isort completed")
+    else:
+        typer.echo("isort failed")
+        typer.echo(result_isort.stderr)
+
+    # Run flake8
+    typer.echo("Linting with flake8...")
+    result_flake8 = subprocess.run(["flake8", "."], capture_output=True, text=True)
+    if result_flake8.returncode == 0:
+        typer.echo("flake8 passed")
+    else:
+        typer.echo("flake8 found issues")
+        typer.echo(result_flake8.stdout)
+
+
+if __name__ == "__main__":
+    app()
