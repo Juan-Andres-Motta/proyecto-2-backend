@@ -41,45 +41,28 @@ resource "aws_ecs_service" "service" {
 
   # Native ECS Blue/Green Deployment (supports Service Connect!)
   deployment_configuration {
-    deployment_type = "BLUE_GREEN"
+    strategy = "BLUE_GREEN"
 
-    blue_green_deployment_config {
-      # Traffic routing configuration
-      traffic_routing {
-        type = "ALL_AT_ONCE"  # Can also be "TIME_BASED_CANARY" or "TIME_BASED_LINEAR"
-      }
+    # Bake time: wait 5 minutes after deployment before terminating old tasks
+    # This allows you to monitor for issues and rollback if needed
+    bake_time_in_minutes = 5
 
-      # Termination configuration for original (blue) tasks
-      terminate_blue_tasks_on_deployment_success {
-        action                   = "TERMINATE"
-        termination_wait_time_in_minutes = 5  # Wait 5 minutes before terminating blue tasks
-      }
-
-      # Deployment success criteria
-      deployment_ready_option {
-        action_on_timeout = "STOP_DEPLOYMENT"  # Stop if deployment doesn't complete in time
-        wait_time_in_minutes = 10               # Wait up to 10 minutes for deployment to be ready
-      }
-    }
-
-    # Deployment circuit breaker (rollback on failure)
+    # Circuit breaker for automatic rollback on deployment failure
     deployment_circuit_breaker {
       enable   = true
       rollback = true
     }
 
-    # Minimum healthy percent during deployment
+    # Keep 100% healthy tasks during deployment
     minimum_healthy_percent = 100
-
-    # Maximum percent during deployment
-    maximum_percent = 200
+    maximum_percent         = 200
   }
 
   # Health check grace period for ALB
   health_check_grace_period_seconds = 60
 
   # Wait for steady state before considering deployment complete
-  wait_for_steady_state = false
+  wait_for_steady_state = true  # Changed to true for safer deployments
 
   # Ignore changes to desired_count (for auto-scaling)
   lifecycle {
