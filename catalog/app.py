@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from src.adapters.input.controllers.common_controller import router as common_router
+from src.adapters.input.controllers.product_controller import router as product_router
 from src.adapters.input.controllers.provider_controller import router as provider_router
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
@@ -29,3 +30,4 @@ logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
 app.include_router(common_router, prefix="/catalog")
 app.include_router(provider_router, prefix="/catalog")
+app.include_router(product_router, prefix="/catalog")

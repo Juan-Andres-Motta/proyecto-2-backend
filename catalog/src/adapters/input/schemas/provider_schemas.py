@@ -5,7 +5,7 @@ from uuid import UUID
 import pycountry
 from pydantic import BaseModel, EmailStr, field_validator
 
-from .examples import provider_create_example
+from ..examples.provider_examples import provider_create_example
 
 
 class ProviderCreate(BaseModel):
