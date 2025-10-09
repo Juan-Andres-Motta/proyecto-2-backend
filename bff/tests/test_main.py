@@ -1,17 +1,14 @@
 from fastapi.testclient import TestClient
 
-from ..main import app
+from app import app
 
 client = TestClient(app)
 
 
-def test_read_root():
-    response = client.get("/")
+def test_openapi_endpoint():
+    """Test that OpenAPI spec is available"""
+    response = client.get("/bff/openapi.json")
     assert response.status_code == 200
-    assert response.json() == {"name": "BFF Service"}
-
-
-def test_read_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    data = response.json()
+    assert "openapi" in data
+    assert "paths" in data

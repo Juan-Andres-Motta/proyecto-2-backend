@@ -14,7 +14,7 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session")
 async def setup_database(test_engine):
     # Create all tables
     async with test_engine.begin() as conn:
@@ -26,7 +26,7 @@ async def setup_database(test_engine):
 
 
 @pytest_asyncio.fixture
-async def db_session(test_engine):
+async def db_session(test_engine, setup_database, clear_tables):
     async_session = sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
     )
@@ -34,7 +34,7 @@ async def db_session(test_engine):
         yield session
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture
 async def clear_tables(test_engine):
     # Clear tables before each test
     async with test_engine.begin() as conn:

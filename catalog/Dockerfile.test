@@ -9,13 +9,18 @@ ENV PYTHONPATH=/app
 RUN pip install --no-cache-dir poetry
 
 # Copy dependency files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
 
-# Install all dependencies (including dev)
-RUN poetry install --no-root --no-interaction --no-ansi
+# Copy source code (needed for poetry install)
+COPY src ./src
 
-# Copy source code and tests
-COPY . .
+# Install all dependencies (including dev) and the package itself
+RUN poetry install --no-interaction --no-ansi
+
+# Copy tests and other files
+COPY tests ./tests
+COPY alembic ./alembic
+COPY alembic.ini app.py main.py ./
 
 # Run tests
 CMD ["poetry", "run", "pytest"]

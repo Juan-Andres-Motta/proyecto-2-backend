@@ -12,8 +12,9 @@ class Settings(BaseSettings):
     )
     app_version: str = Field(default="1.0.0")
     app_contact_name: str = Field(default="Your Name")
-    docs_url: str = Field(default="/docs")
-    redoc_url: str = Field(default="/redoc")
+    docs_url: str = Field(default="/catalog/docs")
+    redoc_url: str = Field(default="/catalog/redoc")
+    openapi_url: str = Field(default="/catalog/openapi.json")
 
     # Logging
     log_level: str = Field(default="INFO")

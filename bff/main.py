@@ -1,5 +1,5 @@
 import subprocess
-from datetime import datetime
+
 
 import typer
 import uvicorn
@@ -18,40 +18,6 @@ def runserver(
     uvicorn.run("app:app", host=host, port=port, reload=reload)
 
 
-@app.command()
-def makemigrations(
-    message: str = typer.Option("Auto migration", help="Migration message")
-):
-    """Create a new Alembic migration."""
-    date_prefix = datetime.now().strftime("%Y_%m_%d")
-    full_message = f"{date_prefix}_{message}"
-    typer.echo(f"Creating migration with message: {full_message}")
-    result = subprocess.run(
-        ["alembic", "revision", "--autogenerate", "-m", full_message],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode == 0:
-        typer.echo("Migration created successfully")
-        typer.echo(result.stdout)
-    else:
-        typer.echo("Error creating migration")
-        typer.echo(result.stderr)
-
-
-@app.command()
-def migrate():
-    """Apply all pending Alembic migrations."""
-    typer.echo("Applying migrations...")
-    result = subprocess.run(
-        ["alembic", "upgrade", "head"], capture_output=True, text=True
-    )
-    if result.returncode == 0:
-        typer.echo("Migrations applied successfully")
-        typer.echo(result.stdout)
-    else:
-        typer.echo("Error applying migrations")
-        typer.echo(result.stderr)
 
 
 @app.command()

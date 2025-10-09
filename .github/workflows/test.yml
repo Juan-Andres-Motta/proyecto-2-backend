@@ -1,0 +1,481 @@
+name: Test Services
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      bff: ${{ steps.changes.outputs.bff }}
+      catalog: ${{ steps.changes.outputs.catalog }}
+      client: ${{ steps.changes.outputs.client }}
+      delivery: ${{ steps.changes.outputs.delivery }}
+      inventory: ${{ steps.changes.outputs.inventory }}
+      order: ${{ steps.changes.outputs.order }}
+      seller: ${{ steps.changes.outputs.seller }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            bff:
+              - 'bff/**'
+            catalog:
+              - 'catalog/**'
+            client:
+              - 'client/**'
+            delivery:
+              - 'delivery/**'
+            inventory:
+              - 'inventory/**'
+            order:
+              - 'order/**'
+            seller:
+              - 'seller/**'
+
+  test-bff:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.bff == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./bff
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./bff
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-bff
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./bff
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - BFF Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./bff/coverage.xml
+          flags: bff
+          name: bff-coverage
+          fail_ci_if_error: false
+
+  test-catalog:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.catalog == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./catalog
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./catalog
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-catalog
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./catalog
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Catalog Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./catalog/coverage.xml
+          flags: catalog
+          name: catalog-coverage
+          fail_ci_if_error: false
+
+  test-client:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./client
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-client
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./client
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Client Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./client/coverage.xml
+          flags: client
+          name: client-coverage
+          fail_ci_if_error: false
+
+  test-delivery:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.delivery == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./delivery
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./delivery
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-delivery
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./delivery
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Delivery Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./delivery/coverage.xml
+          flags: delivery
+          name: delivery-coverage
+          fail_ci_if_error: false
+
+  test-inventory:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.inventory == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./inventory
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./inventory
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-inventory
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./inventory
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Inventory Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./inventory/coverage.xml
+          flags: inventory
+          name: inventory-coverage
+          fail_ci_if_error: false
+
+  test-order:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.order == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./order
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./order
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-order
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./order
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Order Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./order/coverage.xml
+          flags: order
+          name: order-coverage
+          fail_ci_if_error: false
+
+  test-seller:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.seller == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        working-directory: ./seller
+        run: poetry install
+
+      - name: Run tests with coverage
+        working-directory: ./seller
+        run: poetry run pytest
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: coverage-data-seller
+          MINIMUM_GREEN: 40
+          MINIMUM_ORANGE: 30
+          COVERAGE_PATH: ./seller
+          COMMENT_TEMPLATE: |
+            ## Coverage Report - Seller Service
+
+            **Overall Coverage:** {coverage:.2f}% {emoji}
+            **Coverage Change:** {coverage_difference}%
+
+            ### Coverage by File
+            {files_table}
+
+            <details>
+            <summary>📊 Coverage Details</summary>
+
+            {changed_files_coverage_table}
+
+            </details>
+
+            **Minimum Required:** 40%
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./seller/coverage.xml
+          flags: seller
+          name: seller-coverage
+          fail_ci_if_error: false
