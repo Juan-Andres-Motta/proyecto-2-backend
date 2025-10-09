@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  bff-test:
+  order-test:
     build:
       context: .
       dockerfile: Dockerfile.test
