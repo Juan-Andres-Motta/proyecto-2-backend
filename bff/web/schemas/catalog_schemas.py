@@ -31,6 +31,19 @@ class ProductResponse(BaseModel):
     updated_at: datetime
 
 
-class CatalogResponse(BaseModel):
-    providers: List[ProviderResponse]
-    products: List[ProductResponse]
+class PaginatedProvidersResponse(BaseModel):
+    items: List[ProviderResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool
+
+
+class PaginatedProductsResponse(BaseModel):
+    items: List[ProductResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool

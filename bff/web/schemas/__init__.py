@@ -1,3 +1,13 @@
-from .catalog_schemas import CatalogResponse, ProductResponse, ProviderResponse
+from .catalog_schemas import (
+    PaginatedProductsResponse,
+    PaginatedProvidersResponse,
+    ProductResponse,
+    ProviderResponse,
+)
 
-__all__ = ["ProviderResponse", "ProductResponse", "CatalogResponse"]
+__all__ = [
+    "ProviderResponse",
+    "ProductResponse",
+    "PaginatedProvidersResponse",
+    "PaginatedProductsResponse",
+]

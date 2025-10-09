@@ -39,6 +39,11 @@ profile = "black"
 line_length = 88
 skip = [".venv", "alembic"]
 
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

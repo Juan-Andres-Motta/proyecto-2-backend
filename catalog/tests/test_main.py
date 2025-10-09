@@ -6,12 +6,12 @@ client = TestClient(app)
 
 
 def test_read_root():
-    response = client.get("/")
+    response = client.get("/catalog/")
     assert response.status_code == 200
     assert response.json() == {"name": "Catalog Service"}
 
 
 def test_read_health():
-    response = client.get("/health")
+    response = client.get("/catalog/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

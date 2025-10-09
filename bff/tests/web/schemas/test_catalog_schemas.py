@@ -4,7 +4,12 @@ from decimal import Decimal
 
 import pytest
 
-from web.schemas import CatalogResponse, ProductResponse, ProviderResponse
+from web.schemas import (
+    PaginatedProductsResponse,
+    PaginatedProvidersResponse,
+    ProductResponse,
+    ProviderResponse,
+)
 
 
 def test_provider_response_schema():
@@ -59,10 +64,9 @@ def test_product_response_schema():
     assert product.price == Decimal("99.99")
 
 
-def test_catalog_response_schema():
-    """Test CatalogResponse schema validation."""
+def test_paginated_providers_response_schema():
+    """Test PaginatedProvidersResponse schema validation."""
     provider_id = uuid.uuid4()
-    product_id = uuid.uuid4()
     now = datetime.utcnow()
 
     provider = ProviderResponse(
@@ -78,6 +82,34 @@ def test_catalog_response_schema():
         updated_at=now,
     )
 
+    paginated_response = PaginatedProvidersResponse(
+        items=[provider], total=1, limit=10, offset=0
+    )
+
+    assert len(paginated_response.items) == 1
+    assert paginated_response.total == 1
+    assert paginated_response.limit == 10
+    assert paginated_response.offset == 0
+    assert paginated_response.items[0].id == provider_id
+
+
+def test_paginated_providers_response_empty():
+    """Test PaginatedProvidersResponse with empty items."""
+    paginated_response = PaginatedProvidersResponse(
+        items=[], total=0, limit=10, offset=0
+    )
+
+    assert len(paginated_response.items) == 0
+    assert paginated_response.total == 0
+    assert paginated_response.items == []
+
+
+def test_paginated_products_response_schema():
+    """Test PaginatedProductsResponse schema validation."""
+    provider_id = uuid.uuid4()
+    product_id = uuid.uuid4()
+    now = datetime.utcnow()
+
     product = ProductResponse(
         id=product_id,
         provider_id=provider_id,
@@ -90,19 +122,23 @@ def test_catalog_response_schema():
         updated_at=now,
     )
 
-    catalog = CatalogResponse(providers=[provider], products=[product])
+    paginated_response = PaginatedProductsResponse(
+        items=[product], total=1, limit=10, offset=0
+    )
 
-    assert len(catalog.providers) == 1
-    assert len(catalog.products) == 1
-    assert catalog.providers[0].id == provider_id
-    assert catalog.products[0].id == product_id
+    assert len(paginated_response.items) == 1
+    assert paginated_response.total == 1
+    assert paginated_response.limit == 10
+    assert paginated_response.offset == 0
+    assert paginated_response.items[0].id == product_id
 
 
-def test_catalog_response_empty():
-    """Test CatalogResponse with empty lists."""
-    catalog = CatalogResponse(providers=[], products=[])
+def test_paginated_products_response_empty():
+    """Test PaginatedProductsResponse with empty items."""
+    paginated_response = PaginatedProductsResponse(
+        items=[], total=0, limit=10, offset=0
+    )
 
-    assert len(catalog.providers) == 0
-    assert len(catalog.products) == 0
-    assert catalog.providers == []
-    assert catalog.products == []
+    assert len(paginated_response.items) == 0
+    assert paginated_response.total == 0
+    assert paginated_response.items == []

@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
-from .controllers import catalog_router
+from .controllers import products_router, providers_router
 
-router = APIRouter(prefix="/web", tags=["web"])
+router = APIRouter(prefix="/bff/web", tags=["web"])
 
-router.include_router(catalog_router)
+router.include_router(providers_router)
+router.include_router(products_router)

@@ -70,43 +70,6 @@ async def test_get_products_success():
 
 
 @pytest.mark.asyncio
-async def test_get_catalog_success():
-    """Test successful catalog retrieval (both providers and products)."""
-    service = CatalogService()
-
-    mock_providers_response = {
-        "items": [{"id": "550e8400-e29b-41d4-a716-446655440000"}],
-        "total": 1,
-    }
-
-    mock_products_response = {
-        "items": [{"id": "660e8400-e29b-41d4-a716-446655440000"}],
-        "total": 1,
-    }
-
-    with patch("httpx.AsyncClient.get") as mock_get:
-
-        def side_effect(url, params=None):
-            mock_resp = AsyncMock()
-            if "providers" in url:
-                mock_resp.json = lambda: mock_providers_response
-            else:
-                mock_resp.json = lambda: mock_products_response
-            mock_resp.status_code = 200
-            mock_resp.raise_for_status = lambda: None
-            return mock_resp
-
-        mock_get.side_effect = side_effect
-
-        result = await service.get_catalog(providers_limit=10, products_limit=10)
-
-        assert "providers" in result
-        assert "products" in result
-        assert len(result["providers"]) == 1
-        assert len(result["products"]) == 1
-
-
-@pytest.mark.asyncio
 async def test_get_providers_http_error():
     """Test provider retrieval with HTTP error."""
     service = CatalogService()
