@@ -18,7 +18,7 @@ RUN poetry install --no-interaction --no-ansi
 COPY . .
 
 # Expose port
-EXPOSE 8001
+EXPOSE 8000
 
 # Run the application
-CMD ["poetry", "run", "python", "manage.py", "runserver", "--port", "8001", "--reload"]
+CMD ["poetry", "run", "python", "main.py", "runserver", "--port", "8000", "--reload"]
