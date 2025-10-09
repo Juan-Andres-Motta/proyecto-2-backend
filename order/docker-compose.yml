@@ -2,9 +2,9 @@ services:
   order:
     build: .
     ports:
-      - "8001:8000"
+      - "8005:8005"
     env_file:
       - .env
     volumes:
       - .:/app
-    command: poetry run python main.py runserver
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8005 --reload"

@@ -6,12 +6,12 @@ services:
   seller:
     build: .
     ports:
-      - "8006:8000"
+      - "8006:8006"
     env_file:
       - .env
     volumes:
       - .:/app
-    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8006 --reload"
     depends_on:
       - seller-db
     networks:

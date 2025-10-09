@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   microservices:
     driver: bridge
@@ -8,12 +6,12 @@ services:
   client:
     build: .
     ports:
-      - "8002:8000"
+      - "8002:8002"
     env_file:
       - .env
     volumes:
       - .:/app
-    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: poetry run python main.py runserver --port 8002 --reload
     depends_on:
       - client-db
     networks:

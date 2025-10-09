@@ -13,7 +13,7 @@ services:
       - ./bff:/app
     env_file:
       - ./bff/.env
-    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: poetry run python main.py runserver --port 8000 --reload
     depends_on:
       - catalog
       - client
@@ -27,12 +27,12 @@ services:
   catalog:
     build: ./catalog
     ports:
-      - "8001:8000"
+      - "8001:8001"
     env_file:
       - ./catalog/.env
     volumes:
       - ./catalog:/app
-    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8001 --reload"
     depends_on:
       - catalog-db
     networks:
@@ -52,9 +52,12 @@ services:
   client:
     build: ./client
     ports:
-      - "8002:8000"
+      - "8002:8002"
     env_file:
       - ./client/.env
+    volumes:
+      - ./client:/app
+    command: poetry run python main.py runserver --port 8002 --reload
     depends_on:
       - client-db
     networks:
@@ -74,9 +77,12 @@ services:
   delivery:
     build: ./delivery
     ports:
-      - "8003:8000"
+      - "8003:8003"
     env_file:
       - ./delivery/.env
+    volumes:
+      - ./delivery:/app
+    command: poetry run python main.py runserver --port 8003 --reload
     depends_on:
       - delivery-db
     networks:
@@ -96,9 +102,12 @@ services:
   inventory:
     build: ./inventory
     ports:
-      - "8004:8000"
+      - "8004:8004"
     env_file:
       - ./inventory/.env
+    volumes:
+      - ./inventory:/app
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8004 --reload"
     depends_on:
       - inventory-db
     networks:
@@ -118,9 +127,12 @@ services:
   order:
     build: ./order
     ports:
-      - "8005:8000"
+      - "8005:8005"
     env_file:
       - ./order/.env
+    volumes:
+      - ./order:/app
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8005 --reload"
     depends_on:
       - order-db
     networks:
@@ -140,9 +152,12 @@ services:
   seller:
     build: ./seller
     ports:
-      - "8006:8000"
+      - "8006:8006"
     env_file:
       - ./seller/.env
+    volumes:
+      - ./seller:/app
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8006 --reload"
     depends_on:
       - seller-db
     networks:

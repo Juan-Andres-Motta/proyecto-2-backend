@@ -7,4 +7,4 @@ services:
       - .env
     volumes:
       - .:/app
-    command: poetry run python main.py runserver
+    command: poetry run python main.py runserver --port 8000 --reload

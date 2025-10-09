@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the application
-CMD ["poetry", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "python", "main.py", "runserver", "--port", "8000", "--reload"]

@@ -2,9 +2,9 @@ services:
   seller:
     build: .
     ports:
-      - "8006:8000"
+      - "8006:8006"
     env_file:
       - .env
     volumes:
       - .:/app
-    command: poetry run python main.py runserver
+    command: sh -c "poetry run python main.py migrate && poetry run python main.py runserver --port 8006 --reload"

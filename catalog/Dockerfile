@@ -18,7 +18,7 @@ RUN poetry install --no-interaction --no-ansi
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8001
 
 # Run the application
-CMD ["poetry", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "python", "manage.py", "runserver", "--port", "8001", "--reload"]
