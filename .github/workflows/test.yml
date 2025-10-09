@@ -51,7 +51,7 @@ jobs:
     if: needs.detect-changes.outputs.bff == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
     if: needs.detect-changes.outputs.catalog == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -175,7 +175,7 @@ jobs:
     if: needs.detect-changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -237,7 +237,7 @@ jobs:
     if: needs.detect-changes.outputs.delivery == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -299,7 +299,7 @@ jobs:
     if: needs.detect-changes.outputs.inventory == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -361,7 +361,7 @@ jobs:
     if: needs.detect-changes.outputs.order == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -423,7 +423,7 @@ jobs:
     if: needs.detect-changes.outputs.seller == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
