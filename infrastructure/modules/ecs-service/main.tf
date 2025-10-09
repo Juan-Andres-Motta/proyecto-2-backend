@@ -39,13 +39,40 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  # Deployment configuration with circuit breaker (rollback on failure)
-  deployment_minimum_healthy_percent = 100
-  deployment_maximum_percent         = 200
+  # Native ECS Blue/Green Deployment (supports Service Connect!)
+  deployment_configuration {
+    deployment_type = "BLUE_GREEN"
 
-  deployment_circuit_breaker {
-    enable   = true
-    rollback = true # Automatic rollback on deployment failure
+    blue_green_deployment_config {
+      # Traffic routing configuration
+      traffic_routing {
+        type = "ALL_AT_ONCE"  # Can also be "TIME_BASED_CANARY" or "TIME_BASED_LINEAR"
+      }
+
+      # Termination configuration for original (blue) tasks
+      terminate_blue_tasks_on_deployment_success {
+        action                   = "TERMINATE"
+        termination_wait_time_in_minutes = 5  # Wait 5 minutes before terminating blue tasks
+      }
+
+      # Deployment success criteria
+      deployment_ready_option {
+        action_on_timeout = "STOP_DEPLOYMENT"  # Stop if deployment doesn't complete in time
+        wait_time_in_minutes = 10               # Wait up to 10 minutes for deployment to be ready
+      }
+    }
+
+    # Deployment circuit breaker (rollback on failure)
+    deployment_circuit_breaker {
+      enable   = true
+      rollback = true
+    }
+
+    # Minimum healthy percent during deployment
+    minimum_healthy_percent = 100
+
+    # Maximum percent during deployment
+    maximum_percent = 200
   }
 
   # Health check grace period for ALB
