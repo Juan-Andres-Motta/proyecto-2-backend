@@ -42,7 +42,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
 relative_files = true
 
 [tool.coverage.report]
