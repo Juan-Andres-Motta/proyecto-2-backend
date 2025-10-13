@@ -80,6 +80,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./bff
 
   test-catalog:
     name: Test Catalog Service
@@ -119,6 +120,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./catalog
 
   test-client:
     name: Test Client Service
@@ -158,6 +160,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./client
 
   test-delivery:
     name: Test Delivery Service
@@ -197,6 +200,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./delivery
 
   test-inventory:
     name: Test Inventory Service
@@ -236,6 +240,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./inventory
 
   test-order:
     name: Test Order Service
@@ -275,6 +280,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./order
 
   test-seller:
     name: Test Seller Service
@@ -314,3 +320,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
+          COVERAGE_PATH: ./seller
