@@ -4,11 +4,15 @@ from .catalog_schemas import (
     PaginatedProvidersResponse,
     ProductCreate,
     ProductResponse,
+    ProviderCreate,
+    ProviderCreateResponse,
     ProviderResponse,
 )
 from .enums import ProductCategory, ProductStatus
 
 __all__ = [
+    "ProviderCreate",
+    "ProviderCreateResponse",
     "ProviderResponse",
     "ProductResponse",
     "ProductCreate",
