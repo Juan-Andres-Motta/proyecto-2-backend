@@ -7,8 +7,8 @@ import pytest
 @pytest.mark.asyncio
 async def test_openapi_endpoint():
     """Test that OpenAPI spec is available"""
-    # Import app.py module (not the app package)
-    app_module = importlib.import_module("app.app")
+    # Import app.py module
+    app_module = importlib.import_module("app")
     fastapi_app = app_module.app
 
     async with AsyncClient(
@@ -25,8 +25,8 @@ async def test_openapi_endpoint():
 @pytest.mark.asyncio
 async def test_health_endpoint():
     """Test that health check endpoint is available"""
-    # Import app.py module (not the app package)
-    app_module = importlib.import_module("app.app")
+    # Import app.py module
+    app_module = importlib.import_module("app")
     fastapi_app = app_module.app
 
     async with AsyncClient(

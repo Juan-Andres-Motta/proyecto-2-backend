@@ -15,7 +15,7 @@ locals {
       SELLER_URL    = "http://seller.medisupply.local:8000"
     }
     catalog = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalog"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb"
       LOG_LEVEL    = "INFO"
       DEBUG_SQL    = "false"
     }
@@ -29,7 +29,7 @@ locals {
       DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_inventory.db_instance_address}:5432/inventory"
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/order"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/orderdb"
     }
     seller = {
       DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_seller.db_instance_address}:5432/seller"
@@ -152,7 +152,7 @@ module "rds_catalog" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "catalog"
+  db_name            = "catalogdb"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
@@ -204,7 +204,7 @@ module "rds_order" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "order"
+  db_name            = "orderdb"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id

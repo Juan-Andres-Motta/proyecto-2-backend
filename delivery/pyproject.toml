@@ -6,14 +6,39 @@ authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "fastapi[all] (>=0.118.0,<0.119.0)",
-    "httpx (>=0.28.1,<0.29.0)"
-]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.13"
+fastapi = {extras = ["all"], version = ">=0.118.0,<0.119.0"}
+httpx = ">=0.28.1,<0.29.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
+pytest-cov = "^6.0.0"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*"]
+
+[tool.coverage.report]
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
