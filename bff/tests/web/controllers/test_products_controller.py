@@ -1,3 +1,4 @@
+import io
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -5,6 +6,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from web.controllers.products_controller import router
+from web.schemas import ProductCategory, ProductStatus
 
 
 @pytest.mark.asyncio
@@ -19,10 +21,10 @@ async def test_get_products_success():
                 "id": "660e8400-e29b-41d4-a716-446655440000",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "test product",
-                "category": "electronics",
+                "category": ProductCategory.SPECIAL_MEDICATIONS.value,
                 "description": "test description",
                 "price": "99.99",
-                "status": "active",
+                "status": ProductStatus.ACTIVE.value,
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             }

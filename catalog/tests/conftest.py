@@ -8,8 +8,17 @@ from src.infrastructure.database.models import Base
 
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
-    # Use SQLite for tests
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    # Use SQLite for tests with FK constraints enabled
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
+
+    # Enable foreign key constraints for SQLite
+    async with engine.begin() as conn:
+        await conn.execute(text("PRAGMA foreign_keys=ON"))
+
     yield engine
     await engine.dispose()
 
@@ -31,6 +40,8 @@ async def db_session(test_engine, setup_database, clear_tables):
         test_engine, class_=AsyncSession, expire_on_commit=False
     )
     async with async_session() as session:
+        # Enable FK constraints for this session (SQLite requires per-connection)
+        await session.execute(text("PRAGMA foreign_keys=ON"))
         yield session
 
 

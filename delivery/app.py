@@ -1,13 +1,25 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
-app = FastAPI()
+app = FastAPI(
+    title="Delivery Service",
+    docs_url="/delivery/docs",
+    redoc_url="/delivery/redoc",
+    openapi_url="/delivery/openapi.json",
+)
+
+# Create router with /delivery prefix
+router = APIRouter(prefix="/delivery", tags=["delivery"])
 
 
-@app.get("/")
+@router.get("/")
 async def read_root():
     return {"name": "Delivery Service"}
 
 
-@app.get("/health")
+@router.get("/health")
 async def read_health():
     return {"status": "ok"}
+
+
+# Include router
+app.include_router(router)

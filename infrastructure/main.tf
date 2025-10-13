@@ -15,24 +15,24 @@ locals {
       SELLER_URL    = "http://seller.medisupply.local:8000"
     }
     catalog = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/catalog"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalog"
       LOG_LEVEL    = "INFO"
       DEBUG_SQL    = "false"
     }
     client = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/client"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_client.db_instance_address}:5432/client"
     }
     delivery = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/delivery"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_delivery.db_instance_address}:5432/delivery"
     }
     inventory = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/inventory"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_inventory.db_instance_address}:5432/inventory"
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/order"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/order"
     }
     seller = {
-      DATABASE_URL = "postgresql://postgres:password@localhost:5432/seller"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_seller.db_instance_address}:5432/seller"
     }
   }
 }
@@ -145,17 +145,83 @@ module "ecs_service" {
   depends_on = [module.alb]
 }
 
-# Note: RDS module is available in ./modules/rds but NOT applied
-# Uncomment and configure when ready to deploy databases
-#
-# module "rds_catalog" {
-#   source = "./modules/rds"
-#
-#   name_prefix        = local.name_prefix
-#   db_name            = "catalog"
-#   master_username    = "postgres"
-#   master_password    = "CHANGE_ME" # Use AWS Secrets Manager in production
-#   private_subnet_ids = module.vpc.private_subnet_ids
-#   security_group_id  = module.security_groups.rds_security_group_id
-#   tags               = local.common_tags
-# }
+# RDS Databases - One for each microservice
+# Using cheapest possible configuration (db.t3.micro, 20GB storage)
+
+module "rds_catalog" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "catalog"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1  # Minimal backups for cost savings
+  tags                    = local.common_tags
+}
+
+module "rds_client" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "client"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1
+  tags                    = local.common_tags
+}
+
+module "rds_delivery" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "delivery"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1
+  tags                    = local.common_tags
+}
+
+module "rds_inventory" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "inventory"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1
+  tags                    = local.common_tags
+}
+
+module "rds_order" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "order"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1
+  tags                    = local.common_tags
+}
+
+module "rds_seller" {
+  source = "./modules/rds"
+
+  name_prefix        = local.name_prefix
+  db_name            = "seller"
+  master_password    = var.db_master_password
+  private_subnet_ids = module.vpc.private_subnet_ids
+  security_group_id  = module.security_groups.rds_security_group_id
+
+  backup_retention_period = 1
+  tags                    = local.common_tags
+}
