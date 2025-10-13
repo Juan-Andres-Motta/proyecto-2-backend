@@ -38,6 +38,7 @@ async def db_session(test_engine):
 async def clear_tables(test_engine):
     # Clear tables before each test
     async with test_engine.begin() as conn:
+        await conn.execute(text("DELETE FROM sales_plans"))
         await conn.execute(text("DELETE FROM sellers"))
 
 
