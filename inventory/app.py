@@ -6,7 +6,7 @@ from src.adapters.input.controllers.common_controller import router as common_ro
 from src.adapters.input.controllers.inventory_controller import (
     router as inventory_router,
 )
-from src.adapters.input.controllers.store_controller import router as store_router
+from src.adapters.input.controllers.warehouse_controller import router as warehouse_router
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
 
@@ -31,5 +31,5 @@ app = FastAPI(
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
 app.include_router(common_router, prefix="/inventory")
-app.include_router(store_router, prefix="/inventory")
+app.include_router(warehouse_router, prefix="/inventory")
 app.include_router(inventory_router, prefix="/inventory")

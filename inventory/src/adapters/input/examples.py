@@ -1,20 +1,20 @@
-store_create_example = {
-    "name": "Main Store",
+warehouse_create_example = {
+    "name": "Main Warehouse",
     "country": "Colombia",
     "city": "Bogota",
     "address": "Calle 123 #45-67",
 }
 
-store_create_response_example = {
+warehouse_create_response_example = {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "Store created successfully",
+    "message": "Warehouse created successfully",
 }
 
-stores_list_response_example = {
+warehouses_list_response_example = {
     "items": [
         {
             "id": "550e8400-e29b-41d4-a716-446655440000",
-            "name": "main store",
+            "name": "main warehouse",
             "country": "CO",
             "city": "bogota",
             "address": "calle 123 #45-67",
@@ -31,7 +31,7 @@ stores_list_response_example = {
 
 inventory_create_example = {
     "product_id": "550e8400-e29b-41d4-a716-446655440001",
-    "store_id": "550e8400-e29b-41d4-a716-446655440000",
+    "warehouse_id": "550e8400-e29b-41d4-a716-446655440000",
     "total_quantity": 100,
     "reserved_quantity": 10,
     "batch_number": "BATCH001",
@@ -48,7 +48,7 @@ inventories_list_response_example = {
         {
             "id": "550e8400-e29b-41d4-a716-446655440002",
             "product_id": "550e8400-e29b-41d4-a716-446655440001",
-            "store_id": "550e8400-e29b-41d4-a716-446655440000",
+            "warehouse_id": "550e8400-e29b-41d4-a716-446655440000",
             "total_quantity": 100,
             "reserved_quantity": 10,
             "batch_number": "BATCH001",
