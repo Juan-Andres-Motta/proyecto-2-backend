@@ -15,25 +15,36 @@ locals {
       SELLER_URL    = "http://seller.medisupply.local:8000"
     }
     catalog = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
       LOG_LEVEL    = "INFO"
       DEBUG_SQL    = "false"
     }
     client = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_client.db_instance_address}:5432/client"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_client.db_instance_address}:5432/client2"
     }
     delivery = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_delivery.db_instance_address}:5432/delivery"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_delivery.db_instance_address}:5432/delivery2"
     }
     inventory = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_inventory.db_instance_address}:5432/inventory"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/orderdb"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
     }
     seller = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_seller.db_instance_address}:5432/seller"
+      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_seller.db_instance_address}:5432/seller2"
     }
+  }
+
+  # Service-specific health check paths
+  service_health_check_paths = {
+    bff       = "/bff/health"
+    catalog   = "/catalog/health"
+    client    = "/client/health"
+    delivery  = "/delivery/health"
+    inventory = "/inventory/health"
+    order     = "/order/health"
+    seller    = "/seller/health"
   }
 }
 
@@ -121,6 +132,7 @@ module "ecs_task_definition" {
   log_group_name       = module.cloudwatch[each.value].log_group_name
   aws_region           = var.aws_region
   container_port       = 8000
+  health_check_path    = local.service_health_check_paths[each.value]
   tags                 = local.common_tags
 }
 
@@ -152,76 +164,64 @@ module "rds_catalog" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "catalogdb"
+  db_name            = "catalogdb2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1  # Minimal backups for cost savings
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }
 
 module "rds_client" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "client"
+  db_name            = "client2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }
 
 module "rds_delivery" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "delivery"
+  db_name            = "delivery2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }
 
 module "rds_inventory" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "inventory"
+  db_name            = "inventory2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }
 
 module "rds_order" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "orderdb"
+  db_name            = "orderdb2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }
 
 module "rds_seller" {
   source = "./modules/rds"
 
   name_prefix        = local.name_prefix
-  db_name            = "seller"
+  db_name            = "seller2"
   master_password    = var.db_master_password
   private_subnet_ids = module.vpc.private_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
-
-  backup_retention_period = 1
-  tags                    = local.common_tags
+  tags               = local.common_tags
 }

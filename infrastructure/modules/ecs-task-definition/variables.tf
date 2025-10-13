@@ -62,3 +62,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "health_check_path" {
+  description = "Health check path for the container"
+  type        = string
+  default     = "/health"
+}
