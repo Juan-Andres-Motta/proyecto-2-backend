@@ -9,6 +9,12 @@ from .catalog_schemas import (
     ProviderResponse,
 )
 from .enums import ProductCategory, ProductStatus
+from .inventory_schemas import (
+    PaginatedWarehousesResponse,
+    WarehouseCreate,
+    WarehouseCreateResponse,
+    WarehouseResponse,
+)
 
 __all__ = [
     "ProviderCreate",
@@ -21,4 +27,8 @@ __all__ = [
     "BatchProductsResponse",
     "ProductStatus",
     "ProductCategory",
+    "WarehouseCreate",
+    "WarehouseCreateResponse",
+    "WarehouseResponse",
+    "PaginatedWarehousesResponse",
 ]

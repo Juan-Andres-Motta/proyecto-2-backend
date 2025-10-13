@@ -5,16 +5,16 @@ from uuid import UUID
 import pycountry
 from pydantic import BaseModel, field_validator
 
-from .examples import inventory_create_example, store_create_example
+from .examples import inventory_create_example, warehouse_create_example
 
 
-class StoreCreate(BaseModel):
+class WarehouseCreate(BaseModel):
     name: str
     country: str
     city: str
     address: str
 
-    model_config = {"json_schema_extra": {"examples": [store_create_example]}}
+    model_config = {"json_schema_extra": {"examples": [warehouse_create_example]}}
 
     @field_validator("name", "city", "address", "country")
     @classmethod
@@ -39,7 +39,7 @@ class StoreCreate(BaseModel):
             raise ValueError(f"Invalid country: {v}")
 
 
-class StoreResponse(BaseModel):
+class WarehouseResponse(BaseModel):
     id: UUID
     name: str
     country: str
@@ -49,8 +49,8 @@ class StoreResponse(BaseModel):
     updated_at: datetime
 
 
-class PaginatedStoresResponse(BaseModel):
-    items: List[StoreResponse]
+class PaginatedWarehousesResponse(BaseModel):
+    items: List[WarehouseResponse]
     total: int
     page: int
     size: int
@@ -60,7 +60,7 @@ class PaginatedStoresResponse(BaseModel):
 
 class InventoryCreate(BaseModel):
     product_id: UUID
-    store_id: UUID
+    warehouse_id: UUID
     total_quantity: int
     reserved_quantity: int
     batch_number: str

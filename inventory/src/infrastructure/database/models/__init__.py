@@ -1,5 +1,5 @@
 from .base import Base
 from .inventory import Inventory
-from .store import Store
+from .warehouse import Warehouse
 
-__all__ = ["Base", "Store", "Inventory"]
+__all__ = ["Base", "Warehouse", "Inventory"]

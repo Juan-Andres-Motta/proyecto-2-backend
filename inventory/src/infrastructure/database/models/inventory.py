@@ -18,7 +18,7 @@ class Inventory(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    store_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    warehouse_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     total_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     reserved_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     batch_number: Mapped[str] = mapped_column(String(255), nullable=False)

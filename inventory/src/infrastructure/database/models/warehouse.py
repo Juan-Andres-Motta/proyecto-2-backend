@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     pass  # No relationships for now
 
 
-class Store(Base):
-    __tablename__ = "stores"
+class Warehouse(Base):
+    __tablename__ = "warehouses"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
