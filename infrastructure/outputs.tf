@@ -74,3 +74,30 @@ output "log_group_names" {
   }
 }
 
+# RDS Database Endpoints
+output "rds_endpoints" {
+  description = "Map of database names to their RDS endpoints"
+  value = {
+    catalog   = module.rds_catalog.db_instance_endpoint
+    client    = module.rds_client.db_instance_endpoint
+    delivery  = module.rds_delivery.db_instance_endpoint
+    inventory = module.rds_inventory.db_instance_endpoint
+    order     = module.rds_order.db_instance_endpoint
+    seller    = module.rds_seller.db_instance_endpoint
+  }
+}
+
+# RDS Database Connection Strings
+output "rds_connection_strings" {
+  description = "Map of database names to their connection strings"
+  sensitive   = true
+  value = {
+    catalog   = module.rds_catalog.connection_string
+    client    = module.rds_client.connection_string
+    delivery  = module.rds_delivery.connection_string
+    inventory = module.rds_inventory.connection_string
+    order     = module.rds_order.connection_string
+    seller    = module.rds_seller.connection_string
+  }
+}
+

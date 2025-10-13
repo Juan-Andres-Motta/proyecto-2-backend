@@ -17,3 +17,9 @@ variable "services" {
     "seller"
   ]
 }
+
+variable "db_master_password" {
+  description = "Master password for all RDS databases"
+  type        = string
+  sensitive   = true
+}

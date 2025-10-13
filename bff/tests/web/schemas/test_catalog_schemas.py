@@ -10,6 +10,7 @@ from web.schemas import (
     ProductResponse,
     ProviderResponse,
 )
+from web.schemas.enums import ProductCategory, ProductStatus
 
 
 def test_provider_response_schema():
@@ -48,10 +49,10 @@ def test_product_response_schema():
         "id": product_id,
         "provider_id": provider_id,
         "name": "test product",
-        "category": "electronics",
+        "category": ProductCategory.SPECIAL_MEDICATIONS.value,
         "description": "test description",
         "price": Decimal("99.99"),
-        "status": "active",
+        "status": ProductStatus.ACTIVE.value,
         "created_at": now,
         "updated_at": now,
     }
@@ -116,10 +117,10 @@ def test_paginated_products_response_schema():
         id=product_id,
         provider_id=provider_id,
         name="test product",
-        category="electronics",
+        category=ProductCategory.SPECIAL_MEDICATIONS.value,
         description="test description",
         price=Decimal("99.99"),
-        status="active",
+        status=ProductStatus.ACTIVE.value,
         created_at=now,
         updated_at=now,
     )

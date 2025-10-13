@@ -30,3 +30,14 @@ app = FastAPI(
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
 app.include_router(web_router)
+
+
+@app.get("/bff/health", tags=["health"])
+async def health_check():
+    """
+    Health check endpoint for BFF service.
+
+    Returns:
+        Simple health status response
+    """
+    return {"status": "ok", "service": "bff"}

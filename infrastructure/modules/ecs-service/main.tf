@@ -39,23 +39,14 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  # Native ECS Blue/Green Deployment (supports Service Connect!)
-  deployment_configuration {
-    strategy = "BLUE_GREEN"
+  # Deployment settings - top level arguments per AWS provider v6.x
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
 
-    # Bake time: wait 5 minutes after deployment before terminating old tasks
-    # This allows you to monitor for issues and rollback if needed
-    bake_time_in_minutes = 5
-
-    # Circuit breaker for automatic rollback on deployment failure
-    deployment_circuit_breaker {
-      enable   = true
-      rollback = true
-    }
-
-    # Keep 100% healthy tasks during deployment
-    minimum_healthy_percent = 100
-    maximum_percent         = 200
+  # Circuit breaker for automatic rollback on deployment failure
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
 
   # Health check grace period for ALB

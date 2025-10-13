@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import httpx
 
@@ -53,6 +53,27 @@ class CatalogService:
             response = await client.get(
                 f"{self.catalog_url}/catalog/products",
                 params={"limit": limit, "offset": offset},
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def create_products(self, products: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create multiple products in the catalog microservice.
+
+        Args:
+            products: List of product dictionaries to create
+
+        Returns:
+            Dictionary with created products data
+
+        Raises:
+            httpx.HTTPError: If the request fails
+        """
+        async with httpx.AsyncClient(timeout=settings.service_timeout) as client:
+            response = await client.post(
+                f"{self.catalog_url}/catalog/products",
+                json={"products": products},
             )
             response.raise_for_status()
             return response.json()

@@ -28,6 +28,7 @@ flake8 = "^7.3.0"
 isort = "^6.1.0"
 pytest = "^8.4.2"
 pytest-asyncio = "^0.25.0"
+pytest-cov = "^6.0.0"
 
 [tool.black]
 line-length = 88
@@ -46,7 +47,21 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
+source = ["web", "common", "config"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*"]
 relative_files = true
+
+[tool.coverage.report]
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
