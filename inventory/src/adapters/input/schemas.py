@@ -84,7 +84,7 @@ class InventoryCreate(BaseModel):
 class InventoryResponse(BaseModel):
     id: UUID
     product_id: UUID
-    store_id: UUID
+    warehouse_id: UUID
     total_quantity: int
     reserved_quantity: int
     batch_number: str
