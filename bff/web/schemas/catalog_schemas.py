@@ -3,6 +3,22 @@ from decimal import Decimal
 from typing import List
 from uuid import UUID
 
+from pydantic import BaseModel, EmailStr
+
+
+class ProviderCreate(BaseModel):
+    name: str
+    nit: str
+    contact_name: str
+    email: EmailStr
+    phone: str
+    address: str
+    country: str
+
+
+class ProviderCreateResponse(BaseModel):
+    id: str
+    message: str
 from pydantic import BaseModel, Field
 
 from .enums import ProductCategory, ProductStatus

@@ -9,6 +9,27 @@ class CatalogService:
     def __init__(self):
         self.catalog_url = settings.catalog_url
 
+    async def create_provider(self, provider_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a new provider in the catalog microservice.
+
+        Args:
+            provider_data: Dictionary with provider data
+
+        Returns:
+            Dictionary with created provider id and message
+
+        Raises:
+            httpx.HTTPError: If the request fails
+        """
+        async with httpx.AsyncClient(timeout=settings.service_timeout) as client:
+            response = await client.post(
+                f"{self.catalog_url}/catalog/provider",
+                json=provider_data,
+            )
+            response.raise_for_status()
+            return response.json()
+
     async def get_providers(
         self, limit: int = 10, offset: int = 0
     ) -> Dict[str, Any]:

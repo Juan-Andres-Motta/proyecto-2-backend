@@ -112,3 +112,70 @@ async def test_get_providers_with_pagination():
         call_args = mock_get.call_args
         assert call_args.kwargs["params"]["limit"] == 5
         assert call_args.kwargs["params"]["offset"] == 10
+
+
+@pytest.mark.asyncio
+async def test_create_provider_success():
+    """Test successful provider creation."""
+    service = CatalogService()
+
+    provider_data = {
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "United States",
+    }
+
+    mock_response = {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "message": "Provider created successfully",
+    }
+
+    with patch("httpx.AsyncClient.post") as mock_post:
+        mock_post.return_value = AsyncMock(
+            status_code=201,
+            json=lambda: mock_response,
+        )
+        mock_post.return_value.raise_for_status = lambda: None
+
+        result = await service.create_provider(provider_data)
+
+        assert result == mock_response
+        assert "id" in result
+        assert result["message"] == "Provider created successfully"
+        mock_post.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_provider_http_error():
+    """Test provider creation with HTTP error."""
+    service = CatalogService()
+
+    provider_data = {
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "United States",
+    }
+
+    with patch("httpx.AsyncClient.post") as mock_post:
+        mock_response = AsyncMock(status_code=500)
+
+        def raise_error():
+            raise httpx.HTTPStatusError(
+                "Internal Server Error",
+                request=AsyncMock(),
+                response=AsyncMock(status_code=500),
+            )
+
+        mock_response.raise_for_status = raise_error
+        mock_post.return_value = mock_response
+
+        with pytest.raises(httpx.HTTPStatusError):
+            await service.create_provider(provider_data)

@@ -1,10 +1,58 @@
 from fastapi import APIRouter, HTTPException, Query
 import httpx
 
-from ..schemas import PaginatedProvidersResponse
+from ..schemas import PaginatedProvidersResponse, ProviderCreate, ProviderCreateResponse
 from ..services import CatalogService
 
 router = APIRouter()
+
+
+@router.post(
+    "/provider",
+    response_model=ProviderCreateResponse,
+    status_code=201,
+    responses={
+        201: {
+            "description": "Provider created successfully"
+        },
+        400: {"description": "Invalid provider data"},
+        500: {"description": "Error communicating with catalog microservice"},
+    },
+)
+async def create_provider(provider: ProviderCreate):
+    """
+    Create a new provider in the catalog microservice.
+
+    Args:
+        provider: Provider data to create
+
+    Returns:
+        Created provider id and success message
+    """
+    try:
+        catalog_service = CatalogService()
+        result = await catalog_service.create_provider(provider.model_dump())
+        return ProviderCreateResponse(**result)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 400:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid provider data: {e.response.text}",
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating provider: Catalog service returned {e.response.status_code}",
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating provider: Unable to connect to catalog service",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating provider: {type(e).__name__}",
+        )
 
 
 @router.get(

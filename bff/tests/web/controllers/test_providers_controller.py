@@ -158,3 +158,118 @@ async def test_get_providers_empty_response():
         data = response.json()
         assert data["items"] == []
         assert data["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_create_provider_success():
+    """Test successful provider creation."""
+    app = FastAPI()
+    app.include_router(router)
+
+    provider_data = {
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "United States",
+    }
+
+    mock_response = {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "message": "Provider created successfully",
+    }
+
+    with patch(
+        "web.controllers.providers_controller.CatalogService"
+    ) as MockCatalogService:
+        mock_service = MockCatalogService.return_value
+        mock_service.create_provider = AsyncMock(return_value=mock_response)
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post("/provider", json=provider_data)
+
+        assert response.status_code == 201
+        data = response.json()
+        assert "id" in data
+        assert data["message"] == "Provider created successfully"
+        mock_service.create_provider.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_provider_invalid_email():
+    """Test provider creation with invalid email."""
+    app = FastAPI()
+    app.include_router(router)
+
+    provider_data = {
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "invalid-email",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "United States",
+    }
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/provider", json=provider_data)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_provider_missing_fields():
+    """Test provider creation with missing required fields."""
+    app = FastAPI()
+    app.include_router(router)
+
+    provider_data = {
+        "name": "Test Provider",
+        "email": "john@test.com",
+    }
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/provider", json=provider_data)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_provider_service_error():
+    """Test provider creation when service raises an error."""
+    app = FastAPI()
+    app.include_router(router)
+
+    provider_data = {
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "United States",
+    }
+
+    with patch(
+        "web.controllers.providers_controller.CatalogService"
+    ) as MockCatalogService:
+        mock_service = MockCatalogService.return_value
+        mock_service.create_provider = AsyncMock(
+            side_effect=Exception("Service unavailable")
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post("/provider", json=provider_data)
+
+        assert response.status_code == 500
+        assert "error" in response.json()["detail"].lower()
