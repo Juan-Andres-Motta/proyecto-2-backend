@@ -49,6 +49,7 @@ asyncio_mode = "auto"
 [tool.coverage.run]
 source = ["web", "common", "config"]
 omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*"]
+relative_files = true
 
 [tool.coverage.report]
 precision = 2

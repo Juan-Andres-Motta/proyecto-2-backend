@@ -27,6 +27,7 @@ pythonpath = ["."]
 [tool.coverage.run]
 source = ["src"]
 omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*"]
+relative_files = true
 
 [tool.coverage.report]
 precision = 2
