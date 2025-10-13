@@ -5,6 +5,9 @@ WORKDIR /app
 # Set PYTHONPATH
 ENV PYTHONPATH=/app
 
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Install Poetry
 RUN pip install --no-cache-dir poetry
 

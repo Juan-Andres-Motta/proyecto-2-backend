@@ -11,20 +11,19 @@ resource "aws_db_subnet_group" "main" {
   )
 }
 
-# RDS PostgreSQL Instance
+# RDS PostgreSQL Instance - Simplified for fast startup
 resource "aws_db_instance" "main" {
   identifier     = "${var.name_prefix}-${var.db_name}"
   engine         = "postgres"
-  engine_version = var.engine_version
+  engine_version = "15"
 
-  # Free tier instance class
-  instance_class = var.instance_class
+  # Smallest instance class
+  instance_class = "db.t3.micro"
 
-  # Storage configuration
-  allocated_storage     = var.allocated_storage
-  max_allocated_storage = var.max_allocated_storage
-  storage_type          = "gp3"
-  storage_encrypted     = true
+  # Minimal storage configuration
+  allocated_storage = 20
+  storage_type      = "gp3"
+  storage_encrypted = false  # Faster startup without encryption
 
   # Database configuration
   db_name  = var.db_name
@@ -37,20 +36,18 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [var.security_group_id]
   publicly_accessible    = false
 
-  # Backup configuration
-  backup_retention_period = var.backup_retention_period
-  backup_window           = "03:00-04:00"
-  maintenance_window      = "mon:04:00-mon:05:00"
+  # No backups for faster startup
+  backup_retention_period = 0
+  skip_final_snapshot     = true
 
-  # High availability (disabled for free tier)
-  multi_az = var.multi_az
+  # Single AZ for faster startup
+  multi_az = false
 
-  # Deletion protection
-  deletion_protection = var.deletion_protection
-  skip_final_snapshot = var.skip_final_snapshot
+  # No deletion protection
+  deletion_protection = false
 
-  # Performance Insights (disabled for cost savings)
-  enabled_cloudwatch_logs_exports = var.enable_cloudwatch_logs ? ["postgresql"] : []
+  # Apply changes immediately
+  apply_immediately = true
 
   tags = merge(
     var.tags,
