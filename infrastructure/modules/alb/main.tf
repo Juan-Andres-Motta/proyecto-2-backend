@@ -22,7 +22,7 @@ resource "aws_lb_target_group" "service" {
   for_each = toset(var.services)
 
   name        = "${var.name_prefix}-${each.value}-tg"
-  port        = 8000
+  port        = var.service_container_ports[each.value]
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"

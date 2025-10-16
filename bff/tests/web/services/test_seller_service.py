@@ -229,3 +229,96 @@ async def test_get_sales_plans_http_error():
 
         with pytest.raises(httpx.HTTPStatusError):
             await service.get_sales_plans()
+
+
+@pytest.mark.asyncio
+async def test_get_seller_sales_plans_success():
+    """Test successful seller sales plans retrieval."""
+    service = SellerService()
+
+    seller_id = "550e8400-e29b-41d4-a716-446655440000"
+    mock_response = {
+        "items": [
+            {
+                "id": "660e8400-e29b-41d4-a716-446655440000",
+                "seller_id": "550e8400-e29b-41d4-a716-446655440000",
+                "sales_period": "Q1_2024",
+                "goal_type": "sales",
+                "goal": "100000.00",
+                "accumulate": "25000.00",
+                "status": "active",
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T10:30:00Z",
+            }
+        ],
+        "total": 1,
+        "page": 1,
+        "size": 1,
+        "has_next": False,
+        "has_previous": False,
+    }
+
+    with patch("httpx.AsyncClient.get") as mock_get:
+        mock_get.return_value = AsyncMock(
+            status_code=200,
+            json=lambda: mock_response,
+        )
+        mock_get.return_value.raise_for_status = lambda: None
+
+        result = await service.get_seller_sales_plans(seller_id=seller_id, limit=10, offset=0)
+
+        assert result == mock_response
+        assert len(result["items"]) == 1
+        assert result["items"][0]["seller_id"] == seller_id
+
+
+@pytest.mark.asyncio
+async def test_get_seller_sales_plans_empty():
+    """Test seller sales plans retrieval when seller has no plans."""
+    service = SellerService()
+
+    seller_id = "550e8400-e29b-41d4-a716-446655440000"
+    mock_response = {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 0,
+        "has_next": False,
+        "has_previous": False,
+    }
+
+    with patch("httpx.AsyncClient.get") as mock_get:
+        mock_get.return_value = AsyncMock(
+            status_code=200,
+            json=lambda: mock_response,
+        )
+        mock_get.return_value.raise_for_status = lambda: None
+
+        result = await service.get_seller_sales_plans(seller_id=seller_id, limit=10, offset=0)
+
+        assert result == mock_response
+        assert len(result["items"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_seller_sales_plans_http_error():
+    """Test seller sales plans retrieval with HTTP error."""
+    service = SellerService()
+
+    seller_id = "550e8400-e29b-41d4-a716-446655440000"
+
+    with patch("httpx.AsyncClient.get") as mock_get:
+        mock_response = AsyncMock(status_code=500)
+
+        def raise_error():
+            raise httpx.HTTPStatusError(
+                "Internal Server Error",
+                request=AsyncMock(),
+                response=AsyncMock(status_code=500),
+            )
+
+        mock_response.raise_for_status = raise_error
+        mock_get.return_value = mock_response
+
+        with pytest.raises(httpx.HTTPStatusError):
+            await service.get_seller_sales_plans(seller_id=seller_id)
