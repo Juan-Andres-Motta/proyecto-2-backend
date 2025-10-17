@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from .controllers import (
+    orders_router,
     products_router,
     providers_router,
     sales_plans_router,
@@ -15,3 +16,4 @@ router.include_router(products_router)
 router.include_router(warehouses_router)
 router.include_router(sellers_router)
 router.include_router(sales_plans_router)
+router.include_router(orders_router)

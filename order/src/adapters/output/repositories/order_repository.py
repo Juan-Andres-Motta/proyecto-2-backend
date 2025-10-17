@@ -24,7 +24,12 @@ class OrderRepository:
             self.session.add(item)
 
         await self.session.commit()
-        await self.session.refresh(order)
+
+        # Reload the order with items
+        stmt = select(Order).options(selectinload(Order.items)).where(Order.id == order.id)
+        result = await self.session.execute(stmt)
+        order = result.scalar_one()
+
         return order
 
     async def list_orders(
