@@ -1,18 +1,29 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.input.examples import (
+    sales_plans_list_response_example,
     seller_create_response_example,
     sellers_list_response_example,
 )
 from src.adapters.input.schemas import (
+    PaginatedSalesPlansResponse,
     PaginatedSellersResponse,
+    SalesPlanResponse,
     SellerCreate,
     SellerResponse,
 )
+from src.adapters.output.repositories.sales_plan_repository import (
+    SalesPlanRepository,
+)
 from src.adapters.output.repositories.seller_repository import SellerRepository
 from src.application.use_cases.create_seller import CreateSellerUseCase
+from src.application.use_cases.list_seller_sales_plans import (
+    ListSellerSalesPlansUseCase,
+)
 from src.application.use_cases.list_sellers import ListSellersUseCase
 from src.infrastructure.database.config import get_db
 
@@ -74,6 +85,46 @@ async def list_sellers(
         total=total,
         page=page,
         size=len(sellers),
+        has_next=has_next,
+        has_previous=has_previous,
+    )
+
+
+@router.get(
+    "/sellers/{seller_id}/sales-plans",
+    response_model=PaginatedSalesPlansResponse,
+    responses={
+        200: {
+            "description": "List of sales plans for a specific seller",
+            "content": {"application/json": {"example": sales_plans_list_response_example}},
+        }
+    },
+)
+async def list_seller_sales_plans(
+    seller_id: UUID,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """List sales plans for a specific seller with pagination."""
+    repository = SalesPlanRepository(db)
+    use_case = ListSellerSalesPlansUseCase(repository)
+
+    sales_plans, total = await use_case.execute(
+        seller_id=seller_id, limit=limit, offset=offset
+    )
+
+    page = (offset // limit) + 1
+    has_next = (offset + limit) < total
+    has_previous = offset > 0
+
+    return PaginatedSalesPlansResponse(
+        items=[
+            SalesPlanResponse.from_domain(plan) for plan in sales_plans
+        ],
+        total=total,
+        page=page,
+        size=len(sales_plans),
         has_next=has_next,
         has_previous=has_previous,
     )

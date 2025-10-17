@@ -89,6 +89,40 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
 
         return domain_sales_plans, total
 
+    async def list_sales_plans_by_seller(
+        self,
+        seller_id: UUID,
+        limit: int = 10,
+        offset: int = 0
+    ) -> Tuple[List[DomainSalesPlan], int]:
+        """List sales plans for a specific seller with eager-loaded seller data."""
+        # Get total count for this seller
+        count_stmt = (
+            select(func.count())
+            .select_from(ORMSalesPlan)
+            .where(ORMSalesPlan.seller_id == seller_id)
+        )
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar()
+
+        # Get paginated data with eager loading
+        stmt = (
+            select(ORMSalesPlan)
+            .options(selectinload(ORMSalesPlan.seller))  # Eager load seller
+            .where(ORMSalesPlan.seller_id == seller_id)
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        orm_sales_plans = result.scalars().all()
+
+        # Map to domain entities
+        domain_sales_plans = [
+            self._to_domain(orm_plan) for orm_plan in orm_sales_plans
+        ]
+
+        return domain_sales_plans, total
+
     @staticmethod
     def _to_domain(orm_sales_plan: ORMSalesPlan) -> DomainSalesPlan:
         """Map ORM model to domain entity with nested Seller."""
