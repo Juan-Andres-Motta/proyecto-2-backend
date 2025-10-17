@@ -33,28 +33,48 @@ sellers_list_response_example = {
 
 sales_plan_create_example = {
     "seller_id": "550e8400-e29b-41d4-a716-446655440000",
-    "sales_period": "2025-Q1",
-    "goal_type": "sales",
+    "sales_period": "Q1-2025",
     "goal": 10000.00,
-    "accumulate": 0.00,
-    "status": "active",
 }
 
 sales_plan_create_response_example = {
     "id": "550e8400-e29b-41d4-a716-446655440001",
-    "message": "Sales plan created successfully",
+    "seller": {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "john doe sales",
+        "email": "john@sales.com",
+        "phone": "+1-555-0123",
+        "city": "new york",
+        "country": "US",
+        "created_at": "2025-01-15T10:30:00Z",
+        "updated_at": "2025-01-15T10:30:00Z",
+    },
+    "sales_period": "Q1-2025",
+    "goal": 10000.00,
+    "accumulate": 0.00,
+    "status": "in_progress",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T10:30:00Z",
 }
 
 sales_plans_list_response_example = {
     "items": [
         {
             "id": "550e8400-e29b-41d4-a716-446655440001",
-            "seller_id": "550e8400-e29b-41d4-a716-446655440000",
-            "sales_period": "2025-Q1",
-            "goal_type": "sales",
+            "seller": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "john doe sales",
+                "email": "john@sales.com",
+                "phone": "+1-555-0123",
+                "city": "new york",
+                "country": "US",
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T10:30:00Z",
+            },
+            "sales_period": "Q1-2025",
             "goal": 10000.00,
             "accumulate": 2500.00,
-            "status": "active",
+            "status": "in_progress",
             "created_at": "2025-01-15T10:30:00Z",
             "updated_at": "2025-01-15T10:30:00Z",
         }

@@ -1,7 +1,7 @@
 import pytest
 
 from src.adapters.output.repositories.product_repository import ProductRepository
-from src.infrastructure.database.models import ProductCategory, ProductStatus
+from src.infrastructure.database.models import ProductCategory
 
 
 @pytest.mark.asyncio
@@ -41,9 +41,8 @@ async def test_list_products_with_data(db_session):
             provider_id=provider.id,
             name=f"Product {i}",
             category=ProductCategory.SPECIAL_MEDICATIONS.value,
-            description=f"Description {i}",
+            sku=f"SKU-{i}",
             price=100.00 + i,
-            status=ProductStatus.ACTIVE.value,
         )
         db_session.add(product)
     await db_session.commit()
@@ -81,9 +80,8 @@ async def test_list_products_pagination(db_session):
             provider_id=provider.id,
             name=f"Product {i}",
             category=ProductCategory.OTHER.value,
-            description=f"Description {i}",
+            sku=f"SKU-PAGINATED-{i}",
             price=100.00 + i,
-            status=ProductStatus.ACTIVE.value,
         )
         db_session.add(product)
     await db_session.commit()
@@ -126,17 +124,15 @@ async def test_batch_create_products_success(db_session):
             "provider_id": provider.id,
             "name": "Product 1",
             "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-            "description": "Description 1",
+            "sku": "SKU-BATCH-1",
             "price": 100.00,
-            "status": ProductStatus.ACTIVE.value,
         },
         {
             "provider_id": provider.id,
             "name": "Product 2",
             "category": ProductCategory.SURGICAL_SUPPLIES.value,
-            "description": "Description 2",
+            "sku": "SKU-BATCH-2",
             "price": 200.00,
-            "status": ProductStatus.PENDING_APPROVAL.value,
         },
     ]
 
@@ -164,9 +160,8 @@ async def test_batch_create_products_rollback_on_error(db_session):
             "provider_id": invalid_provider_id,  # This will fail
             "name": "Product 1",
             "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-            "description": "Description 1",
+            "sku": "SKU-FAIL-1",
             "price": 100.00,
-            "status": ProductStatus.ACTIVE.value,
         },
     ]
 

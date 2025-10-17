@@ -16,10 +16,14 @@ from src.adapters.input.schemas import (
     SellerCreate,
     SellerResponse,
 )
-from src.adapters.output.repositories.sales_plan_repository import SalesPlanRepository
+from src.adapters.output.repositories.sales_plan_repository import (
+    SalesPlanRepository,
+)
 from src.adapters.output.repositories.seller_repository import SellerRepository
 from src.application.use_cases.create_seller import CreateSellerUseCase
-from src.application.use_cases.list_seller_sales_plans import ListSellerSalesPlansUseCase
+from src.application.use_cases.list_seller_sales_plans import (
+    ListSellerSalesPlansUseCase,
+)
 from src.application.use_cases.list_sellers import ListSellersUseCase
 from src.infrastructure.database.config import get_db
 
@@ -62,36 +66,28 @@ async def create_seller(seller: SellerCreate, db: AsyncSession = Depends(get_db)
 async def list_sellers(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    all: bool = Query(False, description="Return all sellers without pagination"),
     db: AsyncSession = Depends(get_db),
 ):
     repository = SellerRepository(db)
     use_case = ListSellersUseCase(repository)
 
-    if all:
-        sellers, _ = await use_case.execute(limit=None, offset=0)
-        return [
+    sellers, total = await use_case.execute(limit=limit, offset=offset)
+
+    page = (offset // limit) + 1
+    has_next = (offset + limit) < total
+    has_previous = offset > 0
+
+    return PaginatedSellersResponse(
+        items=[
             SellerResponse.model_validate(seller, from_attributes=True)
             for seller in sellers
-        ]
-    else:
-        sellers, total = await use_case.execute(limit=limit, offset=offset)
-
-        page = (offset // limit) + 1
-        has_next = (offset + limit) < total
-        has_previous = offset > 0
-
-        return PaginatedSellersResponse(
-            items=[
-                SellerResponse.model_validate(seller, from_attributes=True)
-                for seller in sellers
-            ],
-            total=total,
-            page=page,
-            size=len(sellers),
-            has_next=has_next,
-            has_previous=has_previous,
-        )
+        ],
+        total=total,
+        page=page,
+        size=len(sellers),
+        has_next=has_next,
+        has_previous=has_previous,
+    )
 
 
 @router.get(
@@ -100,9 +96,7 @@ async def list_sellers(
     responses={
         200: {
             "description": "List of sales plans for a specific seller",
-            "content": {
-                "application/json": {"example": sales_plans_list_response_example}
-            },
+            "content": {"application/json": {"example": sales_plans_list_response_example}},
         }
     },
 )
@@ -112,8 +106,10 @@ async def list_seller_sales_plans(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
+    """List sales plans for a specific seller with pagination."""
     repository = SalesPlanRepository(db)
     use_case = ListSellerSalesPlansUseCase(repository)
+
     sales_plans, total = await use_case.execute(
         seller_id=seller_id, limit=limit, offset=offset
     )
@@ -124,8 +120,7 @@ async def list_seller_sales_plans(
 
     return PaginatedSalesPlansResponse(
         items=[
-            SalesPlanResponse.model_validate(sales_plan, from_attributes=True)
-            for sales_plan in sales_plans
+            SalesPlanResponse.from_domain(plan) for plan in sales_plans
         ],
         total=total,
         page=page,

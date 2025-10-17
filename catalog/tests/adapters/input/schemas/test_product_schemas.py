@@ -12,7 +12,7 @@ from src.adapters.input.schemas import (
     ProductCreate,
     ProductResponse,
 )
-from src.infrastructure.database.models import ProductCategory, ProductStatus
+from src.infrastructure.database.models import ProductCategory
 
 
 def test_product_response_schema():
@@ -26,9 +26,8 @@ def test_product_response_schema():
         "provider_id": provider_id,
         "name": "test product",
         "category": ProductCategory.SPECIAL_MEDICATIONS,
-        "description": "test description",
+        "sku": "SKU-TEST-001",
         "price": Decimal("99.99"),
-        "status": ProductStatus.ACTIVE,
         "created_at": now,
         "updated_at": now,
     }
@@ -39,9 +38,8 @@ def test_product_response_schema():
     assert product.provider_id == provider_id
     assert product.name == "test product"
     assert product.category == ProductCategory.SPECIAL_MEDICATIONS
-    assert product.description == "test description"
+    assert product.sku == "SKU-TEST-001"
     assert product.price == Decimal("99.99")
-    assert product.status == ProductStatus.ACTIVE
 
 
 def test_product_create_schema():
@@ -52,9 +50,8 @@ def test_product_create_schema():
         "provider_id": provider_id,
         "name": "New Product",
         "category": ProductCategory.SURGICAL_SUPPLIES,
-        "description": "Product description",
+        "sku": "SKU-NEW-001",
         "price": Decimal("150.00"),
-        "status": ProductStatus.PENDING_APPROVAL,
     }
 
     product = ProductCreate(**product_data)
@@ -62,23 +59,7 @@ def test_product_create_schema():
     assert product.provider_id == provider_id
     assert product.name == "New Product"
     assert product.category == ProductCategory.SURGICAL_SUPPLIES
-    assert product.status == ProductStatus.PENDING_APPROVAL
-
-
-def test_product_create_default_status():
-    """Test ProductCreate uses default status when not provided."""
-    provider_id = uuid.uuid4()
-
-    product_data = {
-        "provider_id": provider_id,
-        "name": "New Product",
-        "category": ProductCategory.OTHER,
-        "description": "Product description",
-        "price": Decimal("150.00"),
-    }
-
-    product = ProductCreate(**product_data)
-    assert product.status == ProductStatus.PENDING_APPROVAL
+    assert product.sku == "SKU-NEW-001"
 
 
 def test_product_create_invalid_category():
@@ -89,7 +70,7 @@ def test_product_create_invalid_category():
         "provider_id": provider_id,
         "name": "New Product",
         "category": "invalid_category",
-        "description": "Product description",
+        "sku": "SKU-INVALID-001",
         "price": Decimal("150.00"),
     }
 
@@ -97,25 +78,6 @@ def test_product_create_invalid_category():
         ProductCreate(**product_data)
 
     assert "category" in str(exc_info.value)
-
-
-def test_product_create_invalid_status():
-    """Test ProductCreate rejects invalid status."""
-    provider_id = uuid.uuid4()
-
-    product_data = {
-        "provider_id": provider_id,
-        "name": "New Product",
-        "category": ProductCategory.OTHER,
-        "description": "Product description",
-        "price": Decimal("150.00"),
-        "status": "invalid_status",
-    }
-
-    with pytest.raises(ValidationError) as exc_info:
-        ProductCreate(**product_data)
-
-    assert "status" in str(exc_info.value)
 
 
 def test_product_create_invalid_price():
@@ -126,7 +88,7 @@ def test_product_create_invalid_price():
         "provider_id": provider_id,
         "name": "New Product",
         "category": ProductCategory.OTHER,
-        "description": "Product description",
+        "sku": "SKU-PRICE-001",
         "price": Decimal("0.00"),
     }
 
@@ -145,14 +107,14 @@ def test_batch_products_request():
             provider_id=provider_id,
             name="Product 1",
             category=ProductCategory.SPECIAL_MEDICATIONS,
-            description="Description 1",
+            sku="SKU-BATCH-REQ-1",
             price=Decimal("100.00"),
         ),
         ProductCreate(
             provider_id=provider_id,
             name="Product 2",
             category=ProductCategory.SURGICAL_SUPPLIES,
-            description="Description 2",
+            sku="SKU-BATCH-REQ-2",
             price=Decimal("200.00"),
         ),
     ]
@@ -183,9 +145,8 @@ def test_batch_products_response():
             provider_id=provider_id,
             name="Product",
             category=ProductCategory.OTHER,
-            description="Description",
+            sku="SKU-BATCH-RESP-1",
             price=Decimal("100.00"),
-            status=ProductStatus.ACTIVE,
             created_at=now,
             updated_at=now,
         )
@@ -207,9 +168,8 @@ def test_paginated_products_response_schema():
         provider_id=provider_id,
         name="test product",
         category=ProductCategory.BIOMEDICAL_EQUIPMENT,
-        description="test description",
+        sku="SKU-PAGINATED-1",
         price=Decimal("99.99"),
-        status=ProductStatus.ACTIVE,
         created_at=now,
         updated_at=now,
     )

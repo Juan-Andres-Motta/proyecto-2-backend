@@ -3,9 +3,9 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
-from src.infrastructure.database.models import ProductCategory, ProductStatus
+from src.infrastructure.database.models import ProductCategory
 
 
 class ProductCreate(BaseModel):
@@ -15,27 +15,34 @@ class ProductCreate(BaseModel):
         ...,
         description="Product category"
     )
-    description: str = Field(..., min_length=1, max_length=1000, description="Product description")
+    sku: str = Field(..., min_length=1, max_length=100, description="Product SKU (unique identifier)")
     price: Decimal = Field(..., gt=0, description="Product price (must be greater than 0)")
-    status: ProductStatus = Field(
-        default=ProductStatus.PENDING_APPROVAL,
-        description="Product status"
-    )
 
 
 class ProductResponse(BaseModel):
     id: UUID
     provider_id: UUID
     name: str
-    category: ProductCategory
-    description: str
+    category: str
+    sku: str
     price: Decimal
-    status: ProductStatus
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer('category')
+    def serialize_category(self, category: str) -> str:
+        """Transform database category to human-readable Spanish format"""
+        category_labels = {
+            "medicamentos_especiales": "Medicamentos Especiales",
+            "insumos_quirurgicos": "Insumos Quirúrgicos",
+            "reactivos_diagnosticos": "Reactivos Diagnósticos",
+            "equipos_biomedicos": "Equipos Biomédicos",
+            "otros": "Otros"
+        }
+        return category_labels.get(category, category)
+
     class Config:
-        use_enum_values = True  # Serialize enums as their values (strings)
+        from_attributes = True
 
 
 class BatchProductsRequest(BaseModel):

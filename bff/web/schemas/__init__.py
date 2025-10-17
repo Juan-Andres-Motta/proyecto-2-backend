@@ -8,7 +8,7 @@ from .catalog_schemas import (
     ProviderCreateResponse,
     ProviderResponse,
 )
-from .enums import ProductCategory, ProductStatus
+from .enums import ProductCategory
 from .inventory_schemas import (
     PaginatedWarehousesResponse,
     WarehouseCreate,
@@ -16,13 +16,11 @@ from .inventory_schemas import (
     WarehouseResponse,
 )
 from .seller_schemas import (
-    GoalType,
     PaginatedSalesPlansResponse,
     PaginatedSellersResponse,
     SalesPlanCreate,
     SalesPlanCreateResponse,
     SalesPlanResponse,
-    SalesPlanStatus,
     SellerCreate,
     SellerCreateResponse,
     SellerResponse,
@@ -37,7 +35,6 @@ __all__ = [
     "PaginatedProvidersResponse",
     "PaginatedProductsResponse",
     "BatchProductsResponse",
-    "ProductStatus",
     "ProductCategory",
     "WarehouseCreate",
     "WarehouseCreateResponse",
@@ -51,6 +48,4 @@ __all__ = [
     "SalesPlanCreateResponse",
     "SalesPlanResponse",
     "PaginatedSalesPlansResponse",
-    "GoalType",
-    "SalesPlanStatus",
 ]

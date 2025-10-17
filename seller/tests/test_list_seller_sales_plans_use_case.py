@@ -9,7 +9,8 @@ from src.adapters.output.repositories.seller_repository import SellerRepository
 from src.application.use_cases.list_seller_sales_plans import (
     ListSellerSalesPlansUseCase,
 )
-from src.infrastructure.database.models.sales_plan import GoalType, Status
+from src.domain.entities.sales_plan import SalesPlan as DomainSalesPlan
+from src.domain.entities.seller import Seller as DomainSeller
 
 
 @pytest.mark.asyncio
@@ -41,7 +42,7 @@ async def test_list_seller_sales_plans_with_data(db_session: AsyncSession):
     """Test use case with sales plans data."""
     # Create sellers
     seller_repo = SellerRepository(db_session)
-    seller = await seller_repo.create(
+    orm_seller = await seller_repo.create(
         {
             "name": "john doe",
             "email": "john@example.com",
@@ -51,27 +52,35 @@ async def test_list_seller_sales_plans_with_data(db_session: AsyncSession):
         }
     )
 
+    # Convert to domain entity
+    domain_seller = DomainSeller(
+        id=orm_seller.id,
+        name=orm_seller.name,
+        email=orm_seller.email,
+        phone=orm_seller.phone,
+        city=orm_seller.city,
+        country=orm_seller.country,
+        created_at=orm_seller.created_at,
+        updated_at=orm_seller.updated_at
+    )
+
     # Create sales plans
     sales_plan_repo = SalesPlanRepository(db_session)
     for i in range(3):
-        await sales_plan_repo.create(
-            {
-                "seller_id": seller.id,
-                "sales_period": f"Q{i+1}_2024",
-                "goal_type": GoalType.SALES,
-                "goal": Decimal(f"{10000 * (i+1)}.00"),
-                "accumulate": Decimal(f"{5000 * (i+1)}.00"),
-                "status": Status.ACTIVE,
-            }
+        sales_plan = DomainSalesPlan.create_new(
+            seller=domain_seller,
+            sales_period=f"Q{i+1}-2024",
+            goal=Decimal(f"{10000 * (i+1)}.00"),
         )
+        await sales_plan_repo.create(sales_plan)
 
     # Execute use case
     use_case = ListSellerSalesPlansUseCase(sales_plan_repo)
-    sales_plans, total = await use_case.execute(seller_id=seller.id, limit=10, offset=0)
+    sales_plans, total = await use_case.execute(seller_id=orm_seller.id, limit=10, offset=0)
 
     assert len(sales_plans) == 3
     assert total == 3
-    assert all(sp.seller_id == seller.id for sp in sales_plans)
+    assert all(sp.seller.id == orm_seller.id for sp in sales_plans)
 
 
 @pytest.mark.asyncio
@@ -79,7 +88,7 @@ async def test_list_seller_sales_plans_pagination(db_session: AsyncSession):
     """Test use case with pagination."""
     # Create a seller
     seller_repo = SellerRepository(db_session)
-    seller = await seller_repo.create(
+    orm_seller = await seller_repo.create(
         {
             "name": "john doe",
             "email": "john@example.com",
@@ -89,30 +98,38 @@ async def test_list_seller_sales_plans_pagination(db_session: AsyncSession):
         }
     )
 
+    # Convert to domain entity
+    domain_seller = DomainSeller(
+        id=orm_seller.id,
+        name=orm_seller.name,
+        email=orm_seller.email,
+        phone=orm_seller.phone,
+        city=orm_seller.city,
+        country=orm_seller.country,
+        created_at=orm_seller.created_at,
+        updated_at=orm_seller.updated_at
+    )
+
     # Create sales plans
     sales_plan_repo = SalesPlanRepository(db_session)
     for i in range(5):
-        await sales_plan_repo.create(
-            {
-                "seller_id": seller.id,
-                "sales_period": f"Q{i+1}_2024",
-                "goal_type": GoalType.SALES,
-                "goal": Decimal(f"{10000 * (i+1)}.00"),
-                "accumulate": Decimal(f"{5000 * (i+1)}.00"),
-                "status": Status.ACTIVE,
-            }
+        sales_plan = DomainSalesPlan.create_new(
+            seller=domain_seller,
+            sales_period=f"Q{i+1}-2024",
+            goal=Decimal(f"{10000 * (i+1)}.00"),
         )
+        await sales_plan_repo.create(sales_plan)
 
     # Execute use case with pagination
     use_case = ListSellerSalesPlansUseCase(sales_plan_repo)
 
     # First page
-    sales_plans, total = await use_case.execute(seller_id=seller.id, limit=2, offset=0)
+    sales_plans, total = await use_case.execute(seller_id=orm_seller.id, limit=2, offset=0)
     assert len(sales_plans) == 2
     assert total == 5
 
     # Second page
-    sales_plans, total = await use_case.execute(seller_id=seller.id, limit=2, offset=2)
+    sales_plans, total = await use_case.execute(seller_id=orm_seller.id, limit=2, offset=2)
     assert len(sales_plans) == 2
     assert total == 5
 

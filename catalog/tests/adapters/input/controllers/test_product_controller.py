@@ -1,7 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.infrastructure.database.models import ProductCategory, ProductStatus
+from src.infrastructure.database.models import ProductCategory
 
 
 @pytest.mark.asyncio
@@ -65,9 +65,8 @@ async def test_list_products_with_data(db_session):
             provider_id=provider.id,
             name=f"Product {i}",
             category=ProductCategory.SURGICAL_SUPPLIES.value,
-            description=f"Description {i}",
+            sku=f"SKU-CONTROLLER-{i}",
             price=100.00 + i,
-            status=ProductStatus.ACTIVE.value,
         )
         db_session.add(product)
     await db_session.commit()
@@ -160,14 +159,14 @@ async def test_create_products_success(db_session):
                 "provider_id": str(provider.id),
                 "name": "Product 1",
                 "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-                "description": "Description 1",
+                "sku": "SKU-API-1",
                 "price": "100.00",
             },
             {
                 "provider_id": str(provider.id),
                 "name": "Product 2",
                 "category": ProductCategory.SURGICAL_SUPPLIES.value,
-                "description": "Description 2",
+                "sku": "SKU-API-2",
                 "price": "200.00",
             },
         ]
@@ -211,7 +210,7 @@ async def test_create_products_provider_not_found(db_session):
                 "provider_id": str(uuid.uuid4()),
                 "name": "Product 1",
                 "category": ProductCategory.OTHER.value,
-                "description": "Description 1",
+                "sku": "SKU-NOT-FOUND-1",
                 "price": "100.00",
             },
         ]
@@ -249,7 +248,7 @@ async def test_create_products_invalid_category(db_session):
                 "provider_id": str(uuid.uuid4()),
                 "name": "Product 1",
                 "category": "invalid_category",
-                "description": "Description 1",
+                "sku": "SKU-INVALID-CAT-1",
                 "price": "100.00",
             },
         ]

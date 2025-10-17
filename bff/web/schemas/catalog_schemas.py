@@ -21,7 +21,7 @@ class ProviderCreateResponse(BaseModel):
     message: str
 from pydantic import BaseModel, Field
 
-from .enums import ProductCategory, ProductStatus
+from .enums import ProductCategory
 
 
 class ProviderResponse(BaseModel):
@@ -44,27 +44,22 @@ class ProductCreate(BaseModel):
         ...,
         description="Product category"
     )
-    description: str = Field(..., min_length=1, max_length=1000, description="Product description")
+    sku: str = Field(..., min_length=1, max_length=100, description="Product SKU (unique identifier)")
     price: Decimal = Field(..., gt=0, description="Product price (must be greater than 0)")
-    status: ProductStatus = Field(
-        default=ProductStatus.PENDING_APPROVAL,
-        description="Product status"
-    )
 
 
 class ProductResponse(BaseModel):
     id: UUID
     provider_id: UUID
     name: str
-    category: ProductCategory
-    description: str
+    category: str  # Human-readable Spanish format from catalog service
+    sku: str
     price: Decimal
-    status: ProductStatus
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        use_enum_values = True  # Serialize enums as their values (strings)
+        from_attributes = True
 
 
 class BatchProductsResponse(BaseModel):

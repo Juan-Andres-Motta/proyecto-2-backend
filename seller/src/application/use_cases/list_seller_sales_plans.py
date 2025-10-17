@@ -2,7 +2,7 @@ from typing import List, Tuple
 from uuid import UUID
 
 from src.adapters.output.repositories.sales_plan_repository import SalesPlanRepository
-from src.infrastructure.database.models import SalesPlan
+from src.domain.entities.sales_plan import SalesPlan
 
 
 class ListSellerSalesPlansUseCase:
@@ -12,6 +12,7 @@ class ListSellerSalesPlansUseCase:
     async def execute(
         self, seller_id: UUID, limit: int = 10, offset: int = 0
     ) -> Tuple[List[SalesPlan], int]:
+        """List sales plans for a specific seller."""
         return await self.repository.list_sales_plans_by_seller(
             seller_id=seller_id, limit=limit, offset=offset
         )

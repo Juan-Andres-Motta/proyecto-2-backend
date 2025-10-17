@@ -42,9 +42,8 @@ async def test_list_products_use_case_with_data(db_session):
             provider_id=provider.id,
             name=f"Product {i}",
             category="test_category",
-            description=f"Description {i}",
+            sku=f"SKU-LIST-{i}",
             price=100.00 + i,
-            status="active",
         )
         db_session.add(product)
     await db_session.commit()
@@ -83,9 +82,8 @@ async def test_list_products_use_case_default_pagination(db_session):
             provider_id=provider.id,
             name=f"Product {i}",
             category="test_category",
-            description=f"Description {i}",
+            sku=f"SKU-DEFAULT-{i}",
             price=100.00 + i,
-            status="active",
         )
         db_session.add(product)
     await db_session.commit()

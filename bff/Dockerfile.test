@@ -11,8 +11,8 @@ RUN pip install --no-cache-dir poetry
 # Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Install all dependencies (including dev)
-RUN poetry install --no-root --no-interaction --no-ansi
+# Update lock file and install all dependencies (including dev)
+RUN poetry lock && poetry install --no-root --no-interaction --no-ansi
 
 # Copy source code and tests
 COPY . .

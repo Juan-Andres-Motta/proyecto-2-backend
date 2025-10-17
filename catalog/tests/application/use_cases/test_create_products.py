@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.application.use_cases.create_products import CreateProductsUseCase
-from src.infrastructure.database.models import Product, ProductCategory, ProductStatus
+from src.infrastructure.database.models import Product, ProductCategory
 
 
 @pytest.mark.asyncio
@@ -17,18 +17,16 @@ async def test_create_products_use_case_success():
             provider_id="550e8400-e29b-41d4-a716-446655440000",
             name="Product 1",
             category=ProductCategory.SPECIAL_MEDICATIONS.value,
-            description="Description 1",
+            sku="SKU-USE-CASE-1",
             price=100.00,
-            status=ProductStatus.PENDING_APPROVAL.value,
         ),
         Product(
             id="770e8400-e29b-41d4-a716-446655440000",
             provider_id="550e8400-e29b-41d4-a716-446655440000",
             name="Product 2",
             category=ProductCategory.SURGICAL_SUPPLIES.value,
-            description="Description 2",
+            sku="SKU-USE-CASE-2",
             price=200.00,
-            status=ProductStatus.PENDING_APPROVAL.value,
         ),
     ]
     mock_repo.batch_create.return_value = mock_products
@@ -39,17 +37,15 @@ async def test_create_products_use_case_success():
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 1",
             "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-            "description": "Description 1",
+            "sku": "SKU-USE-CASE-1",
             "price": 100.00,
-            "status": ProductStatus.PENDING_APPROVAL.value,
         },
         {
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 2",
             "category": ProductCategory.SURGICAL_SUPPLIES.value,
-            "description": "Description 2",
+            "sku": "SKU-USE-CASE-2",
             "price": 200.00,
-            "status": ProductStatus.PENDING_APPROVAL.value,
         },
     ]
 
@@ -88,7 +84,7 @@ async def test_create_products_use_case_repository_error():
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 1",
             "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-            "description": "Description 1",
+            "sku": "SKU-ERROR-1",
             "price": 100.00,
         },
     ]

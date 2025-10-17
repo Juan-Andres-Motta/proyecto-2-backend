@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from web.controllers.products_controller import router
-from web.schemas import ProductCategory, ProductStatus
+from web.schemas import ProductCategory
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_create_product_success():
         "provider_id": "550e8400-e29b-41d4-a716-446655440000",
         "name": "New Product",
         "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-        "description": "Product description",
+        "sku": "NEW-PROD-001",
         "price": "150.00",
     }
 
@@ -29,10 +29,9 @@ async def test_create_product_success():
                 "id": "660e8400-e29b-41d4-a716-446655440000",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "New Product",
-                "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-                "description": "Product description",
+                "category": "Medicamentos Especiales",  # Human-readable from catalog
+                "sku": "NEW-PROD-001",
                 "price": "150.00",
-                "status": ProductStatus.PENDING_APPROVAL.value,
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             }
@@ -75,7 +74,7 @@ async def test_create_product_invalid_category():
         "provider_id": "550e8400-e29b-41d4-a716-446655440000",
         "name": "New Product",
         "category": "invalid_category",
-        "description": "Product description",
+        "sku": "NEW-PROD-002",
         "price": "150.00",
     }
 
@@ -99,7 +98,7 @@ async def test_create_product_provider_not_found():
         "provider_id": "550e8400-e29b-41d4-a716-446655440000",
         "name": "New Product",
         "category": ProductCategory.OTHER.value,
-        "description": "Product description",
+        "sku": "NEW-PROD-003",
         "price": "150.00",
     }
 
@@ -133,9 +132,9 @@ async def test_create_products_from_csv_success():
     app.include_router(router)
 
     # Create CSV content
-    csv_content = """provider_id,name,category,description,price,status
-550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,Description 1,100.00,activo
-550e8400-e29b-41d4-a716-446655440000,Product 2,insumos_quirurgicos,Description 2,200.00,pendiente_aprobacion
+    csv_content = """provider_id,name,category,sku,price
+550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,PROD-001,100.00
+550e8400-e29b-41d4-a716-446655440000,Product 2,insumos_quirurgicos,PROD-002,200.00
 """
 
     mock_response = {
@@ -144,10 +143,9 @@ async def test_create_products_from_csv_success():
                 "id": "660e8400-e29b-41d4-a716-446655440001",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Product 1",
-                "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-                "description": "Description 1",
+                "category": "Medicamentos Especiales",  # Human-readable from catalog
+                "sku": "PROD-001",
                 "price": "100.00",
-                "status": ProductStatus.ACTIVE.value,
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             },
@@ -155,10 +153,9 @@ async def test_create_products_from_csv_success():
                 "id": "660e8400-e29b-41d4-a716-446655440002",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Product 2",
-                "category": ProductCategory.SURGICAL_SUPPLIES.value,
-                "description": "Description 2",
+                "category": "Insumos Quirúrgicos",  # Human-readable from catalog
+                "sku": "PROD-002",
                 "price": "200.00",
-                "status": ProductStatus.PENDING_APPROVAL.value,
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             },
@@ -220,9 +217,9 @@ async def test_create_products_from_csv_invalid_row():
     app.include_router(router)
 
     # CSV with invalid category in second row
-    csv_content = """provider_id,name,category,description,price,status
-550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,Description 1,100.00,activo
-550e8400-e29b-41d4-a716-446655440000,Product 2,invalid_category,Description 2,200.00,activo
+    csv_content = """provider_id,name,category,sku,price
+550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,PROD-001,100.00
+550e8400-e29b-41d4-a716-446655440000,Product 2,invalid_category,PROD-002,200.00
 """
 
     csv_file = io.BytesIO(csv_content.encode("utf-8"))
@@ -244,7 +241,7 @@ async def test_create_products_from_csv_empty():
     app.include_router(router)
 
     # CSV with only header
-    csv_content = """provider_id,name,category,description,price,status
+    csv_content = """provider_id,name,category,sku,price
 """
 
     csv_file = io.BytesIO(csv_content.encode("utf-8"))
@@ -267,8 +264,8 @@ async def test_create_products_from_csv_transaction_rollback():
     app = FastAPI()
     app.include_router(router)
 
-    csv_content = """provider_id,name,category,description,price,status
-550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,Description 1,100.00,activo
+    csv_content = """provider_id,name,category,sku,price
+550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,PROD-001,100.00
 """
 
     # Create a mock response with 400 status (e.g., provider not found)

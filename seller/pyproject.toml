@@ -42,16 +42,23 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "*/infrastructure/database/config.py"]
 relative_files = true
+concurrency = ["thread", "greenlet"]
+branch = true
 
 [tool.coverage.report]
 precision = 2
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
+    "def __str__",
+    "def __eq__",
+    "def __hash__",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "\\.\\.\\.",
 ]
 
 [tool.coverage.xml]
