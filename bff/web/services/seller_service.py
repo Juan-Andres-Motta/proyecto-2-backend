@@ -54,3 +54,15 @@ class SellerService:
             )
             response.raise_for_status()
             return response.json()
+
+    async def get_seller_sales_plans(
+        self, seller_id: str, limit: int = 10, offset: int = 0
+    ) -> Dict[str, Any]:
+        """Get sales plans for a specific seller with pagination."""
+        async with httpx.AsyncClient(timeout=settings.service_timeout) as client:
+            response = await client.get(
+                f"{self.seller_url}/seller/sellers/{seller_id}/sales-plans",
+                params={"limit": limit, "offset": offset},
+            )
+            response.raise_for_status()
+            return response.json()

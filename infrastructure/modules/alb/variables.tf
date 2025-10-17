@@ -23,6 +23,11 @@ variable "services" {
   type        = list(string)
 }
 
+variable "service_container_ports" {
+  description = "Map of service names to their container ports"
+  type        = map(number)
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

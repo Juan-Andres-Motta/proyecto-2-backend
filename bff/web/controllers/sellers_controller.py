@@ -1,9 +1,11 @@
 from typing import List, Union
+from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, status
 
 from web.schemas.seller_schemas import (
+    PaginatedSalesPlansResponse,
     PaginatedSellersResponse,
     SellerCreate,
     SellerCreateResponse,
@@ -60,4 +62,30 @@ async def get_sellers(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching sellers: {str(e)}",
+        )
+
+
+@router.get("/{seller_id}/sales-plans", response_model=PaginatedSalesPlansResponse)
+async def get_seller_sales_plans(
+    seller_id: UUID,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """Get sales plans for a specific seller with pagination."""
+    try:
+        seller_service = SellerService()
+        sales_plans_data = await seller_service.get_seller_sales_plans(
+            seller_id=str(seller_id), limit=limit, offset=offset
+        )
+
+        return sales_plans_data
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Error fetching seller sales plans: {e.response.text}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching seller sales plans: {str(e)}",
         )

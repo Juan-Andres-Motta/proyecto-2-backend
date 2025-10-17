@@ -81,6 +81,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./bff
+          COMMENT_ARTIFACT_NAME: bff-coverage-comment
+          COMMENT_FILENAME: bff-coverage.txt
 
   test-catalog:
     name: Test Catalog Service
@@ -121,6 +123,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./catalog
+          COMMENT_ARTIFACT_NAME: catalog-coverage-comment
+          COMMENT_FILENAME: catalog-coverage.txt
 
   test-client:
     name: Test Client Service
@@ -161,6 +165,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./client
+          COMMENT_ARTIFACT_NAME: client-coverage-comment
+          COMMENT_FILENAME: client-coverage.txt
 
   test-delivery:
     name: Test Delivery Service
@@ -201,6 +207,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./delivery
+          COMMENT_ARTIFACT_NAME: delivery-coverage-comment
+          COMMENT_FILENAME: delivery-coverage.txt
 
   test-inventory:
     name: Test Inventory Service
@@ -241,6 +249,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./inventory
+          COMMENT_ARTIFACT_NAME: inventory-coverage-comment
+          COMMENT_FILENAME: inventory-coverage.txt
 
   test-order:
     name: Test Order Service
@@ -281,6 +291,8 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./order
+          COMMENT_ARTIFACT_NAME: order-coverage-comment
+          COMMENT_FILENAME: order-coverage.txt
 
   test-seller:
     name: Test Seller Service
@@ -321,3 +333,5 @@ jobs:
           MINIMUM_GREEN: 70
           MINIMUM_ORANGE: 60
           COVERAGE_PATH: ./seller
+          COMMENT_ARTIFACT_NAME: seller-coverage-comment
+          COMMENT_FILENAME: seller-coverage.txt

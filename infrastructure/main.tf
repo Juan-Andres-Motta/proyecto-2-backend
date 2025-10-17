@@ -46,6 +46,17 @@ locals {
     order     = "/order/health"
     seller    = "/seller/health"
   }
+
+  # Service-specific container ports
+  service_container_ports = {
+    bff       = 8000
+    catalog   = 8001
+    client    = 8002
+    delivery  = 8003
+    inventory = 8004
+    order     = 8005
+    seller    = 8006
+  }
 }
 
 # VPC Module
@@ -88,12 +99,13 @@ module "cloudwatch" {
 module "alb" {
   source = "./modules/alb"
 
-  name_prefix           = local.name_prefix
-  vpc_id                = module.vpc.vpc_id
-  public_subnet_ids     = module.vpc.public_subnet_ids
-  alb_security_group_id = module.security_groups.alb_security_group_id
-  services              = var.services
-  tags                  = local.common_tags
+  name_prefix              = local.name_prefix
+  vpc_id                   = module.vpc.vpc_id
+  public_subnet_ids        = module.vpc.public_subnet_ids
+  alb_security_group_id    = module.security_groups.alb_security_group_id
+  services                 = var.services
+  service_container_ports  = local.service_container_ports
+  tags                     = local.common_tags
 }
 
 # ECS Cluster
@@ -131,7 +143,7 @@ module "ecs_task_definition" {
   environment_variables = local.service_env_vars[each.value]
   log_group_name       = module.cloudwatch[each.value].log_group_name
   aws_region           = var.aws_region
-  container_port       = 8000
+  container_port       = local.service_container_ports[each.value]
   health_check_path    = local.service_health_check_paths[each.value]
   tags                 = local.common_tags
 }
@@ -149,7 +161,7 @@ module "ecs_service" {
   subnet_ids                     = module.vpc.public_subnet_ids
   security_group_id              = module.security_groups.ecs_tasks_security_group_id
   target_group_arn               = module.alb.target_group_arns[each.value]
-  container_port                 = 8000
+  container_port                 = local.service_container_ports[each.value]
   service_connect_namespace_arn  = module.ecs_cluster.service_connect_namespace_arn
   service_connect_namespace_name = module.ecs_cluster.service_connect_namespace_name
   tags                           = local.common_tags
