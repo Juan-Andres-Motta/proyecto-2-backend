@@ -51,7 +51,7 @@ docker-compose -f docker-compose.test.yml up --build
 
 ### Sellers
 - `POST /sellers`: Create a new seller
-- `GET /sellers`: List sellers with pagination (use `?all=true` for non-paginated list)
+- `GET /sellers`: List sellers with pagination
 
 ### Sales Plans
 - `POST /sales-plans`: Create a new sales plan

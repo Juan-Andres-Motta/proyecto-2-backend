@@ -1,4 +1,7 @@
-FROM python:3.13-slim
+# ============================================
+# Stage 1: base - Dependencies and build
+# ============================================
+FROM python:3.13-slim as base
 
 WORKDIR /app
 
@@ -20,8 +23,21 @@ RUN poetry install --no-interaction --no-ansi
 # Copy source code
 COPY . .
 
+# ============================================
+# Stage 2: app - Run the application
+# ============================================
+FROM base as app
+
 # Expose port
-EXPOSE 8004
+EXPOSE 8000
 
 # Run the application
-CMD ["poetry", "run", "python", "main.py", "runserver", "--port", "8004", "--reload"]
+CMD ["poetry", "run", "python", "main.py", "runserver", "--port", "8000", "--reload"]
+
+# ============================================
+# Stage 3: migrate - Run migrations
+# ============================================
+FROM base as migrate
+
+# Run migrations
+CMD ["poetry", "run", "python", "main.py", "migrate"]

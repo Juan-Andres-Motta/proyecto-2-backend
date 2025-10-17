@@ -23,9 +23,8 @@ class Product(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str] = mapped_column(String(100), nullable=False)
-    description: Mapped[str] = mapped_column(String(1000), nullable=False)
+    sku: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     price: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

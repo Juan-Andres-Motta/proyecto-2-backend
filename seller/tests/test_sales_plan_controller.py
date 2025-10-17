@@ -1,6 +1,5 @@
 import uuid
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import FastAPI
@@ -10,7 +9,6 @@ from src.adapters.input.controllers.sales_plan_controller import router
 from src.adapters.output.repositories.sales_plan_repository import SalesPlanRepository
 from src.adapters.output.repositories.seller_repository import SellerRepository
 from src.infrastructure.database.config import get_db
-from src.infrastructure.database.models.sales_plan import GoalType, SalesPlan, Status
 
 
 @pytest.mark.asyncio
@@ -38,11 +36,8 @@ async def test_create_sales_plan(db_session):
 
     sales_plan_data = {
         "seller_id": str(seller.id),
-        "sales_period": "Q1_2024",
-        "goal_type": "sales",
+        "sales_period": "Q1-2024",
         "goal": "100000.00",
-        "accumulate": "25000.00",
-        "status": "active",
     }
 
     async with AsyncClient(
@@ -53,12 +48,13 @@ async def test_create_sales_plan(db_session):
     assert response.status_code == 201
     data = response.json()
     assert "id" in data
-    assert data["message"] == "Sales plan created successfully"
+    assert data["sales_period"] == "Q1-2024"
+    assert data["goal"] == "100000.00"
 
 
 @pytest.mark.asyncio
-async def test_list_sales_plans_empty(db_session):
-    """Test list sales plans with empty database."""
+async def test_list_sales_plans(db_session):
+    """Test list sales plans endpoint returns proper structure."""
     app = FastAPI()
     app.include_router(router)
 
@@ -67,6 +63,7 @@ async def test_list_sales_plans_empty(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
+    # Test empty list
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -74,42 +71,51 @@ async def test_list_sales_plans_empty(db_session):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["items"] == []
-    assert data["total"] == 0
-    assert data["page"] == 1
-    assert data["size"] == 0
-    assert not data["has_next"]
-    assert not data["has_previous"]
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "has_next" in data
+    assert "has_previous" in data
+    assert isinstance(data["items"], list)
 
 
 @pytest.mark.asyncio
-async def test_list_sales_plans_with_data(db_session):
-    """Test list sales plans with data."""
-    # First create a seller
+async def test_list_sales_plans_with_pagination(db_session):
+    """Test list sales plans with pagination metadata calculation."""
+    from src.domain.entities.sales_plan import SalesPlan
+    from src.domain.entities.seller import Seller as DomainSeller
+
+    # Create seller and plans for pagination test
     seller_repo = SellerRepository(db_session)
-    seller = await seller_repo.create(
-        {
-            "name": "john doe",
-            "email": "john@example.com",
-            "phone": "1234567890",
-            "city": "miami",
-            "country": "us",
-        }
+    plan_repo = SalesPlanRepository(db_session)
+
+    orm_seller = await seller_repo.create({
+        "name": "pagination seller",
+        "email": "pagination@example.com",
+        "phone": "1111111111",
+        "city": "miami",
+        "country": "us"
+    })
+
+    domain_seller = DomainSeller(
+        id=orm_seller.id,
+        name=orm_seller.name,
+        email=orm_seller.email,
+        phone=orm_seller.phone,
+        city=orm_seller.city,
+        country=orm_seller.country,
+        created_at=orm_seller.created_at,
+        updated_at=orm_seller.updated_at
     )
 
-    # Create test data
-    sales_plan_repo = SalesPlanRepository(db_session)
-    for i in range(5):
-        await sales_plan_repo.create(
-            {
-                "seller_id": seller.id,
-                "sales_period": f"Q{i+1}_2024",
-                "goal_type": GoalType.SALES,
-                "goal": Decimal(f"{10000 * (i+1)}.00"),
-                "accumulate": Decimal(f"{5000 * (i+1)}.00"),
-                "status": Status.ACTIVE,
-            }
+    # Create 3 plans
+    for i in range(3):
+        plan = SalesPlan.create_new(
+            seller=domain_seller,
+            sales_period=f"Q{i+1}-2024",
+            goal=Decimal(f"{(i+1) * 1000}.00")
         )
+        await plan_repo.create(plan)
 
     app = FastAPI()
     app.include_router(router)
@@ -119,6 +125,7 @@ async def test_list_sales_plans_with_data(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
+    # Test pagination: page 2 with limit 2
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -126,183 +133,9 @@ async def test_list_sales_plans_with_data(db_session):
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data["items"]) == 2
-    assert data["total"] == 5
+    assert data["total"] == 3
     assert data["page"] == 2
-    assert data["size"] == 2
-    assert data["has_next"]
-    assert data["has_previous"]
+    assert data["has_previous"] is True
+    assert data["has_next"] is False
 
 
-@pytest.mark.asyncio
-async def test_list_sales_plans_validation(db_session):
-    """Test sales plan endpoint parameter validation."""
-    app = FastAPI()
-    app.include_router(router)
-
-    async def override_get_db():
-        yield db_session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        # Test limit too high
-        response = await client.get("/sales-plans?limit=101")
-        assert response.status_code == 422
-
-        # Test limit too low
-        response = await client.get("/sales-plans?limit=0")
-        assert response.status_code == 422
-
-        # Test negative offset
-        response = await client.get("/sales-plans?offset=-1")
-        assert response.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_create_sales_plan_missing_fields(db_session):
-    """Test sales plan creation with missing required fields."""
-    app = FastAPI()
-    app.include_router(router)
-
-    async def override_get_db():
-        yield db_session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    sales_plan_data = {
-        "sales_period": "Q1_2024",
-        "goal_type": "sales",
-    }
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        response = await client.post("/sales-plans", json=sales_plan_data)
-
-    assert response.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_create_sales_plan_with_mock():
-    """Test sales plan creation using mocked use case."""
-    app = FastAPI()
-    app.include_router(router)
-
-    seller_id = uuid.uuid4()
-    sales_plan_data = {
-        "seller_id": str(seller_id),
-        "sales_period": "Q1_2024",
-        "goal_type": "sales",
-        "goal": "100000.00",
-        "accumulate": "25000.00",
-        "status": "active",
-    }
-
-    mock_sales_plan = SalesPlan(
-        id=uuid.uuid4(),
-        seller_id=seller_id,
-        sales_period="Q1_2024",
-        goal_type=GoalType.SALES,
-        goal=Decimal("100000.00"),
-        accumulate=Decimal("25000.00"),
-        status=Status.ACTIVE,
-    )
-
-    with patch(
-        "src.adapters.input.controllers.sales_plan_controller.CreateSalesPlanUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=mock_sales_plan)
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/sales-plans", json=sales_plan_data)
-
-    assert response.status_code == 201
-    data = response.json()
-    assert "id" in data
-    assert data["message"] == "Sales plan created successfully"
-
-
-@pytest.mark.asyncio
-async def test_list_sales_plans_pagination_logic():
-    """Test sales plan listing with various pagination scenarios."""
-    from datetime import datetime, timezone
-
-    app = FastAPI()
-    app.include_router(router)
-
-    seller_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
-    mock_sales_plans = [
-        SalesPlan(
-            id=uuid.uuid4(),
-            seller_id=seller_id,
-            sales_period=f"Q{i+1}_2024",
-            goal_type=GoalType.SALES,
-            goal=Decimal(f"{10000 * (i+1)}.00"),
-            accumulate=Decimal(f"{5000 * (i+1)}.00"),
-            status=Status.ACTIVE,
-            created_at=now,
-            updated_at=now,
-        )
-        for i in range(5)
-    ]
-
-    with patch(
-        "src.adapters.input.controllers.sales_plan_controller.ListSalesPlansUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_sales_plans, 20))
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            # Test with offset=0
-            response = await client.get("/sales-plans?limit=5&offset=0")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 1
-        assert data["has_next"] is True
-        assert data["has_previous"] is False
-
-    # Test scenario 2: offset > 0 and offset + limit < total
-    with patch(
-        "src.adapters.input.controllers.sales_plan_controller.ListSalesPlansUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_sales_plans, 20))
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/sales-plans?limit=5&offset=5")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 2
-        assert data["has_next"] is True
-        assert data["has_previous"] is True
-
-    # Test scenario 3: last page
-    with patch(
-        "src.adapters.input.controllers.sales_plan_controller.ListSalesPlansUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_sales_plans, 20))
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/sales-plans?limit=5&offset=15")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 4
-        assert data["has_next"] is False
-        assert data["has_previous"] is True

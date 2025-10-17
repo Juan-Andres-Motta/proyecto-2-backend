@@ -1,21 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
 from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
-
-
-class GoalType(str, Enum):
-    SALES = "sales"
-    ORDERS = "orders"
-
-
-class SalesPlanStatus(str, Enum):
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    DEACTIVE = "deactive"
 
 
 # Seller Schemas
@@ -56,10 +44,10 @@ class PaginatedSellersResponse(BaseModel):
 class SalesPlanCreate(BaseModel):
     seller_id: UUID
     sales_period: str
-    goal_type: GoalType
     goal: Decimal
-    accumulate: Decimal
-    status: SalesPlanStatus
+    # Note: accumulate is NOT in input - always starts at 0 per seller service
+    # Note: status is NOT in input - calculated dynamically per seller service
+    # Note: goal_type removed from seller service
 
 
 class SalesPlanCreateResponse(BaseModel):
@@ -69,12 +57,11 @@ class SalesPlanCreateResponse(BaseModel):
 
 class SalesPlanResponse(BaseModel):
     id: UUID
-    seller_id: UUID
+    seller: SellerResponse  # Nested seller object (matches seller service)
     sales_period: str
-    goal_type: GoalType
     goal: Decimal
     accumulate: Decimal
-    status: SalesPlanStatus
+    status: str  # Calculated status string (e.g., "planned", "in_progress", "completed", "failed")
     created_at: datetime
     updated_at: datetime
 

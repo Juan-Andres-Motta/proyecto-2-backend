@@ -24,9 +24,15 @@ async def create_seller(seller: SellerCreate):
         result = await seller_service.create_seller(seller.model_dump())
         return SellerCreateResponse(**result)
     except httpx.HTTPStatusError as e:
+        # Try to parse JSON error from microservice, fallback to text
+        try:
+            error_detail = e.response.json()
+        except Exception:
+            error_detail = e.response.text
+
         raise HTTPException(
             status_code=e.response.status_code,
-            detail=f"Error creating seller: {e.response.text}",
+            detail=error_detail,
         )
     except Exception as e:
         raise HTTPException(
@@ -54,9 +60,15 @@ async def get_sellers(
 
         return sellers_data
     except httpx.HTTPStatusError as e:
+        # Try to parse JSON error from microservice, fallback to text
+        try:
+            error_detail = e.response.json()
+        except Exception:
+            error_detail = e.response.text
+
         raise HTTPException(
             status_code=e.response.status_code,
-            detail=f"Error fetching sellers: {e.response.text}",
+            detail=error_detail,
         )
     except Exception as e:
         raise HTTPException(

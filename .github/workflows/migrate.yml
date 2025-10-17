@@ -1,0 +1,162 @@
+name: Run Database Migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'catalog/alembic/versions/**'
+      - 'client/alembic/versions/**'
+      - 'delivery/alembic/versions/**'
+      - 'inventory/alembic/versions/**'
+      - 'order/alembic/versions/**'
+      - 'seller/alembic/versions/**'
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  detect-migrations:
+    runs-on: ubuntu-latest
+    outputs:
+      catalog: ${{ steps.changes.outputs.catalog }}
+      client: ${{ steps.changes.outputs.client }}
+      delivery: ${{ steps.changes.outputs.delivery }}
+      inventory: ${{ steps.changes.outputs.inventory }}
+      order: ${{ steps.changes.outputs.order }}
+      seller: ${{ steps.changes.outputs.seller }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            catalog:
+              - 'catalog/alembic/versions/**'
+            client:
+              - 'client/alembic/versions/**'
+            delivery:
+              - 'delivery/alembic/versions/**'
+            inventory:
+              - 'inventory/alembic/versions/**'
+            order:
+              - 'order/alembic/versions/**'
+            seller:
+              - 'seller/alembic/versions/**'
+
+  migrate-catalog:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.catalog == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run catalog migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh catalog
+
+  migrate-client:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run client migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh client
+
+  migrate-delivery:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.delivery == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run delivery migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh delivery
+
+  migrate-inventory:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.inventory == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run inventory migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh inventory
+
+  migrate-order:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.order == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run order migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh order
+
+  migrate-seller:
+    needs: detect-migrations
+    if: needs.detect-migrations.outputs.seller == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run seller migrations
+        run: |
+          chmod +x infrastructure/run-migration.sh
+          infrastructure/run-migration.sh seller

@@ -10,7 +10,7 @@ from web.schemas import (
     ProductResponse,
     ProviderResponse,
 )
-from web.schemas.enums import ProductCategory, ProductStatus
+from web.schemas.enums import ProductCategory
 
 
 def test_provider_response_schema():
@@ -49,10 +49,9 @@ def test_product_response_schema():
         "id": product_id,
         "provider_id": provider_id,
         "name": "test product",
-        "category": ProductCategory.SPECIAL_MEDICATIONS.value,
-        "description": "test description",
+        "category": "Medicamentos Especiales",  # Human-readable format from catalog service
+        "sku": "TEST-PROD-001",
         "price": Decimal("99.99"),
-        "status": ProductStatus.ACTIVE.value,
         "created_at": now,
         "updated_at": now,
     }
@@ -62,6 +61,7 @@ def test_product_response_schema():
     assert product.id == product_id
     assert product.provider_id == provider_id
     assert product.name == "test product"
+    assert product.sku == "TEST-PROD-001"
     assert product.price == Decimal("99.99")
 
 
@@ -117,10 +117,9 @@ def test_paginated_products_response_schema():
         id=product_id,
         provider_id=provider_id,
         name="test product",
-        category=ProductCategory.SPECIAL_MEDICATIONS.value,
-        description="test description",
+        category="Medicamentos Especiales",  # Human-readable format from catalog service
+        sku="TEST-PROD-001",
         price=Decimal("99.99"),
-        status=ProductStatus.ACTIVE.value,
         created_at=now,
         updated_at=now,
     )

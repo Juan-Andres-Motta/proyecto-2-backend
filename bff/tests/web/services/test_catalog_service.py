@@ -190,15 +190,15 @@ async def test_create_products_success():
         {
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 1",
-            "category": "SPECIAL_MEDICATIONS",
-            "description": "Description 1",
+            "category": "medicamentos_especiales",
+            "sku": "PROD-001",
             "price": "100.00",
         },
         {
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 2",
-            "category": "SURGICAL_SUPPLIES",
-            "description": "Description 2",
+            "category": "insumos_quirurgicos",
+            "sku": "PROD-002",
             "price": "200.00",
         },
     ]
@@ -209,10 +209,9 @@ async def test_create_products_success():
                 "id": "660e8400-e29b-41d4-a716-446655440000",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Product 1",
-                "category": "SPECIAL_MEDICATIONS",
-                "description": "Description 1",
+                "category": "Medicamentos Especiales",  # Human-readable from catalog
+                "sku": "PROD-001",
                 "price": "100.00",
-                "status": "PENDING_APPROVAL",
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             },
@@ -220,10 +219,9 @@ async def test_create_products_success():
                 "id": "770e8400-e29b-41d4-a716-446655440000",
                 "provider_id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Product 2",
-                "category": "SURGICAL_SUPPLIES",
-                "description": "Description 2",
+                "category": "Insumos Quirúrgicos",  # Human-readable from catalog
+                "sku": "PROD-002",
                 "price": "200.00",
-                "status": "PENDING_APPROVAL",
                 "created_at": "2025-01-15T10:30:00Z",
                 "updated_at": "2025-01-15T10:30:00Z",
             },
@@ -257,8 +255,8 @@ async def test_create_products_http_error():
         {
             "provider_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "Product 1",
-            "category": "SPECIAL_MEDICATIONS",
-            "description": "Description 1",
+            "category": "medicamentos_especiales",
+            "sku": "PROD-001",
             "price": "100.00",
         },
     ]

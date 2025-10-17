@@ -92,9 +92,8 @@ async def create_products_from_csv(file: UploadFile = File(...)):
     - provider_id (UUID)
     - name (string)
     - category (medicamentos_especiales, insumos_quirurgicos, reactivos_diagnosticos, equipos_biomedicos, otros)
-    - description (string)
+    - sku (string - unique identifier)
     - price (decimal)
-    - status (optional: activo, descontinuado, pendiente_aprobacion - defaults to pendiente_aprobacion)
 
     All products are created in a single transaction in the catalog service.
     If any product fails validation or creation, all products are rolled back.
@@ -128,9 +127,8 @@ async def create_products_from_csv(file: UploadFile = File(...)):
                     "provider_id": row.get("provider_id", "").strip(),
                     "name": row.get("name", "").strip(),
                     "category": row.get("category", "").strip(),
-                    "description": row.get("description", "").strip(),
+                    "sku": row.get("sku", "").strip(),
                     "price": row.get("price", "").strip(),
-                    "status": row.get("status", "pendiente_aprobacion").strip() or "pendiente_aprobacion",
                 }
 
                 # Validate with Pydantic (mode='json' converts UUIDs to strings)
