@@ -1,3 +1,4 @@
+from .orders_controller import router as orders_router
 from .products_controller import router as products_router
 from .providers_controller import router as providers_router
 from .sales_plans_controller import router as sales_plans_router
@@ -10,4 +11,5 @@ __all__ = [
     "warehouses_router",
     "sellers_router",
     "sales_plans_router",
+    "orders_router",
 ]
