@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     client_url: str = Field(default="http://client:8000")
     delivery_url: str = Field(default="http://delivery:8000")
     inventory_url: str = Field(default="http://inventory:8000")
-    order_url: str = Field(default="http://order:8000")
-    seller_url: str = Field(default="http://seller:8000")
+    order_url: str = Field(default="http://order:8005")
+    seller_url: str = Field(default="http://seller:8006")
 
     # Service communication settings
     service_timeout: float = Field(default=10.0)
