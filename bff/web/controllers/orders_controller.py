@@ -8,7 +8,7 @@ from web.schemas.order_schemas import (
 )
 from web.services.order_service import OrderService
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(prefix="/orders")
 
 
 @router.post("", response_model=OrderCreateResponse, status_code=status.HTTP_201_CREATED)

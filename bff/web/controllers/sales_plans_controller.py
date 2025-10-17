@@ -8,7 +8,7 @@ from web.schemas.seller_schemas import (
 )
 from web.services.seller_service import SellerService
 
-router = APIRouter(prefix="/sales-plans", tags=["sales-plans"])
+router = APIRouter(prefix="/sales-plans")
 
 
 @router.post(

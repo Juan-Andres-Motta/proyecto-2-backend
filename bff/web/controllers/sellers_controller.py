@@ -11,7 +11,7 @@ from web.schemas.seller_schemas import (
 )
 from web.services.seller_service import SellerService
 
-router = APIRouter(prefix="/sellers", tags=["sellers"])
+router = APIRouter(prefix="/sellers")
 
 
 @router.post("", response_model=SellerCreateResponse, status_code=status.HTTP_201_CREATED)
