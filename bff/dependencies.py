@@ -7,15 +7,13 @@ dependencies throughout the application using FastAPI's dependency injection.
 
 from functools import lru_cache
 
+from common.http_client import HttpClient
 from config.settings import settings
-from web.adapters import (
-    CatalogAdapter,
-    HttpClient,
-    InventoryAdapter,
-    OrderAdapter,
-    SellerAdapter,
-)
-from web.ports import CatalogPort, InventoryPort, OrderPort, SellerPort
+
+# Import ports and adapters directly from their modules to avoid triggering web.__init__.py
+from web.ports.catalog_port import CatalogPort
+from web.ports.inventory_port import InventoryPort
+from web.ports.seller_port import SellerPort
 
 
 # HTTP Client Factories
@@ -104,6 +102,8 @@ def get_catalog_port() -> CatalogPort:
         ):
             return await catalog.create_products([product])
     """
+    from web.adapters.catalog_adapter import CatalogAdapter
+
     client = get_catalog_http_client()
     return CatalogAdapter(client)
 
@@ -115,6 +115,8 @@ def get_seller_port() -> SellerPort:
     Returns:
         SellerPort implementation (SellerAdapter)
     """
+    from web.adapters.seller_adapter import SellerAdapter
+
     client = get_seller_http_client()
     return SellerAdapter(client)
 
@@ -126,19 +128,38 @@ def get_inventory_port() -> InventoryPort:
     Returns:
         InventoryPort implementation (InventoryAdapter)
     """
+    from web.adapters.inventory_adapter import InventoryAdapter
+
     client = get_inventory_http_client()
     return InventoryAdapter(client)
 
 
-def get_order_port() -> OrderPort:
+def get_client_order_port():
     """
-    Factory for OrderPort implementation.
+    Factory for Client App OrderPort implementation.
 
     Returns:
-        OrderPort implementation (OrderAdapter)
+        OrderPort implementation for client app (ClientOrderAdapter)
     """
+    # Import here to avoid circular dependencies
+    from client_app.adapters import OrderAdapter as ClientOrderAdapter
+
     client = get_order_http_client()
-    return OrderAdapter(client)
+    return ClientOrderAdapter(client)
+
+
+def get_seller_order_port():
+    """
+    Factory for Sellers App OrderPort implementation.
+
+    Returns:
+        OrderPort implementation for sellers app (SellerOrderAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from sellers_app.adapters import OrderAdapter as SellerOrderAdapter
+
+    client = get_order_http_client()
+    return SellerOrderAdapter(client)
 
 
 # Cleanup function for testing

@@ -5,6 +5,8 @@ This controller handles product-related endpoints using the catalog port
 for communication with the catalog microservice.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
 from dependencies import get_catalog_port
@@ -12,6 +14,8 @@ from dependencies import get_catalog_port
 from ..ports import CatalogPort
 from ..schemas import BatchProductsResponse, PaginatedProductsResponse, ProductCreate
 from ..services.csv_parser import CsvParserService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -44,6 +48,7 @@ async def create_product(
     Returns:
         Response with the created product
     """
+    logger.info(f"Request: POST /products: name='{product.name}', sku='{product.sku}'")
     return await catalog.create_products([product])
 
 
@@ -83,6 +88,7 @@ async def create_products_from_csv(
     Returns:
         Response with all created products
     """
+    logger.info(f"Request: POST /products/batch: filename='{file.filename}'")
     products = await CsvParserService.parse_products_from_csv(file)
     return await catalog.create_products(products)
 
@@ -111,4 +117,5 @@ async def get_products(
     Returns:
         Paginated list of products
     """
+    logger.info(f"Request: GET /products: limit={limit}, offset={offset}")
     return await catalog.get_products(limit=limit, offset=offset)

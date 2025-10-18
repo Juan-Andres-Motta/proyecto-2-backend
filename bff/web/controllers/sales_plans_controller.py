@@ -5,6 +5,8 @@ This controller handles sales plan-related endpoints using the seller port
 for communication with the seller microservice.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Query, status
 
 from dependencies import get_seller_port
@@ -15,6 +17,8 @@ from ..schemas.seller_schemas import (
     SalesPlanCreate,
     SalesPlanCreateResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sales-plans")
 
@@ -36,6 +40,7 @@ async def create_sales_plan(
     Returns:
         Created sales plan id and success message
     """
+    logger.info(f"Request: POST /sales-plans: seller_id={sales_plan.seller_id}, sales_period={sales_plan.sales_period}, goal={sales_plan.goal}")
     return await seller_port.create_sales_plan(sales_plan)
 
 
@@ -56,4 +61,5 @@ async def get_sales_plans(
     Returns:
         Paginated list of sales plans
     """
+    logger.info(f"Request: GET /sales-plans: limit={limit}, offset={offset}")
     return await seller_port.get_sales_plans(limit=limit, offset=offset)

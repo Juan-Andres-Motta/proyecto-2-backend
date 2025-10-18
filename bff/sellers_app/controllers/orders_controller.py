@@ -5,6 +5,7 @@ This controller handles order creation for mobile seller app users.
 Orders created through this endpoint automatically have metodo_creacion='app_vendedor'.
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from sellers_app.ports import OrderPort
@@ -14,32 +15,16 @@ from common.exceptions import (
     MicroserviceHTTPError,
     MicroserviceValidationError,
 )
+from dependencies import get_seller_order_port
 
 router = APIRouter()
-
-
-# Dependency function - will be added to dependencies.py
-def get_order_port() -> OrderPort:
-    """
-    Temporary dependency function.
-    This will be moved to dependencies.py
-    """
-    from sellers_app.adapters import OrderAdapter
-    from web.adapters import HttpClient
-    from config.settings import settings
-
-    client = HttpClient(
-        base_url=settings.order_url,
-        timeout=settings.service_timeout,
-        service_name="order",
-    )
-    return OrderAdapter(client)
+logger = logging.getLogger(__name__)
 
 
 @router.post("/orders", response_model=OrderCreateResponse, status_code=201)
 async def create_order(
     order_input: OrderCreateInput,
-    order_port: OrderPort = Depends(get_order_port),
+    order_port: OrderPort = Depends(get_seller_order_port),
 ):
     """
     Create a new order via sellers app.
@@ -60,6 +45,8 @@ async def create_order(
     Raises:
         HTTPException: If order creation fails
     """
+    logger.info(f"Request: POST /sellers-app/orders: customer_id={order_input.customer_id}, seller_id={order_input.seller_id}, items={len(order_input.items)}")
+
     try:
         return await order_port.create_order(order_input)
 

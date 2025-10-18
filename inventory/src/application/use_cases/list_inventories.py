@@ -1,8 +1,11 @@
+import logging
 from typing import List, Optional, Tuple
 from uuid import UUID
 
 from src.application.ports.inventory_repository_port import InventoryRepositoryPort
 from src.domain.entities.inventory import Inventory
+
+logger = logging.getLogger(__name__)
 
 
 class ListInventoriesUseCase:
@@ -20,10 +23,17 @@ class ListInventoriesUseCase:
         sku: Optional[str] = None,
     ) -> Tuple[List[Inventory], int]:
         """List inventories with pagination and filters."""
-        return await self.repository.list_inventories(
+        logger.info(f"Listing inventories: limit={limit}, offset={offset}, product_id={product_id}, warehouse_id={warehouse_id}, sku={sku}")
+        logger.debug(f"Fetching inventories with filters and pagination")
+
+        inventories, total = await self.repository.list_inventories(
             limit=limit,
             offset=offset,
             product_id=product_id,
             warehouse_id=warehouse_id,
             sku=sku,
         )
+
+        logger.info(f"Inventories retrieved successfully: count={len(inventories)}, total={total}")
+        logger.debug(f"Retrieved inventory IDs: {[str(i.id) for i in inventories]}")
+        return inventories, total

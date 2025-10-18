@@ -1,4 +1,5 @@
 """Create sales plan use case with validation logic."""
+import logging
 from decimal import Decimal
 from uuid import UUID
 
@@ -11,6 +12,8 @@ from src.domain.exceptions import (
     SellerNotFoundException,
 )
 from src.domain.value_objects.sales_period import SalesPeriod
+
+logger = logging.getLogger(__name__)
 
 
 class CreateSalesPlanUseCase:
@@ -60,27 +63,43 @@ class CreateSalesPlanUseCase:
             GoalMustBePositiveException: If goal <= 0
             DuplicateSalesPlanException: If plan already exists
         """
+        logger.info(f"Creating sales plan: seller_id={seller_id}, period={sales_period}, goal={goal}")
+
         # Validation 1: Seller must exist
+        logger.debug(f"Validating seller exists: seller_id={seller_id}")
         seller = await self.seller_repo.find_by_id(seller_id)
         if seller is None:
+            logger.warning(f"Sales plan creation failed: Seller not found (seller_id={seller_id})")
             raise SellerNotFoundException(seller_id)
+        logger.debug(f"Seller validated: seller_id={seller_id}, name={seller.name}")
 
         # Validation 2: Sales period format (raises exception if invalid)
         # This validates format and year range
-        period = SalesPeriod(sales_period)
+        logger.debug(f"Validating sales period format: {sales_period}")
+        try:
+            period = SalesPeriod(sales_period)
+            logger.debug(f"Sales period validated: {sales_period}")
+        except Exception as e:
+            logger.warning(f"Sales plan creation failed: Invalid sales period format ({sales_period}): {e}")
+            raise
 
         # Validation 3: Goal must be positive
+        logger.debug(f"Validating goal is positive: {goal}")
         if goal <= 0:
+            logger.warning(f"Sales plan creation failed: Goal must be positive (goal={goal})")
             raise GoalMustBePositiveException(goal)
 
         # Validation 4: Check for duplicate
+        logger.debug(f"Checking for duplicate sales plan: seller_id={seller_id}, period={sales_period}")
         existing = await self.sales_plan_repo.find_by_seller_and_period(
             seller_id, sales_period
         )
         if existing is not None:
+            logger.warning(f"Sales plan creation failed: Duplicate plan exists (seller_id={seller_id}, period={sales_period})")
             raise DuplicateSalesPlanException(seller_id, sales_period)
 
         # Business rule: Create new plan with accumulate = 0
+        logger.debug(f"Creating sales plan entity: seller_id={seller_id}, period={sales_period}")
         sales_plan = SalesPlan.create_new(
             seller=seller,
             sales_period=sales_period,
@@ -88,4 +107,7 @@ class CreateSalesPlanUseCase:
         )
 
         # Persist and return
-        return await self.sales_plan_repo.create(sales_plan)
+        created_plan = await self.sales_plan_repo.create(sales_plan)
+        logger.info(f"Sales plan created successfully: id={created_plan.id}, seller_id={seller_id}, period={sales_period}")
+
+        return created_plan

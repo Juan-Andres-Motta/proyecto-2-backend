@@ -5,12 +5,16 @@ This controller handles warehouse-related endpoints using the inventory port
 for communication with the inventory microservice.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Query, status
 
 from dependencies import get_inventory_port
 
 from ..ports import InventoryPort
 from ..schemas import PaginatedWarehousesResponse, WarehouseCreate, WarehouseCreateResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -39,6 +43,7 @@ async def create_warehouse(
     Returns:
         Created warehouse id and success message
     """
+    logger.info(f"Request: POST /warehouse: name='{warehouse.name}'")
     return await inventory.create_warehouse(warehouse)
 
 
@@ -66,4 +71,5 @@ async def get_warehouses(
     Returns:
         Paginated list of warehouses
     """
+    logger.info(f"Request: GET /warehouses: limit={limit}, offset={offset}")
     return await inventory.get_warehouses(limit=limit, offset=offset)

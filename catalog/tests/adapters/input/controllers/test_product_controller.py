@@ -265,3 +265,93 @@ async def test_create_products_invalid_category(db_session):
         response = await client.post("/products", json=request_data)
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_product_not_found(db_session):
+    """Test getting a product that doesn't exist."""
+    from fastapi import FastAPI
+    import uuid
+
+    from src.adapters.input.controllers.product_controller import router
+    from src.infrastructure.database.config import get_db
+
+    app = FastAPI()
+    app.include_router(router)
+
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Use a random UUID that doesn't exist
+    product_id = uuid.uuid4()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(f"/product/{product_id}")
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_product_success(db_session):
+    """Test getting a product that exists."""
+    from fastapi import FastAPI
+
+    from src.adapters.input.controllers.product_controller import router
+    from src.adapters.output.repositories.provider_repository import (
+        ProviderRepository,
+    )
+    from src.infrastructure.database.config import get_db
+    from src.infrastructure.database.models import Product
+
+    # Create provider
+    provider_repo = ProviderRepository(db_session)
+    provider = await provider_repo.create(
+        {
+            "name": "Test Provider",
+            "nit": "123456789",
+            "contact_name": "John Doe",
+            "email": "john@test.com",
+            "phone": "+1234567890",
+            "address": "123 Test St",
+            "country": "US",
+        }
+    )
+
+    # Create product
+    product = Product(
+        provider_id=provider.id,
+        name="Test Product",
+        category=ProductCategory.SPECIAL_MEDICATIONS.value,
+        sku="SKU-GET-CONTROLLER",
+        price=149.99,
+    )
+    db_session.add(product)
+    await db_session.commit()
+    await db_session.refresh(product)
+
+    app = FastAPI()
+    app.include_router(router)
+
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(f"/product/{product.id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(product.id)
+    assert data["name"] == "Test Product"
+    assert data["sku"] == "SKU-GET-CONTROLLER"
+    assert float(data["price"]) == 149.99
+    assert data["provider_id"] == str(provider.id)

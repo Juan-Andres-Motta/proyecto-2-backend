@@ -62,16 +62,16 @@ class InventoryCreate(BaseModel):
     product_id: UUID
     warehouse_id: UUID
     total_quantity: int
-    reserved_quantity: int
     batch_number: str
     expiration_date: datetime
     # Denormalized product fields (provided by BFF)
     product_sku: str
     product_name: str
+    product_price: float
 
     model_config = {"json_schema_extra": {"examples": [inventory_create_example]}}
 
-    @field_validator("total_quantity", "reserved_quantity")
+    @field_validator("total_quantity")
     @classmethod
     def validate_quantities(cls, v: int) -> int:
         if v < 0:
@@ -95,6 +95,7 @@ class InventoryResponse(BaseModel):
     # Denormalized fields
     product_sku: str
     product_name: str
+    product_price: float
     warehouse_name: str
     warehouse_city: str
     created_at: datetime

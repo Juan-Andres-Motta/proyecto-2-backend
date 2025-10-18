@@ -5,12 +5,16 @@ This controller handles provider-related endpoints using the catalog port
 for communication with the catalog microservice.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Query, status
 
 from dependencies import get_catalog_port
 
 from ..ports import CatalogPort
 from ..schemas import PaginatedProvidersResponse, ProviderCreate, ProviderCreateResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -39,6 +43,7 @@ async def create_provider(
     Returns:
         Created provider id and success message
     """
+    logger.info(f"Request: POST /provider: name='{provider.name}'")
     return await catalog.create_provider(provider)
 
 
@@ -66,4 +71,5 @@ async def get_providers(
     Returns:
         Paginated list of providers
     """
+    logger.info(f"Request: GET /providers: limit={limit}, offset={offset}")
     return await catalog.get_providers(limit=limit, offset=offset)

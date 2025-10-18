@@ -5,6 +5,8 @@ This controller handles order creation for mobile client app users.
 Orders created through this endpoint automatically have metodo_creacion='app_cliente'.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from client_app.ports import OrderPort
@@ -14,32 +16,17 @@ from common.exceptions import (
     MicroserviceHTTPError,
     MicroserviceValidationError,
 )
+from dependencies import get_client_order_port
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-# Dependency function - will be added to dependencies.py
-def get_order_port() -> OrderPort:
-    """
-    Temporary dependency function.
-    This will be moved to dependencies.py
-    """
-    from client_app.adapters import OrderAdapter
-    from web.adapters import HttpClient
-    from config.settings import settings
-
-    client = HttpClient(
-        base_url=settings.order_url,
-        timeout=settings.service_timeout,
-        service_name="order",
-    )
-    return OrderAdapter(client)
 
 
 @router.post("/orders", response_model=OrderCreateResponse, status_code=201)
 async def create_order(
     order_input: OrderCreateInput,
-    order_port: OrderPort = Depends(get_order_port),
+    order_port: OrderPort = Depends(get_client_order_port),
 ):
     """
     Create a new order via client app.
@@ -59,6 +46,7 @@ async def create_order(
     Raises:
         HTTPException: If order creation fails
     """
+    logger.info(f"Request: POST /orders (client app): customer_id={order_input.customer_id}, items_count={len(order_input.items)}")
     try:
         return await order_port.create_order(order_input)
 

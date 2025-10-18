@@ -3,7 +3,9 @@
 No business logic, no validation, no try/catch.
 All exceptions are handled by global exception handlers.
 """
-from fastapi import APIRouter, Depends, Query, status
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.adapters.input.examples import products_list_response_example
 from src.adapters.input.schemas import (
@@ -13,9 +15,11 @@ from src.adapters.input.schemas import (
     ProductResponse,
 )
 from src.application.use_cases.create_products import CreateProductsUseCase
+from src.application.use_cases.get_product import GetProductUseCase
 from src.application.use_cases.list_products import ListProductsUseCase
 from src.infrastructure.dependencies import (
     get_create_products_use_case,
+    get_get_product_use_case,
     get_list_products_use_case,
 )
 
@@ -114,3 +118,43 @@ async def list_products(
         has_next=has_next,
         has_previous=has_previous,
     )
+
+
+@router.get(
+    "/product/{product_id}",
+    response_model=ProductResponse,
+    responses={
+        200: {"description": "Product details"},
+        404: {"description": "Product not found"},
+    },
+)
+async def get_product(
+    product_id: UUID,
+    use_case: GetProductUseCase = Depends(get_get_product_use_case)
+):
+    """Get a single product by ID - THIN controller.
+
+    Just delegates to use case and maps to DTO.
+
+    Args:
+        product_id: Product UUID
+        use_case: Injected use case
+
+    Returns:
+        Product response
+
+    Raises:
+        HTTPException: 404 if product not found
+    """
+    # Delegate to use case
+    product = await use_case.execute(product_id)
+
+    # Return 404 if not found
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product not found: {product_id}"
+        )
+
+    # Map domain entity to DTO
+    return ProductResponse.model_validate(product, from_attributes=True)

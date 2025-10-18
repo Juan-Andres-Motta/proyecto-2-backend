@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -42,6 +43,7 @@ async def test_create_inventory_use_case_success():
         "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": 100.50,
     }
 
     created_inventory = Inventory(
@@ -54,6 +56,7 @@ async def test_create_inventory_use_case_success():
         expiration_date=inventory_data["expiration_date"],
         product_sku="TEST-SKU-001",
         product_name="Test Product",
+        product_price=Decimal("100.50"),
         warehouse_name="test warehouse",
         warehouse_city="Miami",
         created_at=datetime.now(timezone.utc),
@@ -94,6 +97,7 @@ async def test_create_inventory_warehouse_not_found():
         "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": 100.50,
     }
 
     use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)
@@ -133,6 +137,7 @@ async def test_create_inventory_reserved_quantity_not_zero():
         "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": 100.50,
     }
 
     use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)
@@ -209,6 +214,7 @@ async def test_create_inventory_expired_date():
         "expiration_date": expired_date,
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": 100.50,
     }
 
     use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)

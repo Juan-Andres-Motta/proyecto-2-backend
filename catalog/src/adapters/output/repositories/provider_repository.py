@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Tuple
 from uuid import UUID
 
@@ -8,6 +9,8 @@ from src.application.ports.provider_repository_port import ProviderRepositoryPor
 from src.domain.entities.provider import Provider as DomainProvider
 from src.infrastructure.database.models import Provider as ORMProvider
 
+logger = logging.getLogger(__name__)
+
 
 class ProviderRepository(ProviderRepositoryPort):
     """Implementation of ProviderRepositoryPort for PostgreSQL."""
@@ -17,10 +20,12 @@ class ProviderRepository(ProviderRepositoryPort):
 
     async def create(self, provider_data: dict) -> DomainProvider:
         """Create a provider and return domain entity."""
+        logger.debug(f"DB: Creating provider with NIT '{provider_data.get('nit')}'")
         orm_provider = ORMProvider(**provider_data)
         self.session.add(orm_provider)
         await self.session.commit()
         await self.session.refresh(orm_provider)
+        logger.debug(f"DB: Provider created with id={orm_provider.id}")
         return self._to_domain(orm_provider)
 
     async def find_by_id(self, provider_id: UUID) -> Optional[DomainProvider]:
@@ -60,6 +65,7 @@ class ProviderRepository(ProviderRepositoryPort):
         self, limit: int = 10, offset: int = 0
     ) -> Tuple[List[DomainProvider], int]:
         """List providers and return domain entities."""
+        logger.debug(f"DB: Listing providers with limit={limit}, offset={offset}")
         # Get total count
         count_stmt = select(func.count()).select_from(ORMProvider)
         count_result = await self.session.execute(count_stmt)
@@ -72,6 +78,7 @@ class ProviderRepository(ProviderRepositoryPort):
 
         # Map to domain entities
         domain_providers = [self._to_domain(orm) for orm in orm_providers]
+        logger.debug(f"DB: Retrieved {len(domain_providers)} providers from database")
 
         return domain_providers, total
 

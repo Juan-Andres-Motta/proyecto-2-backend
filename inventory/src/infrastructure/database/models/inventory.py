@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import UUID, DateTime, Integer, String, func
+from sqlalchemy import UUID, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -28,6 +29,7 @@ class Inventory(Base):
     # Denormalized fields for performance
     product_sku: Mapped[str] = mapped_column(String(100), nullable=False)
     product_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    product_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     warehouse_name: Mapped[str] = mapped_column(String(255), nullable=False)
     warehouse_city: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -1,4 +1,5 @@
 """Create products use case with validation logic."""
+import logging
 from decimal import Decimal
 from typing import List
 
@@ -10,6 +11,8 @@ from src.domain.exceptions import (
     PriceMustBePositiveException,
     ProviderNotFoundException,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CreateProductsUseCase:
@@ -50,6 +53,8 @@ class CreateProductsUseCase:
             ProviderNotFoundException: If provider doesn't exist
             PriceMustBePositiveException: If price <= 0
         """
+        logger.info(f"Creating batch of {len(products_data)} products")
+
         # Collect all provider IDs and SKUs for batch validation
         provider_ids = set()
         skus_in_batch = []
@@ -58,11 +63,14 @@ class CreateProductsUseCase:
             provider_ids.add(product_data.get("provider_id"))
             skus_in_batch.append(product_data.get("sku"))
 
+        logger.debug(f"Validating {len(provider_ids)} unique providers")
+
         # Validation 1: Check all providers exist (batch query)
         for idx, product_data in enumerate(products_data):
             provider_id = product_data.get("provider_id")
             provider = await self.provider_repo.find_by_id(provider_id)
             if provider is None:
+                logger.warning(f"Product batch creation failed: provider {provider_id} not found at index {idx}")
                 raise BatchProductCreationException(
                     index=idx,
                     product_data=product_data,
@@ -73,6 +81,7 @@ class CreateProductsUseCase:
         for idx, product_data in enumerate(products_data):
             price = product_data.get("price")
             if price is None or Decimal(str(price)) <= 0:
+                logger.warning(f"Product batch creation failed: invalid price {price} at index {idx}")
                 raise BatchProductCreationException(
                     index=idx,
                     product_data=product_data,
@@ -83,6 +92,7 @@ class CreateProductsUseCase:
         seen_skus = set()
         for idx, sku in enumerate(skus_in_batch):
             if sku in seen_skus:
+                logger.warning(f"Product batch creation failed: duplicate SKU '{sku}' within batch at index {idx}")
                 raise BatchProductCreationException(
                     index=idx,
                     product_data=products_data[idx],
@@ -94,6 +104,7 @@ class CreateProductsUseCase:
         existing_skus = await self.product_repo.find_existing_skus(skus_in_batch)
         for idx, sku in enumerate(skus_in_batch):
             if sku in existing_skus:
+                logger.warning(f"Product batch creation failed: SKU '{sku}' already exists at index {idx}")
                 raise BatchProductCreationException(
                     index=idx,
                     product_data=products_data[idx],
@@ -101,4 +112,7 @@ class CreateProductsUseCase:
                 )
 
         # All validations passed - create products
-        return await self.product_repo.batch_create(products_data)
+        logger.debug(f"All validations passed, creating {len(products_data)} products")
+        products = await self.product_repo.batch_create(products_data)
+        logger.info(f"Successfully created {len(products)} products")
+        return products
