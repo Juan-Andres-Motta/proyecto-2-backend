@@ -4,8 +4,14 @@ Inventory adapter implementation.
 This adapter implements the InventoryPort interface using HTTP communication.
 """
 
+from typing import Optional
+from uuid import UUID
+
 from ..ports.inventory_port import InventoryPort
 from ..schemas.inventory_schemas import (
+    InventoryCreate,
+    InventoryCreateResponse,
+    PaginatedInventoriesResponse,
     PaginatedWarehousesResponse,
     WarehouseCreate,
     WarehouseCreateResponse,
@@ -50,3 +56,33 @@ class InventoryAdapter(InventoryPort):
             params={"limit": limit, "offset": offset},
         )
         return PaginatedWarehousesResponse(**response_data)
+
+    async def create_inventory(
+        self, inventory_data: InventoryCreate
+    ) -> InventoryCreateResponse:
+        """Create a new inventory entry."""
+        response_data = await self.client.post(
+            "/inventory/inventory",
+            json=inventory_data.model_dump(mode="json"),
+        )
+        return InventoryCreateResponse(**response_data)
+
+    async def get_inventories(
+        self,
+        limit: int = 10,
+        offset: int = 0,
+        sku: Optional[str] = None,
+        warehouse_id: Optional[UUID] = None,
+    ) -> PaginatedInventoriesResponse:
+        """Retrieve a paginated list of inventories with optional filters."""
+        params = {"limit": limit, "offset": offset}
+        if sku:
+            params["sku"] = sku
+        if warehouse_id:
+            params["warehouse_id"] = str(warehouse_id)
+
+        response_data = await self.client.get(
+            "/inventory/inventories",
+            params=params,
+        )
+        return PaginatedInventoriesResponse(**response_data)

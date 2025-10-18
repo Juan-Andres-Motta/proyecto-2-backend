@@ -1,20 +1,29 @@
+"""Thin controllers for inventories - just delegate to use cases.
+
+No business logic, no validation, no try/catch.
+All exceptions are handled by global exception handlers.
+"""
+from typing import Optional
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.input.examples import (
-    inventory_create_response_example,
     inventories_list_response_example,
+    inventory_create_response_example,
 )
 from src.adapters.input.schemas import (
     InventoryCreate,
     InventoryResponse,
     PaginatedInventoriesResponse,
 )
-from src.adapters.output.repositories.inventory_repository import InventoryRepository
 from src.application.use_cases.create_inventory import CreateInventoryUseCase
 from src.application.use_cases.list_inventories import ListInventoriesUseCase
-from src.infrastructure.database.config import get_db
+from src.infrastructure.dependencies import (
+    get_create_inventory_use_case,
+    get_list_inventories_use_case,
+)
 
 router = APIRouter(tags=["inventories"])
 
@@ -31,10 +40,11 @@ router = APIRouter(tags=["inventories"])
     },
 )
 async def create_inventory(
-    inventory: InventoryCreate, db: AsyncSession = Depends(get_db)
+    inventory: InventoryCreate,
+    use_case: CreateInventoryUseCase = Depends(get_create_inventory_use_case),
 ):
-    repository = InventoryRepository(db)
-    use_case = CreateInventoryUseCase(repository)
+    """Create a new inventory - THIN controller."""
+    # Delegate to use case - no try/catch, exceptions bubble up
     created_inventory = await use_case.execute(inventory.model_dump())
     return JSONResponse(
         content={
@@ -60,11 +70,20 @@ async def create_inventory(
 async def list_inventories(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
+    product_id: Optional[UUID] = Query(None),
+    warehouse_id: Optional[UUID] = Query(None),
+    sku: Optional[str] = Query(None),
+    use_case: ListInventoriesUseCase = Depends(get_list_inventories_use_case),
 ):
-    repository = InventoryRepository(db)
-    use_case = ListInventoriesUseCase(repository)
-    inventories, total = await use_case.execute(limit=limit, offset=offset)
+    """List inventories with optional filters - THIN controller."""
+    # Delegate to use case
+    inventories, total = await use_case.execute(
+        limit=limit,
+        offset=offset,
+        product_id=product_id,
+        warehouse_id=warehouse_id,
+        sku=sku,
+    )
 
     page = (offset // limit) + 1
     has_next = (offset + limit) < total

@@ -6,13 +6,15 @@ without specifying how the communication is implemented.
 """
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
 from web.schemas.catalog_schemas import (
     BatchProductsResponse,
     PaginatedProductsResponse,
     PaginatedProvidersResponse,
     ProductCreate,
+    ProductResponse,
     ProviderCreate,
     ProviderCreateResponse,
 )
@@ -95,6 +97,23 @@ class CatalogPort(ABC):
 
         Returns:
             PaginatedProductsResponse with product data
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect to the catalog service
+            MicroserviceHTTPError: If the catalog service returns an error
+        """
+        pass
+
+    @abstractmethod
+    async def get_product_by_id(self, product_id: UUID) -> Optional[ProductResponse]:
+        """
+        Retrieve a single product by its ID.
+
+        Args:
+            product_id: UUID of the product to retrieve
+
+        Returns:
+            ProductResponse if found, None otherwise
 
         Raises:
             MicroserviceConnectionError: If unable to connect to the catalog service
