@@ -194,9 +194,11 @@ async def test_create_products_provider_not_found(db_session):
     import uuid
 
     from src.adapters.input.controllers.product_controller import router
+    from src.infrastructure.api.exception_handlers import register_exception_handlers
     from src.infrastructure.database.config import get_db
 
     app = FastAPI()
+    register_exception_handlers(app)  # Register exception handlers
     app.include_router(router)
 
     async def override_get_db():
@@ -221,8 +223,11 @@ async def test_create_products_provider_not_found(db_session):
     ) as client:
         response = await client.post("/products", json=request_data)
 
-    assert response.status_code == 404
-    assert "provider" in response.json()["detail"].lower()
+    # Batch validation errors return 422
+    assert response.status_code == 422
+    response_data = response.json()
+    assert "provider" in response_data["message"].lower()
+    assert "not found" in response_data["message"].lower()
 
 
 @pytest.mark.asyncio

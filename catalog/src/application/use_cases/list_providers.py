@@ -1,11 +1,11 @@
 from typing import List, Tuple
 
-from src.adapters.output.repositories.provider_repository import ProviderRepository
-from src.infrastructure.database.models import Provider
+from src.application.ports.provider_repository_port import ProviderRepositoryPort
+from src.domain.entities.provider import Provider
 
 
 class ListProvidersUseCase:
-    def __init__(self, repository: ProviderRepository):
+    def __init__(self, repository: ProviderRepositoryPort):
         self.repository = repository
 
     async def execute(

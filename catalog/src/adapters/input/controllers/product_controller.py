@@ -1,21 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+"""Thin controllers for products - just delegate to use cases.
+
+No business logic, no validation, no try/catch.
+All exceptions are handled by global exception handlers.
+"""
+from fastapi import APIRouter, Depends, Query, status
 
 from src.adapters.input.examples import products_list_response_example
 from src.adapters.input.schemas import (
-    BatchProductsErrorResponse,
     BatchProductsRequest,
     BatchProductsResponse,
     PaginatedProductsResponse,
-    ProductCreate,
-    ProductError,
     ProductResponse,
 )
-from src.adapters.output.repositories.product_repository import ProductRepository
 from src.application.use_cases.create_products import CreateProductsUseCase
 from src.application.use_cases.list_products import ListProductsUseCase
-from src.infrastructure.database.config import get_db
+from src.infrastructure.dependencies import (
+    get_create_products_use_case,
+    get_list_products_use_case,
+)
 
 router = APIRouter(tags=["products"])
 
@@ -33,58 +35,34 @@ router = APIRouter(tags=["products"])
 )
 async def create_products(
     request: BatchProductsRequest,
-    db: AsyncSession = Depends(get_db),
+    use_case: CreateProductsUseCase = Depends(get_create_products_use_case)
 ):
+    """Create multiple products in a batch - THIN controller.
+
+    Just delegates to use case. All validation and business logic
+    is in the use case. Domain exceptions are caught by global handlers.
+
+    Args:
+        request: Batch products creation request
+        use_case: Injected use case
+
+    Returns:
+        Batch products response
     """
-    Create multiple products in a batch.
-    All products are created in a single transaction.
-    If any product fails, all creations are rolled back.
-    """
-    repository = ProductRepository(db)
-    use_case = CreateProductsUseCase(repository)
+    # Convert Pydantic models to dicts
+    products_data = [product.model_dump() for product in request.products]
 
-    try:
-        # Convert Pydantic models to dicts
-        products_data = [product.model_dump() for product in request.products]
+    # Delegate to use case - no try/catch, exceptions bubble up
+    created_products = await use_case.execute(products_data)
 
-        # Execute batch creation
-        created_products = await use_case.execute(products_data)
-
-        return BatchProductsResponse(
-            created=[
-                ProductResponse.model_validate(product, from_attributes=True)
-                for product in created_products
-            ],
-            count=len(created_products),
-        )
-
-    except IntegrityError as e:
-        await db.rollback()
-        # Check if it's a foreign key constraint (provider not found)
-        if "foreign key constraint" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Provider not found. Please verify the provider_id exists.",
-            )
-        # Generic integrity error
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Database integrity error: {str(e)}",
-        )
-
-    except SQLAlchemyError as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create products: {str(e)}",
-        )
-
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error: {str(e)}",
-        )
+    # Map domain entities to DTOs
+    return BatchProductsResponse(
+        created=[
+            ProductResponse.model_validate(product, from_attributes=True)
+            for product in created_products
+        ],
+        count=len(created_products),
+    )
 
 
 @router.get(
@@ -102,16 +80,29 @@ async def create_products(
 async def list_products(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
+    use_case: ListProductsUseCase = Depends(get_list_products_use_case)
 ):
-    repository = ProductRepository(db)
-    use_case = ListProductsUseCase(repository)
+    """List products - THIN controller.
+
+    Just delegates to use case and maps to DTOs.
+
+    Args:
+        limit: Maximum number of results
+        offset: Number to skip
+        use_case: Injected use case
+
+    Returns:
+        Paginated products response
+    """
+    # Delegate to use case
     products, total = await use_case.execute(limit=limit, offset=offset)
 
+    # Calculate pagination metadata
     page = (offset // limit) + 1
     has_next = (offset + limit) < total
     has_previous = offset > 0
 
+    # Map domain entities to DTOs
     return PaginatedProductsResponse(
         items=[
             ProductResponse.model_validate(product, from_attributes=True)

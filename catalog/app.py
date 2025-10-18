@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from src.adapters.input.controllers.common_controller import router as common_router
 from src.adapters.input.controllers.product_controller import router as product_router
 from src.adapters.input.controllers.provider_controller import router as provider_router
+from src.infrastructure.api.exception_handlers import register_exception_handlers
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
 
@@ -26,6 +27,9 @@ app = FastAPI(
     redoc_url=settings.redoc_url,
     openapi_url=settings.openapi_url,
 )
+
+# Register global exception handlers (like Spring @ControllerAdvice)
+register_exception_handlers(app)
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
