@@ -1,3 +1,3 @@
-from .catalog_service import CatalogService
+from .csv_parser import CsvParserService
 
-__all__ = ["CatalogService"]
+__all__ = ["CsvParserService"]

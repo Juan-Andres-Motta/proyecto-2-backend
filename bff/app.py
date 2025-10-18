@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from common.middleware import setup_exception_handlers
 from config.settings import settings
 from web.router import router as web_router
 
@@ -28,7 +29,12 @@ app = FastAPI(
     openapi_url=settings.openapi_url,
 )
 
+# Configure exception handling middleware
+# This must be registered first to catch exceptions from all other middleware and routes
+setup_exception_handlers(app)
+
 # Configure CORS
+# TODO: Move hardcoded origins to environment variables/settings (requires terraform update)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

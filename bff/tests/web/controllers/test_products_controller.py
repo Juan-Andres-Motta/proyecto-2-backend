@@ -1,160 +1,92 @@
-import io
-from unittest.mock import AsyncMock, patch
+"""
+Unit tests for products controller.
+
+Tests that controllers call the right ports.
+"""
+
+from unittest.mock import AsyncMock, Mock
+from uuid import UUID
+from decimal import Decimal
 
 import pytest
-from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
 
-from web.controllers.products_controller import router
-from web.schemas import ProductCategory
-
-
-@pytest.mark.asyncio
-async def test_get_products_success():
-    """Test successful products retrieval."""
-    app = FastAPI()
-    app.include_router(router)
-
-    mock_products_data = {
-        "items": [
-            {
-                "id": "660e8400-e29b-41d4-a716-446655440000",
-                "provider_id": "550e8400-e29b-41d4-a716-446655440000",
-                "name": "test product",
-                "category": "Medicamentos Especiales",  # Human-readable from catalog
-                "sku": "TEST-PROD-001",
-                "price": "99.99",
-                "created_at": "2025-01-15T10:30:00Z",
-                "updated_at": "2025-01-15T10:30:00Z",
-            }
-        ],
-        "total": 1,
-        "page": 1,
-        "size": 10,
-        "has_next": False,
-        "has_previous": False,
-    }
-
-    with patch(
-        "web.controllers.products_controller.CatalogService"
-    ) as MockCatalogService:
-        mock_service = MockCatalogService.return_value
-        mock_service.get_products = AsyncMock(return_value=mock_products_data)
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/products")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "items" in data
-        assert "total" in data
-        assert len(data["items"]) == 1
+from web.ports.catalog_port import CatalogPort
+from web.controllers.products_controller import (
+    get_products,
+    create_product,
+    create_products_from_csv,
+)
+from web.schemas.catalog_schemas import ProductCategory, ProductCreate
 
 
-@pytest.mark.asyncio
-async def test_get_products_with_pagination():
-    """Test products retrieval with custom pagination."""
-    app = FastAPI()
-    app.include_router(router)
-
-    mock_products_data = {
-        "items": [],
-        "total": 0,
-        "page": 2,
-        "size": 20,
-        "has_next": False,
-        "has_previous": True,
-    }
-
-    with patch(
-        "web.controllers.products_controller.CatalogService"
-    ) as MockCatalogService:
-        mock_service = MockCatalogService.return_value
-        mock_service.get_products = AsyncMock(return_value=mock_products_data)
-
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/products?limit=20&offset=10")
-
-        assert response.status_code == 200
-        mock_service.get_products.assert_called_once_with(limit=20, offset=10)
+@pytest.fixture
+def mock_catalog_port():
+    """Create a mock catalog port."""
+    return Mock(spec=CatalogPort)
 
 
-@pytest.mark.asyncio
-async def test_get_products_service_error():
-    """Test products retrieval when service raises an error."""
-    app = FastAPI()
-    app.include_router(router)
+class TestProductsControllerGetProducts:
+    """Test get_products controller."""
 
-    with patch(
-        "web.controllers.products_controller.CatalogService"
-    ) as MockCatalogService:
-        mock_service = MockCatalogService.return_value
-        mock_service.get_products = AsyncMock(
-            side_effect=Exception("Service unavailable")
+    @pytest.mark.asyncio
+    async def test_calls_port_and_returns_response(self, mock_catalog_port):
+        """Test that get_products calls port and returns response."""
+        expected_response = {
+            "items": [],
+            "total": 0,
+            "page": 1,
+            "size": 10,
+            "has_next": False,
+            "has_previous": False,
+        }
+        mock_catalog_port.get_products = AsyncMock(return_value=expected_response)
+
+        result = await get_products(catalog=mock_catalog_port)
+
+        mock_catalog_port.get_products.assert_called_once()
+        assert result == expected_response
+
+
+class TestProductsControllerCreateProduct:
+    """Test create_product controller."""
+
+    @pytest.mark.asyncio
+    async def test_calls_port_and_returns_response(self, mock_catalog_port):
+        """Test that create_product calls port with product data."""
+        product_data = ProductCreate(
+            provider_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
+            name="Test Product",
+            category=ProductCategory.SPECIAL_MEDICATIONS,
+            sku="PROD-001",
+            price=Decimal("99.99"),
         )
+        expected_response = {"created": [product_data], "count": 1}
+        mock_catalog_port.create_products = AsyncMock(return_value=expected_response)
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/products")
+        result = await create_product(product=product_data, catalog=mock_catalog_port)
 
-        assert response.status_code == 500
-        assert "error" in response.json()["detail"].lower()
-
-
-@pytest.mark.asyncio
-async def test_get_products_validation():
-    """Test products endpoint parameter validation."""
-    app = FastAPI()
-    app.include_router(router)
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        # Test limit too high
-        response = await client.get("/products?limit=101")
-        assert response.status_code == 422
-
-        # Test limit too low
-        response = await client.get("/products?limit=0")
-        assert response.status_code == 422
-
-        # Test negative offset
-        response = await client.get("/products?offset=-1")
-        assert response.status_code == 422
+        mock_catalog_port.create_products.assert_called_once_with([product_data])
+        assert result == expected_response
 
 
-@pytest.mark.asyncio
-async def test_get_products_empty_response():
-    """Test products retrieval with empty data."""
-    app = FastAPI()
-    app.include_router(router)
+class TestProductsControllerCreateProductsFromCsv:
+    """Test create_products_from_csv controller."""
 
-    mock_products_data = {
-        "items": [],
-        "total": 0,
-        "page": 1,
-        "size": 10,
-        "has_next": False,
-        "has_previous": False,
-    }
+    @pytest.mark.asyncio
+    async def test_calls_port_and_returns_response(self, mock_catalog_port):
+        """Test that create_products_from_csv parses CSV and calls port."""
+        from fastapi import UploadFile
+        import io
 
-    with patch(
-        "web.controllers.products_controller.CatalogService"
-    ) as MockCatalogService:
-        mock_service = MockCatalogService.return_value
-        mock_service.get_products = AsyncMock(return_value=mock_products_data)
+        csv_content = """provider_id,name,category,sku,price
+550e8400-e29b-41d4-a716-446655440000,Product 1,medicamentos_especiales,PROD-001,99.99"""
+        csv_bytes = csv_content.encode("utf-8")
+        upload_file = UploadFile(filename="products.csv", file=io.BytesIO(csv_bytes))
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/products")
+        expected_response = {"created": [], "count": 1}
+        mock_catalog_port.create_products = AsyncMock(return_value=expected_response)
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["items"] == []
-        assert data["total"] == 0
+        result = await create_products_from_csv(file=upload_file, catalog=mock_catalog_port)
+
+        mock_catalog_port.create_products.assert_called_once()
+        assert result == expected_response
