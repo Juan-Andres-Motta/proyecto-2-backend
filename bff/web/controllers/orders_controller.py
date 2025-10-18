@@ -15,7 +15,7 @@ from dependencies import get_order_port
 from ..ports import OrderPort
 from ..schemas.order_schemas import PaginatedOrdersResponse
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(prefix="/orders")
 
 
 @router.get("", response_model=PaginatedOrdersResponse)

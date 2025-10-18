@@ -21,7 +21,7 @@ from ..schemas.seller_schemas import (
     SellerResponse,
 )
 
-router = APIRouter(prefix="/sellers", tags=["sellers"])
+router = APIRouter(prefix="/sellers")
 
 
 @router.post("", response_model=SellerCreateResponse, status_code=status.HTTP_201_CREATED)

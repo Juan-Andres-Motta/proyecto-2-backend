@@ -62,7 +62,11 @@ class SellerAdapter(SellerPort):
             "/sales-plans",
             json=sales_plan_data.model_dump(mode="json"),
         )
-        return SalesPlanCreateResponse(**response_data)
+        # Seller service returns full sales plan object, extract id
+        return SalesPlanCreateResponse(
+            id=response_data["id"],
+            message="Sales plan created successfully"
+        )
 
     async def get_sales_plans(
         self, limit: int = 10, offset: int = 0

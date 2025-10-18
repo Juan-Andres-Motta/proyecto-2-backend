@@ -11,7 +11,9 @@ services:
       - microservices
 
   catalog:
-    build: ./catalog
+    build:
+      context: ./catalog
+      target: app
     ports:
       - "8001:8000"
     env_file:
@@ -34,7 +36,9 @@ services:
       - microservices
 
   client:
-    build: ./client
+    build:
+      context: ./client
+      target: app
     ports:
       - "8002:8000"
     env_file:
@@ -57,7 +61,9 @@ services:
       - microservices
 
   delivery:
-    build: ./delivery
+    build:
+      context: ./delivery
+      target: app
     ports:
       - "8003:8000"
     env_file:
@@ -80,7 +86,9 @@ services:
       - microservices
 
   inventory:
-    build: ./inventory
+    build:
+      context: ./inventory
+      target: app
     ports:
       - "8004:8000"
     env_file:
@@ -103,7 +111,9 @@ services:
       - microservices
 
   order:
-    build: ./order
+    build:
+      context: ./order
+      target: app
     ports:
       - "8005:8000"
     env_file:
@@ -126,7 +136,9 @@ services:
       - microservices
 
   seller:
-    build: ./seller
+    build:
+      context: ./seller
+      target: app
     ports:
       - "8006:8000"
     env_file:

@@ -16,7 +16,7 @@ from ..schemas.seller_schemas import (
     SalesPlanCreateResponse,
 )
 
-router = APIRouter(prefix="/sales-plans", tags=["sales-plans"])
+router = APIRouter(prefix="/sales-plans")
 
 
 @router.post(

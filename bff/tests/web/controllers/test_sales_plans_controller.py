@@ -13,11 +13,15 @@ def mock_seller_port():
 class TestSalesPlansController:
     @pytest.mark.asyncio
     async def test_create_sales_plan(self, mock_seller_port):
-        sales_plan_data = SalesPlanCreate(seller_id=UUID("550e8400-e29b-41d4-a716-446655440000"), name="Plan", description="Desc", sales_period="2025-Q1", goal=10000.0)
-        mock_seller_port.create_sales_plan = AsyncMock(return_value={"id": "test-id"})
+        sales_plan_data = SalesPlanCreate(
+            seller_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
+            sales_period="Q1-2025",
+            goal=10000.0
+        )
+        mock_seller_port.create_sales_plan = AsyncMock(return_value={"id": "test-id", "message": "Created"})
         result = await create_sales_plan(sales_plan=sales_plan_data, seller_port=mock_seller_port)
         mock_seller_port.create_sales_plan.assert_called_once_with(sales_plan_data)
-        assert result == {"id": "test-id"}
+        assert result == {"id": "test-id", "message": "Created"}
 
     @pytest.mark.asyncio
     async def test_get_sales_plans(self, mock_seller_port):

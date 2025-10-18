@@ -176,7 +176,7 @@ class OrderRepository(OrderRepositoryPort):
             route_id=model.route_id,
             fecha_pedido=model.fecha_pedido,
             fecha_entrega_estimada=model.fecha_entrega_estimada,
-            metodo_creacion=CreationMethod(model.metodo_creacion.value),
+            metodo_creacion=CreationMethod(model.metodo_creacion),
             direccion_entrega=model.direccion_entrega,
             ciudad_entrega=model.ciudad_entrega,
             pais_entrega=model.pais_entrega,

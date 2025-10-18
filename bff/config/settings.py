@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
 
     # Microservices URLs
-    catalog_url: str = Field(default="http://catalog:8000")
-    client_url: str = Field(default="http://client:8000")
-    delivery_url: str = Field(default="http://delivery:8000")
-    inventory_url: str = Field(default="http://inventory:8000")
-    order_url: str = Field(default="http://order:8005")
-    seller_url: str = Field(default="http://seller:8006")
+    catalog_url: str = Field(default="http://catalog:8000/catalog")
+    client_url: str = Field(default="http://client:8000/client")
+    delivery_url: str = Field(default="http://delivery:8000/delivery")
+    inventory_url: str = Field(default="http://inventory:8000/inventory")
+    order_url: str = Field(default="http://order:8000/order")
+    seller_url: str = Field(default="http://seller:8000/seller")
 
     # Service communication settings
     service_timeout: float = Field(default=10.0)
