@@ -3,38 +3,19 @@ Orders controller.
 
 This controller handles order-related endpoints using the order port
 for communication with the order microservice.
+
+NOTE: Order creation is handled by client_app and sellers_app modules.
+Web users cannot create orders directly.
 """
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from dependencies import get_order_port
 
 from ..ports import OrderPort
-from ..schemas.order_schemas import (
-    OrderCreate,
-    OrderCreateResponse,
-    PaginatedOrdersResponse,
-)
+from ..schemas.order_schemas import PaginatedOrdersResponse
 
 router = APIRouter(prefix="/orders", tags=["orders"])
-
-
-@router.post("", response_model=OrderCreateResponse, status_code=status.HTTP_201_CREATED)
-async def create_order(
-    order: OrderCreate,
-    order_port: OrderPort = Depends(get_order_port),
-):
-    """
-    Create a new order.
-
-    Args:
-        order: Order data to create
-        order_port: Order port for service communication
-
-    Returns:
-        Created order id and success message
-    """
-    return await order_port.create_order(order)
 
 
 @router.get("", response_model=PaginatedOrdersResponse)

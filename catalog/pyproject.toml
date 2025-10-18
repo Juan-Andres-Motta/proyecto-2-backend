@@ -55,6 +55,8 @@ asyncio_default_fixture_loop_scope = "session"
 source = ["src"]
 omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
 relative_files = true
+concurrency = ["thread", "greenlet"]
+branch = true
 
 [tool.coverage.report]
 precision = 2
