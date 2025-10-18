@@ -53,7 +53,7 @@ class TestCatalogAdapterCreateProvider:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/catalog/provider"
+        assert call_args.args[0] == "/provider"
 
 
 class TestCatalogAdapterGetProviders:
@@ -77,7 +77,7 @@ class TestCatalogAdapterGetProviders:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/catalog/providers"
+        assert call_args.args[0] == "/providers"
 
 
 class TestCatalogAdapterCreateProducts:
@@ -106,7 +106,7 @@ class TestCatalogAdapterCreateProducts:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/catalog/products"
+        assert call_args.args[0] == "/products"
 
 
 class TestCatalogAdapterGetProducts:
@@ -130,4 +130,4 @@ class TestCatalogAdapterGetProducts:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/catalog/products"
+        assert call_args.args[0] == "/products"
