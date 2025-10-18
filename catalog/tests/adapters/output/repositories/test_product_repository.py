@@ -173,3 +173,142 @@ async def test_batch_create_products_rollback_on_error(db_session):
     # Verify no products were created (transaction rolled back)
     products, total = await repo.list_products()
     assert total == 0
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_found(db_session):
+    """Test finding product by ID when it exists."""
+    from src.adapters.output.repositories.provider_repository import ProviderRepository
+
+    provider_repo = ProviderRepository(db_session)
+    provider = await provider_repo.create({
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "US",
+    })
+
+    repo = ProductRepository(db_session)
+    created_products = await repo.batch_create([{
+        "provider_id": provider.id,
+        "name": "Test Product",
+        "category": ProductCategory.OTHER.value,
+        "sku": "SKU-FIND-ID",
+        "price": 100.00,
+    }])
+
+    found = await repo.find_by_id(created_products[0].id)
+
+    assert found is not None
+    assert found.id == created_products[0].id
+    assert found.name == "Test Product"
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_not_found(db_session):
+    """Test finding product by ID when it doesn't exist."""
+    from uuid import uuid4
+    repo = ProductRepository(db_session)
+
+    found = await repo.find_by_id(uuid4())
+
+    assert found is None
+
+
+@pytest.mark.asyncio
+async def test_find_by_sku_found(db_session):
+    """Test finding product by SKU when it exists."""
+    from src.adapters.output.repositories.provider_repository import ProviderRepository
+
+    provider_repo = ProviderRepository(db_session)
+    provider = await provider_repo.create({
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "US",
+    })
+
+    repo = ProductRepository(db_session)
+    await repo.batch_create([{
+        "provider_id": provider.id,
+        "name": "Test Product",
+        "category": ProductCategory.OTHER.value,
+        "sku": "SKU-FIND-ME",
+        "price": 100.00,
+    }])
+
+    found = await repo.find_by_sku("SKU-FIND-ME")
+
+    assert found is not None
+    assert found.sku == "SKU-FIND-ME"
+    assert found.name == "Test Product"
+
+
+@pytest.mark.asyncio
+async def test_find_by_sku_not_found(db_session):
+    """Test finding product by SKU when it doesn't exist."""
+    repo = ProductRepository(db_session)
+
+    found = await repo.find_by_sku("nonexistent-sku")
+
+    assert found is None
+
+
+@pytest.mark.asyncio
+async def test_find_existing_skus(db_session):
+    """Test finding which SKUs exist in database."""
+    from src.adapters.output.repositories.provider_repository import ProviderRepository
+
+    provider_repo = ProviderRepository(db_session)
+    provider = await provider_repo.create({
+        "name": "Test Provider",
+        "nit": "123456789",
+        "contact_name": "John Doe",
+        "email": "john@test.com",
+        "phone": "+1234567890",
+        "address": "123 Test St",
+        "country": "US",
+    })
+
+    repo = ProductRepository(db_session)
+    await repo.batch_create([
+        {
+            "provider_id": provider.id,
+            "name": "Product 1",
+            "category": ProductCategory.OTHER.value,
+            "sku": "SKU-EXISTS-1",
+            "price": 100.00,
+        },
+        {
+            "provider_id": provider.id,
+            "name": "Product 2",
+            "category": ProductCategory.OTHER.value,
+            "sku": "SKU-EXISTS-2",
+            "price": 200.00,
+        },
+    ])
+
+    existing = await repo.find_existing_skus([
+        "SKU-EXISTS-1",
+        "SKU-EXISTS-2",
+        "SKU-NOT-EXISTS"
+    ])
+
+    assert existing == {"SKU-EXISTS-1", "SKU-EXISTS-2"}
+    assert "SKU-NOT-EXISTS" not in existing
+
+
+@pytest.mark.asyncio
+async def test_find_existing_skus_empty_list(db_session):
+    """Test find_existing_skus with empty list."""
+    repo = ProductRepository(db_session)
+
+    existing = await repo.find_existing_skus([])
+
+    assert existing == set()
