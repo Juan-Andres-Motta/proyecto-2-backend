@@ -45,7 +45,7 @@ variable "master_password" {
 }
 
 variable "private_subnet_ids" {
-  description = "IDs of private subnets for RDS"
+  description = "IDs of subnets for RDS (can be public or private)"
   type        = list(string)
 }
 

@@ -49,7 +49,7 @@ class TestInventoryAdapterCreateWarehouse:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/warehouse"
+        assert call_args.args[0] == "/inventory/warehouse"
 
 
 class TestInventoryAdapterGetWarehouses:
@@ -73,7 +73,7 @@ class TestInventoryAdapterGetWarehouses:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/warehouses"
+        assert call_args.args[0] == "/inventory/warehouses"
 
 
 class TestInventoryAdapterCreateInventory:
@@ -105,7 +105,7 @@ class TestInventoryAdapterCreateInventory:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/inventory"
+        assert call_args.args[0] == "/inventory/inventory"
 
 
 class TestInventoryAdapterGetInventories:
@@ -129,4 +129,4 @@ class TestInventoryAdapterGetInventories:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/inventories"
+        assert call_args.args[0] == "/inventory/inventories"

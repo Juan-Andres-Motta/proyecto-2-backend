@@ -49,7 +49,7 @@ class TestSellerAdapterCreateSeller:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/sellers"
+        assert call_args.args[0] == "/seller/sellers"
 
 
 class TestSellerAdapterGetSellers:
@@ -73,7 +73,7 @@ class TestSellerAdapterGetSellers:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/sellers"
+        assert call_args.args[0] == "/seller/sellers"
 
 
 class TestSellerAdapterCreateSalesPlan:
@@ -115,7 +115,7 @@ class TestSellerAdapterCreateSalesPlan:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/sales-plans"
+        assert call_args.args[0] == "/seller/sales-plans"
 
         # Verify adapter extracts id and constructs response correctly
         assert result.id == "test-id"
@@ -143,7 +143,7 @@ class TestSellerAdapterGetSalesPlans:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/sales-plans"
+        assert call_args.args[0] == "/seller/sales-plans"
 
 
 class TestSellerAdapterGetSellerSalesPlans:
@@ -169,4 +169,4 @@ class TestSellerAdapterGetSellerSalesPlans:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == f"/sellers/{seller_id}/sales-plans"
+        assert call_args.args[0] == f"/seller/sellers/{seller_id}/sales-plans"

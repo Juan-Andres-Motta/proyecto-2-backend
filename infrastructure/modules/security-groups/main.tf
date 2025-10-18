@@ -127,3 +127,14 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
   to_port                      = 5432
   ip_protocol                  = "tcp"
 }
+
+# RDS Ingress - from any IP address (for external access)
+resource "aws_vpc_security_group_ingress_rule" "rds_from_internet" {
+  security_group_id = aws_security_group.rds.id
+  description       = "Allow PostgreSQL from any IP address"
+
+  cidr_ipv4   = "0.0.0.0/0"
+  from_port   = 5432
+  to_port     = 5432
+  ip_protocol = "tcp"
+}

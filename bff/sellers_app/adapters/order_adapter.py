@@ -70,7 +70,7 @@ class OrderAdapter(OrderPort):
         if order_data.visit_id is not None:
             payload["visit_id"] = str(order_data.visit_id)
 
-        response_data = await self.client.post("/order", json=payload)
+        response_data = await self.client.post("/order/order", json=payload)
 
         return OrderCreateResponse(
             id=response_data["id"],
