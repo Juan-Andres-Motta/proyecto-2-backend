@@ -43,7 +43,7 @@ class SellerAdapter(SellerPort):
         """Create a new seller."""
         logger.info(f"Creating seller: name='{seller_data.name}', email='{seller_data.email}'")
         response_data = await self.client.post(
-            "/sellers",
+            "/seller/sellers",
             json=seller_data.model_dump(mode="json"),
         )
         return SellerCreateResponse(**response_data)
@@ -54,7 +54,7 @@ class SellerAdapter(SellerPort):
         """Retrieve a paginated list of sellers."""
         logger.info(f"Getting sellers: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/sellers",
+            "/seller/sellers",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedSellersResponse(**response_data)
@@ -65,7 +65,7 @@ class SellerAdapter(SellerPort):
         """Create a new sales plan for a seller."""
         logger.info(f"Creating sales plan: seller_id={sales_plan_data.seller_id}, sales_period={sales_plan_data.sales_period}, goal={sales_plan_data.goal}")
         response_data = await self.client.post(
-            "/sales-plans",
+            "/seller/sales-plans",
             json=sales_plan_data.model_dump(mode="json"),
         )
         # Seller service returns full sales plan object, extract id
@@ -80,7 +80,7 @@ class SellerAdapter(SellerPort):
         """Retrieve a paginated list of sales plans."""
         logger.info(f"Getting sales plans: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/sales-plans",
+            "/seller/sales-plans",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedSalesPlansResponse(**response_data)
@@ -91,7 +91,7 @@ class SellerAdapter(SellerPort):
         """Retrieve sales plans for a specific seller."""
         logger.info(f"Getting seller sales plans: seller_id={seller_id}, limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            f"/sellers/{seller_id}/sales-plans",
+            f"/seller/sellers/{seller_id}/sales-plans",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedSalesPlansResponse(**response_data)

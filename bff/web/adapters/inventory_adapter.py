@@ -46,7 +46,7 @@ class InventoryAdapter(InventoryPort):
         """Create a new warehouse."""
         logger.info(f"Creating warehouse: name='{warehouse_data.name}'")
         response_data = await self.client.post(
-            "/warehouse",
+            "/inventory/warehouse",
             json=warehouse_data.model_dump(mode="json"),
         )
         return WarehouseCreateResponse(**response_data)
@@ -57,7 +57,7 @@ class InventoryAdapter(InventoryPort):
         """Retrieve a paginated list of warehouses."""
         logger.info(f"Getting warehouses: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/warehouses",
+            "/inventory/warehouses",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedWarehousesResponse(**response_data)
@@ -89,7 +89,7 @@ class InventoryAdapter(InventoryPort):
             params["warehouse_id"] = str(warehouse_id)
 
         response_data = await self.client.get(
-            "/inventories",
+            "/inventory/inventories",
             params=params,
         )
         return PaginatedInventoriesResponse(**response_data)

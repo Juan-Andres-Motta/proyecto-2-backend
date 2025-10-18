@@ -1,51 +1,61 @@
-name: Build Services
+name: Build Services (Ad-hoc)
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to build (comma-separated: bff,catalog,client,delivery,inventory,order,seller or "all")'
+        required: true
+        default: 'all'
+        type: string
 
 env:
   AWS_REGION: us-east-1
 
 jobs:
-  detect-changes:
+  determine-services:
     runs-on: ubuntu-latest
     outputs:
-      bff: ${{ steps.changes.outputs.bff }}
-      catalog: ${{ steps.changes.outputs.catalog }}
-      client: ${{ steps.changes.outputs.client }}
-      delivery: ${{ steps.changes.outputs.delivery }}
-      inventory: ${{ steps.changes.outputs.inventory }}
-      order: ${{ steps.changes.outputs.order }}
-      seller: ${{ steps.changes.outputs.seller }}
+      build-bff: ${{ steps.determine.outputs.build-bff }}
+      build-catalog: ${{ steps.determine.outputs.build-catalog }}
+      build-client: ${{ steps.determine.outputs.build-client }}
+      build-delivery: ${{ steps.determine.outputs.build-delivery }}
+      build-inventory: ${{ steps.determine.outputs.build-inventory }}
+      build-order: ${{ steps.determine.outputs.build-order }}
+      build-seller: ${{ steps.determine.outputs.build-seller }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Determine which services to build
+        id: determine
+        run: |
+          SERVICES="${{ github.event.inputs.services }}"
 
-      - uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            bff:
-              - 'bff/**'
-            catalog:
-              - 'catalog/**'
-            client:
-              - 'client/**'
-            delivery:
-              - 'delivery/**'
-            inventory:
-              - 'inventory/**'
-            order:
-              - 'order/**'
-            seller:
-              - 'seller/**'
+          if [ "$SERVICES" == "all" ]; then
+            echo "build-bff=true" >> $GITHUB_OUTPUT
+            echo "build-catalog=true" >> $GITHUB_OUTPUT
+            echo "build-client=true" >> $GITHUB_OUTPUT
+            echo "build-delivery=true" >> $GITHUB_OUTPUT
+            echo "build-inventory=true" >> $GITHUB_OUTPUT
+            echo "build-order=true" >> $GITHUB_OUTPUT
+            echo "build-seller=true" >> $GITHUB_OUTPUT
+          else
+            echo "build-bff=false" >> $GITHUB_OUTPUT
+            echo "build-catalog=false" >> $GITHUB_OUTPUT
+            echo "build-client=false" >> $GITHUB_OUTPUT
+            echo "build-delivery=false" >> $GITHUB_OUTPUT
+            echo "build-inventory=false" >> $GITHUB_OUTPUT
+            echo "build-order=false" >> $GITHUB_OUTPUT
+            echo "build-seller=false" >> $GITHUB_OUTPUT
+
+            IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+            for service in "${SERVICE_ARRAY[@]}"; do
+              service=$(echo "$service" | xargs)  # trim whitespace
+              echo "build-$service=true" >> $GITHUB_OUTPUT
+            done
+          fi
 
   build-bff:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.bff == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-bff == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,8 +84,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-catalog:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.catalog == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-catalog == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -104,8 +114,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-client:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.client == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-client == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -134,8 +144,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-delivery:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.delivery == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-delivery == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -164,8 +174,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-inventory:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.inventory == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-inventory == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -194,8 +204,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-order:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.order == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-order == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -224,8 +234,8 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   build-seller:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.seller == 'true'
+    needs: determine-services
+    if: needs.determine-services.outputs.build-seller == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

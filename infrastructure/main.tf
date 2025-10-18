@@ -1,5 +1,15 @@
+# Retrieve DB password from AWS Secrets Manager
+data "aws_secretsmanager_secret" "db_password" {
+  name = "medisupply-db-password"
+}
+
+data "aws_secretsmanager_secret_version" "db_password" {
+  secret_id = data.aws_secretsmanager_secret.db_password.id
+}
+
 locals {
-  name_prefix = "medisupply"
+  name_prefix     = "medisupply"
+  db_password     = data.aws_secretsmanager_secret_version.db_password.secret_string
   common_tags = {
     ManagedBy = "terraform"
   }
@@ -15,24 +25,24 @@ locals {
       SELLER_URL    = "http://seller.medisupply.local:8000"
     }
     catalog = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
       LOG_LEVEL    = "INFO"
       DEBUG_SQL    = "false"
     }
     client = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_client.db_instance_address}:5432/client2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_client.db_instance_address}:5432/client2"
     }
     delivery = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_delivery.db_instance_address}:5432/delivery2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_delivery.db_instance_address}:5432/delivery2"
     }
     inventory = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
     }
     seller = {
-      DATABASE_URL = "postgresql://postgres:${var.db_master_password}@${module.rds_seller.db_instance_address}:5432/seller2"
+      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_seller.db_instance_address}:5432/seller2"
     }
   }
 
@@ -47,15 +57,15 @@ locals {
     seller    = "/seller/health"
   }
 
-  # Service-specific container ports
+  # Service-specific container ports (all services run on port 8000)
   service_container_ports = {
     bff       = 8000
-    catalog   = 8001
-    client    = 8002
-    delivery  = 8003
-    inventory = 8004
-    order     = 8005
-    seller    = 8006
+    catalog   = 8000
+    client    = 8000
+    delivery  = 8000
+    inventory = 8000
+    order     = 8000
+    seller    = 8000
   }
 }
 
@@ -177,8 +187,8 @@ module "rds_catalog" {
 
   name_prefix        = local.name_prefix
   db_name            = "catalogdb2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }
@@ -188,8 +198,8 @@ module "rds_client" {
 
   name_prefix        = local.name_prefix
   db_name            = "client2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }
@@ -199,8 +209,8 @@ module "rds_delivery" {
 
   name_prefix        = local.name_prefix
   db_name            = "delivery2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }
@@ -210,8 +220,8 @@ module "rds_inventory" {
 
   name_prefix        = local.name_prefix
   db_name            = "inventory2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }
@@ -221,8 +231,8 @@ module "rds_order" {
 
   name_prefix        = local.name_prefix
   db_name            = "orderdb2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }
@@ -232,8 +242,8 @@ module "rds_seller" {
 
   name_prefix        = local.name_prefix
   db_name            = "seller2"
-  master_password    = var.db_master_password
-  private_subnet_ids = module.vpc.private_subnet_ids
+  master_password    = local.db_password
+  private_subnet_ids = module.vpc.public_subnet_ids
   security_group_id  = module.security_groups.rds_security_group_id
   tags               = local.common_tags
 }

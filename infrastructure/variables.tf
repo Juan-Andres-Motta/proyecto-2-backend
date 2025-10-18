@@ -19,7 +19,8 @@ variable "services" {
 }
 
 variable "db_master_password" {
-  description = "Master password for all RDS databases"
+  description = "Master password for all RDS databases (deprecated - now using AWS Secrets Manager)"
   type        = string
   sensitive   = true
+  default     = ""  # Not used - password retrieved from AWS Secrets Manager
 }

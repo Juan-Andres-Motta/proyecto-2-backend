@@ -45,7 +45,7 @@ class CatalogAdapter(CatalogPort):
         """Create a new provider in the catalog."""
         logger.info(f"Creating provider: name='{provider_data.name}', nit='{provider_data.nit}'")
         response_data = await self.client.post(
-            "/provider",
+            "/catalog/provider",
             json=provider_data.model_dump(mode="json"),
         )
         return ProviderCreateResponse(**response_data)
@@ -56,7 +56,7 @@ class CatalogAdapter(CatalogPort):
         """Retrieve a paginated list of providers."""
         logger.info(f"Getting providers: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/providers",
+            "/catalog/providers",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedProvidersResponse(**response_data)
@@ -66,7 +66,7 @@ class CatalogAdapter(CatalogPort):
         logger.info(f"Creating products: count={len(products)}")
         products_data = [p.model_dump(mode="json") for p in products]
         response_data = await self.client.post(
-            "/products",
+            "/catalog/products",
             json={"products": products_data},
         )
         return BatchProductsResponse(**response_data)
@@ -77,7 +77,7 @@ class CatalogAdapter(CatalogPort):
         """Retrieve a paginated list of products."""
         logger.info(f"Getting products: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/products",
+            "/catalog/products",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedProductsResponse(**response_data)
@@ -87,7 +87,7 @@ class CatalogAdapter(CatalogPort):
         logger.info(f"Getting product by ID: product_id={product_id}")
         try:
             response_data = await self.client.get(
-                f"/product/{product_id}",
+                f"/catalog/product/{product_id}",
             )
             return ProductResponse(**response_data)
         except Exception:

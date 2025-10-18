@@ -34,7 +34,7 @@ resource "aws_db_instance" "main" {
   # Network configuration
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.security_group_id]
-  publicly_accessible    = false
+  publicly_accessible    = true
 
   # No backups for faster startup
   backup_retention_period = 0

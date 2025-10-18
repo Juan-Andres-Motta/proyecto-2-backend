@@ -67,7 +67,7 @@ class OrderAdapter(OrderPort):
             # No seller_id or visit_id for client app orders
         }
 
-        response_data = await self.client.post("/order", json=payload)
+        response_data = await self.client.post("/order/order", json=payload)
 
         return OrderCreateResponse(
             id=response_data["id"], message=response_data.get("message", "Order created successfully")
