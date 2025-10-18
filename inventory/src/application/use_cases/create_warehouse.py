@@ -1,10 +1,16 @@
-from src.adapters.output.repositories.warehouse_repository import WarehouseRepository
-from src.infrastructure.database.models import Warehouse
+from src.application.ports.warehouse_repository_port import WarehouseRepositoryPort
+from src.domain.entities.warehouse import Warehouse
 
 
 class CreateWarehouseUseCase:
-    def __init__(self, repository: WarehouseRepository):
+    """Use case for creating a warehouse.
+
+    No additional business validation needed.
+    """
+
+    def __init__(self, repository: WarehouseRepositoryPort):
         self.repository = repository
 
     async def execute(self, warehouse_data: dict) -> Warehouse:
+        """Create a new warehouse."""
         return await self.repository.create(warehouse_data)

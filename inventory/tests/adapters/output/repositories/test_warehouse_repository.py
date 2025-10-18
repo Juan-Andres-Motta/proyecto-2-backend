@@ -77,3 +77,33 @@ async def test_list_warehouses_pagination(db_session):
     warehouses, total = await repo.list_warehouses(limit=5, offset=5)
     assert len(warehouses) == 5
     assert total == 10
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_found(db_session):
+    """Test finding warehouse by ID when it exists."""
+    repo = WarehouseRepository(db_session)
+    created = await repo.create({
+        "name": "test warehouse",
+        "country": "us",
+        "city": "miami",
+        "address": "123 test st",
+    })
+
+    found = await repo.find_by_id(created.id)
+
+    assert found is not None
+    assert found.id == created.id
+    assert found.name == "test warehouse"
+    assert found.country == "us"
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_not_found(db_session):
+    """Test finding warehouse by ID when it doesn't exist."""
+    from uuid import uuid4
+    repo = WarehouseRepository(db_session)
+
+    found = await repo.find_by_id(uuid4())
+
+    assert found is None

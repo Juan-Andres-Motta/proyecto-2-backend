@@ -1,6 +1,10 @@
+"""Thin controllers for warehouses - just delegate to use cases.
+
+No business logic, no validation, no try/catch.
+All exceptions are handled by global exception handlers.
+"""
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.input.examples import (
     warehouse_create_response_example,
@@ -11,10 +15,12 @@ from src.adapters.input.schemas import (
     WarehouseCreate,
     WarehouseResponse,
 )
-from src.adapters.output.repositories.warehouse_repository import WarehouseRepository
 from src.application.use_cases.create_warehouse import CreateWarehouseUseCase
 from src.application.use_cases.list_warehouses import ListWarehousesUseCase
-from src.infrastructure.database.config import get_db
+from src.infrastructure.dependencies import (
+    get_create_warehouse_use_case,
+    get_list_warehouses_use_case,
+)
 
 router = APIRouter(tags=["warehouses"])
 
@@ -24,13 +30,18 @@ router = APIRouter(tags=["warehouses"])
     responses={
         201: {
             "description": "Warehouse created successfully",
-            "content": {"application/json": {"example": warehouse_create_response_example}},
+            "content": {
+                "application/json": {"example": warehouse_create_response_example}
+            },
         }
     },
 )
-async def create_warehouse(warehouse: WarehouseCreate, db: AsyncSession = Depends(get_db)):
-    repository = WarehouseRepository(db)
-    use_case = CreateWarehouseUseCase(repository)
+async def create_warehouse(
+    warehouse: WarehouseCreate,
+    use_case: CreateWarehouseUseCase = Depends(get_create_warehouse_use_case),
+):
+    """Create a new warehouse - THIN controller."""
+    # Delegate to use case - no try/catch, exceptions bubble up
     created_warehouse = await use_case.execute(warehouse.model_dump())
     return JSONResponse(
         content={
@@ -47,17 +58,19 @@ async def create_warehouse(warehouse: WarehouseCreate, db: AsyncSession = Depend
     responses={
         200: {
             "description": "List of warehouses with pagination",
-            "content": {"application/json": {"example": warehouses_list_response_example}},
+            "content": {
+                "application/json": {"example": warehouses_list_response_example}
+            },
         }
     },
 )
 async def list_warehouses(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db),
+    use_case: ListWarehousesUseCase = Depends(get_list_warehouses_use_case),
 ):
-    repository = WarehouseRepository(db)
-    use_case = ListWarehousesUseCase(repository)
+    """List warehouses - THIN controller."""
+    # Delegate to use case
     warehouses, total = await use_case.execute(limit=limit, offset=offset)
 
     page = (offset // limit) + 1

@@ -1,14 +1,29 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+from uuid import UUID
 
-from src.adapters.output.repositories.inventory_repository import InventoryRepository
-from src.infrastructure.database.models import Inventory
+from src.application.ports.inventory_repository_port import InventoryRepositoryPort
+from src.domain.entities.inventory import Inventory
 
 
 class ListInventoriesUseCase:
-    def __init__(self, repository: InventoryRepository):
+    """Use case for listing inventories with pagination and filters."""
+
+    def __init__(self, repository: InventoryRepositoryPort):
         self.repository = repository
 
     async def execute(
-        self, limit: int = 10, offset: int = 0
+        self,
+        limit: int = 10,
+        offset: int = 0,
+        product_id: Optional[UUID] = None,
+        warehouse_id: Optional[UUID] = None,
+        sku: Optional[str] = None,
     ) -> Tuple[List[Inventory], int]:
-        return await self.repository.list_inventories(limit=limit, offset=offset)
+        """List inventories with pagination and filters."""
+        return await self.repository.list_inventories(
+            limit=limit,
+            offset=offset,
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            sku=sku,
+        )

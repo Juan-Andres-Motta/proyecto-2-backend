@@ -272,6 +272,9 @@ async def test_list_warehouses_single_page(db_session):
 @pytest.mark.asyncio
 async def test_create_warehouse_with_mock():
     """Test warehouse creation using mocked use case."""
+    from src.domain.entities.warehouse import Warehouse as DomainWarehouse
+    from src.infrastructure.dependencies import get_create_warehouse_use_case
+
     app = FastAPI()
     app.include_router(router)
 
@@ -282,7 +285,7 @@ async def test_create_warehouse_with_mock():
         "address": "123 Test St",
     }
 
-    mock_warehouse = Warehouse(
+    mock_warehouse = DomainWarehouse(
         id=uuid.uuid4(),
         name="Test Warehouse",
         country="us",
@@ -292,16 +295,17 @@ async def test_create_warehouse_with_mock():
         updated_at=datetime.now(timezone.utc),
     )
 
-    with patch(
-        "src.adapters.input.controllers.warehouse_controller.CreateWarehouseUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=mock_warehouse)
+    # Mock the use case
+    mock_use_case = AsyncMock()
+    mock_use_case.execute = AsyncMock(return_value=mock_warehouse)
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/warehouse", json=warehouse_data)
+    # Override DI dependency
+    app.dependency_overrides[get_create_warehouse_use_case] = lambda: mock_use_case
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/warehouse", json=warehouse_data)
 
     assert response.status_code == 201
     data = response.json()
@@ -312,12 +316,15 @@ async def test_create_warehouse_with_mock():
 @pytest.mark.asyncio
 async def test_list_warehouses_pagination_logic():
     """Test warehouse listing with various pagination scenarios to cover all logic."""
+    from src.domain.entities.warehouse import Warehouse as DomainWarehouse
+    from src.infrastructure.dependencies import get_list_warehouses_use_case
+
     app = FastAPI()
     app.include_router(router)
 
     # Test scenario 1: offset=0, should have has_previous=False
     mock_warehouses = [
-        Warehouse(
+        DomainWarehouse(
             id=uuid.uuid4(),
             name=f"Warehouse {i}",
             country="us",
@@ -329,58 +336,47 @@ async def test_list_warehouses_pagination_logic():
         for i in range(5)
     ]
 
-    with patch(
-        "src.adapters.input.controllers.warehouse_controller.ListWarehousesUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_warehouses, 20))
+    # Mock the use case
+    mock_use_case = AsyncMock()
+    mock_use_case.execute = AsyncMock(return_value=(mock_warehouses, 20))
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            # Test with offset=0
-            response = await client.get("/warehouses?limit=5&offset=0")
+    # Override DI dependency
+    app.dependency_overrides[get_list_warehouses_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 1
-        assert data["has_next"] is True
-        assert data["has_previous"] is False
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        # Test with offset=0
+        response = await client.get("/warehouses?limit=5&offset=0")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 1
+    assert data["has_next"] is True
+    assert data["has_previous"] is False
 
     # Test scenario 2: offset > 0 and offset + limit < total
-    with patch(
-        "src.adapters.input.controllers.warehouse_controller.ListWarehousesUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_warehouses, 20))
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        # Test with offset=5, limit=5, total=20
+        response = await client.get("/warehouses?limit=5&offset=5")
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            # Test with offset=5, limit=5, total=20
-            response = await client.get("/warehouses?limit=5&offset=5")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 2
-        assert data["has_next"] is True
-        assert data["has_previous"] is True
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 2
+    assert data["has_next"] is True
+    assert data["has_previous"] is True
 
     # Test scenario 3: offset + limit >= total (last page)
-    with patch(
-        "src.adapters.input.controllers.warehouse_controller.ListWarehousesUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_warehouses, 20))
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        # Test with offset=15, limit=5, total=20
+        response = await client.get("/warehouses?limit=5&offset=15")
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            # Test with offset=15, limit=5, total=20
-            response = await client.get("/warehouses?limit=5&offset=15")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["page"] == 4
-        assert data["has_next"] is False
-        assert data["has_previous"] is True
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 4
+    assert data["has_next"] is False
+    assert data["has_previous"] is True

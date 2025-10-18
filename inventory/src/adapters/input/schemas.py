@@ -65,6 +65,9 @@ class InventoryCreate(BaseModel):
     reserved_quantity: int
     batch_number: str
     expiration_date: datetime
+    # Denormalized product fields (provided by BFF)
+    product_sku: str
+    product_name: str
 
     model_config = {"json_schema_extra": {"examples": [inventory_create_example]}}
 
@@ -89,6 +92,11 @@ class InventoryResponse(BaseModel):
     reserved_quantity: int
     batch_number: str
     expiration_date: datetime
+    # Denormalized fields
+    product_sku: str
+    product_name: str
+    warehouse_name: str
+    warehouse_city: str
     created_at: datetime
     updated_at: datetime
 

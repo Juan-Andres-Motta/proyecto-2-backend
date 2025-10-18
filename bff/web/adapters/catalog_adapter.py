@@ -4,7 +4,8 @@ Catalog adapter implementation.
 This adapter implements the CatalogPort interface using HTTP communication.
 """
 
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
 from ..ports.catalog_port import CatalogPort
 from ..schemas.catalog_schemas import (
@@ -12,6 +13,7 @@ from ..schemas.catalog_schemas import (
     PaginatedProductsResponse,
     PaginatedProvidersResponse,
     ProductCreate,
+    ProductResponse,
     ProviderCreate,
     ProviderCreateResponse,
 )
@@ -72,3 +74,14 @@ class CatalogAdapter(CatalogPort):
             params={"limit": limit, "offset": offset},
         )
         return PaginatedProductsResponse(**response_data)
+
+    async def get_product_by_id(self, product_id: UUID) -> Optional[ProductResponse]:
+        """Retrieve a single product by its ID."""
+        try:
+            response_data = await self.client.get(
+                f"/catalog/product/{product_id}",
+            )
+            return ProductResponse(**response_data)
+        except Exception:
+            # If product not found or any error, return None
+            return None

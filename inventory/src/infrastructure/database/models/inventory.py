@@ -25,6 +25,11 @@ class Inventory(Base):
     expiration_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
+    # Denormalized fields for performance
+    product_sku: Mapped[str] = mapped_column(String(100), nullable=False)
+    product_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    warehouse_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    warehouse_city: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

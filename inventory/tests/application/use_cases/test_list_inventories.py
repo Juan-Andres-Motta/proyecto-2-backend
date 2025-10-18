@@ -19,7 +19,9 @@ async def test_list_inventories_use_case_empty():
 
     assert len(inventories) == 0
     assert total == 0
-    mock_repository.list_inventories.assert_called_once_with(limit=10, offset=0)
+    mock_repository.list_inventories.assert_called_once_with(
+        limit=10, offset=0, product_id=None, warehouse_id=None, sku=None
+    )
 
 
 @pytest.mark.asyncio
@@ -51,7 +53,9 @@ async def test_list_inventories_use_case_with_data():
 
     assert len(inventories) == 3
     assert total == 3
-    mock_repository.list_inventories.assert_called_once_with(limit=10, offset=0)
+    mock_repository.list_inventories.assert_called_once_with(
+        limit=10, offset=0, product_id=None, warehouse_id=None, sku=None
+    )
 
 
 @pytest.mark.asyncio
@@ -63,7 +67,9 @@ async def test_list_inventories_use_case_default_pagination():
     use_case = ListInventoriesUseCase(mock_repository)
     await use_case.execute()
 
-    mock_repository.list_inventories.assert_called_once_with(limit=10, offset=0)
+    mock_repository.list_inventories.assert_called_once_with(
+        limit=10, offset=0, product_id=None, warehouse_id=None, sku=None
+    )
 
 
 @pytest.mark.asyncio
@@ -75,7 +81,9 @@ async def test_list_inventories_use_case_with_offset():
     use_case = ListInventoriesUseCase(mock_repository)
     await use_case.execute(limit=5, offset=10)
 
-    mock_repository.list_inventories.assert_called_once_with(limit=5, offset=10)
+    mock_repository.list_inventories.assert_called_once_with(
+        limit=5, offset=10, product_id=None, warehouse_id=None, sku=None
+    )
 
 
 @pytest.mark.asyncio

@@ -13,6 +13,9 @@ from src.infrastructure.database.models import Inventory
 @pytest.mark.asyncio
 async def test_create_inventory():
     """Test creating an inventory record."""
+    from src.domain.entities.inventory import Inventory as DomainInventory
+    from src.infrastructure.dependencies import get_create_inventory_use_case
+
     app = FastAPI()
     app.include_router(router)
 
@@ -20,73 +23,86 @@ async def test_create_inventory():
         "product_id": "550e8400-e29b-41d4-a716-446655440000",
         "warehouse_id": "550e8400-e29b-41d4-a716-446655440001",
         "total_quantity": 100,
-        "reserved_quantity": 10,
+        "reserved_quantity": 0,  # Must be 0 at creation
         "batch_number": "BATCH001",
         "expiration_date": "2026-12-31T00:00:00Z",
+        "product_sku": "TEST-SKU-001",
+        "product_name": "Test Product",
     }
 
-    mock_inventory = Inventory(
+    mock_inventory = DomainInventory(
         id=uuid.uuid4(),
         product_id=uuid.UUID(inventory_data["product_id"]),
         warehouse_id=uuid.UUID(inventory_data["warehouse_id"]),
         total_quantity=100,
-        reserved_quantity=10,
+        reserved_quantity=0,
         batch_number="BATCH001",
         expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+        product_sku="TEST-SKU-001",
+        product_name="Test Product",
+        warehouse_name="Test Warehouse",
+        warehouse_city="Test City",
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
 
-    with patch(
-        "src.adapters.input.controllers.inventory_controller.CreateInventoryUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=mock_inventory)
+    # Mock the use case
+    mock_use_case = AsyncMock()
+    mock_use_case.execute = AsyncMock(return_value=mock_inventory)
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/inventory", json=inventory_data)
+    # Override DI dependency
+    app.dependency_overrides[get_create_inventory_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 201
-        data = response.json()
-        assert "id" in data
-        assert data["message"] == "Inventory created successfully"
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/inventory", json=inventory_data)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+    assert data["message"] == "Inventory created successfully"
 
 
 @pytest.mark.asyncio
 async def test_list_inventories_empty():
     """Test listing inventories when empty."""
+    from src.infrastructure.dependencies import get_list_inventories_use_case
+
     app = FastAPI()
     app.include_router(router)
 
-    with patch(
-        "src.adapters.input.controllers.inventory_controller.ListInventoriesUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=([], 0))
+    # Mock the use case
+    mock_use_case = AsyncMock()
+    mock_use_case.execute = AsyncMock(return_value=([], 0))
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/inventories")
+    # Override DI dependency
+    app.dependency_overrides[get_list_inventories_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["items"] == []
-        assert data["total"] == 0
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/inventories")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 @pytest.mark.asyncio
 async def test_list_inventories_with_data():
     """Test listing inventories with data."""
+    from src.domain.entities.inventory import Inventory as DomainInventory
+    from src.infrastructure.dependencies import get_list_inventories_use_case
+
     app = FastAPI()
     app.include_router(router)
 
     product_id = uuid.uuid4()
     warehouse_id = uuid.uuid4()
     mock_inventories = [
-        Inventory(
+        DomainInventory(
             id=uuid.uuid4(),
             product_id=product_id,
             warehouse_id=warehouse_id,
@@ -94,26 +110,31 @@ async def test_list_inventories_with_data():
             reserved_quantity=10,
             batch_number="BATCH001",
             expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
+            product_sku="TEST-SKU-001",
+            product_name="Test Product",
+            warehouse_name="Test Warehouse",
+            warehouse_city="Test City",
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )
     ]
 
-    with patch(
-        "src.adapters.input.controllers.inventory_controller.ListInventoriesUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=(mock_inventories, 1))
+    # Mock the use case
+    mock_use_case = AsyncMock()
+    mock_use_case.execute = AsyncMock(return_value=(mock_inventories, 1))
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/inventories")
+    # Override DI dependency
+    app.dependency_overrides[get_list_inventories_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["items"]) == 1
-        assert data["total"] == 1
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/inventories")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+    assert data["total"] == 1
 
 
 @pytest.mark.asyncio

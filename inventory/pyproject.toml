@@ -44,6 +44,7 @@ asyncio_mode = "auto"
 source = ["src"]
 omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
 relative_files = true
+concurrency = ["thread", "greenlet"]
 
 [tool.coverage.report]
 precision = 2

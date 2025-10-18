@@ -7,6 +7,7 @@ from src.adapters.input.controllers.inventory_controller import (
     router as inventory_router,
 )
 from src.adapters.input.controllers.warehouse_controller import router as warehouse_router
+from src.infrastructure.api.exception_handlers import register_exception_handlers
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
 
@@ -29,6 +30,9 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
+
+# Register global exception handlers (like Spring @ControllerAdvice)
+register_exception_handlers(app)
 
 app.include_router(common_router, prefix="/inventory")
 app.include_router(warehouse_router, prefix="/inventory")
