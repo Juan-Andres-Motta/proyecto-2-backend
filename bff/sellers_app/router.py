@@ -1,9 +1,9 @@
+"""Sellers app router aggregation."""
+
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/sellers", tags=["sellers"])
+from .controllers import router as orders_router
 
+router = APIRouter(prefix="/bff/sellers-app", tags=["sellers-app"])
 
-@router.get("/")
-async def sellers_root():
-    """Sellers app root endpoint."""
-    return {"module": "sellers_app", "status": "ready"}
+router.include_router(orders_router)
