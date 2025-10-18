@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -45,7 +45,6 @@ class OrderItemResponse(BaseModel):
 class OrderCreate(BaseModel):
     client_id: UUID
     seller_id: UUID
-    deliver_id: UUID
     route_id: UUID
     order_date: datetime
     destination_address: str
