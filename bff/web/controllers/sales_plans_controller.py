@@ -40,7 +40,7 @@ async def create_sales_plan(
     Returns:
         Created sales plan id and success message
     """
-    logger.info(f"Request: POST /sales-plans: seller_id={sales_plan.seller_id}, product_id={sales_plan.product_id}")
+    logger.info(f"Request: POST /sales-plans: seller_id={sales_plan.seller_id}, sales_period={sales_plan.sales_period}, goal={sales_plan.goal}")
     return await seller_port.create_sales_plan(sales_plan)
 
 

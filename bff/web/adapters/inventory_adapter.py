@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 from uuid import UUID
 
+from common.http_client import HttpClient
+
 from ..ports.inventory_port import InventoryPort
 from ..schemas.inventory_schemas import (
     InventoryCreate,
@@ -17,8 +19,6 @@ from ..schemas.inventory_schemas import (
     WarehouseCreate,
     WarehouseCreateResponse,
 )
-
-from .http_client import HttpClient
 
 logger = logging.getLogger(__name__)
 

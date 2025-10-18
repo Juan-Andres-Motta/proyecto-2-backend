@@ -40,7 +40,6 @@ class InventoryCreate(BaseModel):
     product_id: UUID
     warehouse_id: UUID
     total_quantity: int
-    reserved_quantity: int
     batch_number: str
     expiration_date: datetime
     # Denormalized fields (will be added by BFF after fetching product)

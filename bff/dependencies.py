@@ -9,12 +9,11 @@ from functools import lru_cache
 
 from common.http_client import HttpClient
 from config.settings import settings
-from web.adapters import (
-    CatalogAdapter,
-    InventoryAdapter,
-    SellerAdapter,
-)
-from web.ports import CatalogPort, InventoryPort, SellerPort
+
+# Import ports and adapters directly from their modules to avoid triggering web.__init__.py
+from web.ports.catalog_port import CatalogPort
+from web.ports.inventory_port import InventoryPort
+from web.ports.seller_port import SellerPort
 
 
 # HTTP Client Factories
@@ -103,6 +102,8 @@ def get_catalog_port() -> CatalogPort:
         ):
             return await catalog.create_products([product])
     """
+    from web.adapters.catalog_adapter import CatalogAdapter
+
     client = get_catalog_http_client()
     return CatalogAdapter(client)
 
@@ -114,6 +115,8 @@ def get_seller_port() -> SellerPort:
     Returns:
         SellerPort implementation (SellerAdapter)
     """
+    from web.adapters.seller_adapter import SellerAdapter
+
     client = get_seller_http_client()
     return SellerAdapter(client)
 
@@ -125,6 +128,8 @@ def get_inventory_port() -> InventoryPort:
     Returns:
         InventoryPort implementation (InventoryAdapter)
     """
+    from web.adapters.inventory_adapter import InventoryAdapter
+
     client = get_inventory_http_client()
     return InventoryAdapter(client)
 

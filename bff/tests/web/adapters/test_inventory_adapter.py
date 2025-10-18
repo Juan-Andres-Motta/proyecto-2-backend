@@ -90,7 +90,6 @@ class TestInventoryAdapterCreateInventory:
             product_id=uuid4(),
             warehouse_id=uuid4(),
             total_quantity=100,
-            reserved_quantity=0,
             batch_number="BATCH-001",
             expiration_date=date(2025, 12, 31),
             product_sku="TEST-SKU",

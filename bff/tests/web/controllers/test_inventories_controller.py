@@ -71,7 +71,6 @@ class TestInventoriesControllerCreate:
             product_id=product_id,
             warehouse_id=warehouse_id,
             total_quantity=100,
-            reserved_quantity=0,
             batch_number="BATCH-001",
             expiration_date="2025-12-31T00:00:00Z",
             catalog=mock_catalog_port,
@@ -88,7 +87,6 @@ class TestInventoriesControllerCreate:
         assert call_args.product_id == product_id
         assert call_args.warehouse_id == warehouse_id
         assert call_args.total_quantity == 100
-        assert call_args.reserved_quantity == 0
         assert call_args.batch_number == "BATCH-001"
         # Denormalized fields from catalog
         assert call_args.product_sku == sample_product.sku
@@ -112,7 +110,6 @@ class TestInventoriesControllerCreate:
             product_id=product_id,
             warehouse_id=warehouse_id,
             total_quantity=100,
-            reserved_quantity=0,
             batch_number="BATCH-001",
             expiration_date="2025-12-31T00:00:00Z",
             catalog=mock_catalog_port,

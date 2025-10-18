@@ -8,6 +8,8 @@ import logging
 from typing import List, Optional
 from uuid import UUID
 
+from common.http_client import HttpClient
+
 from ..ports.catalog_port import CatalogPort
 from ..schemas.catalog_schemas import (
     BatchProductsResponse,
@@ -18,8 +20,6 @@ from ..schemas.catalog_schemas import (
     ProviderCreate,
     ProviderCreateResponse,
 )
-
-from .http_client import HttpClient
 
 logger = logging.getLogger(__name__)
 

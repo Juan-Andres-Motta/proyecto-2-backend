@@ -7,6 +7,8 @@ This adapter implements the SellerPort interface using HTTP communication.
 import logging
 from uuid import UUID
 
+from common.http_client import HttpClient
+
 from ..ports.seller_port import SellerPort
 from ..schemas.seller_schemas import (
     PaginatedSalesPlansResponse,
@@ -16,8 +18,6 @@ from ..schemas.seller_schemas import (
     SellerCreate,
     SellerCreateResponse,
 )
-
-from .http_client import HttpClient
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class SellerAdapter(SellerPort):
         self, sales_plan_data: SalesPlanCreate
     ) -> SalesPlanCreateResponse:
         """Create a new sales plan for a seller."""
-        logger.info(f"Creating sales plan: seller_id={sales_plan_data.seller_id}, product_id={sales_plan_data.product_id}")
+        logger.info(f"Creating sales plan: seller_id={sales_plan_data.seller_id}, sales_period={sales_plan_data.sales_period}, goal={sales_plan_data.goal}")
         response_data = await self.client.post(
             "/sales-plans",
             json=sales_plan_data.model_dump(mode="json"),
