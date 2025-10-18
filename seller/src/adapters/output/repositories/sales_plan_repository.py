@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Tuple
 from uuid import UUID
 
@@ -10,6 +11,8 @@ from src.domain.entities.sales_plan import SalesPlan as DomainSalesPlan
 from src.domain.entities.seller import Seller as DomainSeller
 from src.infrastructure.database.models import SalesPlan as ORMSalesPlan
 
+logger = logging.getLogger(__name__)
+
 
 class SalesPlanRepository(SalesPlanRepositoryPort):
     """Implementation of SalesPlanRepositoryPort for PostgreSQL."""
@@ -19,24 +22,32 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
 
     async def create(self, sales_plan: DomainSalesPlan) -> DomainSalesPlan:
         """Create a new sales plan from domain entity."""
-        # Map domain entity to ORM model
-        orm_sales_plan = ORMSalesPlan(
-            id=sales_plan.id,
-            seller_id=sales_plan.seller.id,
-            sales_period=sales_plan.sales_period,
-            goal=sales_plan.goal,
-            accumulate=sales_plan.accumulate,
-            created_at=sales_plan.created_at,
-            updated_at=sales_plan.updated_at
-        )
+        logger.debug(f"DB: Creating sales plan: seller_id={sales_plan.seller.id}, period={sales_plan.sales_period}, goal={sales_plan.goal}")
 
-        self.session.add(orm_sales_plan)
-        await self.session.commit()
+        try:
+            # Map domain entity to ORM model
+            orm_sales_plan = ORMSalesPlan(
+                id=sales_plan.id,
+                seller_id=sales_plan.seller.id,
+                sales_period=sales_plan.sales_period,
+                goal=sales_plan.goal,
+                accumulate=sales_plan.accumulate,
+                created_at=sales_plan.created_at,
+                updated_at=sales_plan.updated_at
+            )
 
-        # Eager load seller for return
-        await self.session.refresh(orm_sales_plan, ['seller'])
+            self.session.add(orm_sales_plan)
+            await self.session.commit()
 
-        return self._to_domain(orm_sales_plan)
+            # Eager load seller for return
+            await self.session.refresh(orm_sales_plan, ['seller'])
+
+            logger.debug(f"DB: Successfully created sales plan: id={orm_sales_plan.id}, seller_id={sales_plan.seller.id}, period={sales_plan.sales_period}")
+            return self._to_domain(orm_sales_plan)
+        except Exception as e:
+            logger.error(f"DB: Create sales plan failed: seller_id={sales_plan.seller.id}, period={sales_plan.sales_period}, error={e}")
+            await self.session.rollback()
+            raise
 
     async def find_by_seller_and_period(
         self,
@@ -44,22 +55,30 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
         sales_period: str
     ) -> Optional[DomainSalesPlan]:
         """Find sales plan by seller and period."""
-        stmt = (
-            select(ORMSalesPlan)
-            .options(selectinload(ORMSalesPlan.seller))
-            .where(
-                ORMSalesPlan.seller_id == seller_id,
-                ORMSalesPlan.sales_period == sales_period
+        logger.debug(f"DB: Finding sales plan by seller and period: seller_id={seller_id}, period={sales_period}")
+
+        try:
+            stmt = (
+                select(ORMSalesPlan)
+                .options(selectinload(ORMSalesPlan.seller))
+                .where(
+                    ORMSalesPlan.seller_id == seller_id,
+                    ORMSalesPlan.sales_period == sales_period
+                )
             )
-        )
 
-        result = await self.session.execute(stmt)
-        orm_sales_plan = result.scalars().first()
+            result = await self.session.execute(stmt)
+            orm_sales_plan = result.scalars().first()
 
-        if orm_sales_plan is None:
-            return None
+            if orm_sales_plan is None:
+                logger.debug(f"DB: Sales plan not found: seller_id={seller_id}, period={sales_period}")
+                return None
 
-        return self._to_domain(orm_sales_plan)
+            logger.debug(f"DB: Successfully found sales plan: id={orm_sales_plan.id}, seller_id={seller_id}, period={sales_period}")
+            return self._to_domain(orm_sales_plan)
+        except Exception as e:
+            logger.error(f"DB: Find sales plan by seller and period failed: seller_id={seller_id}, period={sales_period}, error={e}")
+            raise
 
     async def list_sales_plans(
         self,
@@ -67,27 +86,34 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
         offset: int = 0
     ) -> Tuple[List[DomainSalesPlan], int]:
         """List sales plans with eager-loaded sellers."""
-        # Get total count
-        count_stmt = select(func.count()).select_from(ORMSalesPlan)
-        count_result = await self.session.execute(count_stmt)
-        total = count_result.scalar()
+        logger.debug(f"DB: Listing sales plans with limit={limit}, offset={offset}")
 
-        # Get paginated data with eager loading
-        stmt = (
-            select(ORMSalesPlan)
-            .options(selectinload(ORMSalesPlan.seller))  # Eager load seller
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.session.execute(stmt)
-        orm_sales_plans = result.scalars().all()
+        try:
+            # Get total count
+            count_stmt = select(func.count()).select_from(ORMSalesPlan)
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar()
 
-        # Map to domain entities
-        domain_sales_plans = [
-            self._to_domain(orm_plan) for orm_plan in orm_sales_plans
-        ]
+            # Get paginated data with eager loading
+            stmt = (
+                select(ORMSalesPlan)
+                .options(selectinload(ORMSalesPlan.seller))  # Eager load seller
+                .limit(limit)
+                .offset(offset)
+            )
+            result = await self.session.execute(stmt)
+            orm_sales_plans = result.scalars().all()
 
-        return domain_sales_plans, total
+            # Map to domain entities
+            domain_sales_plans = [
+                self._to_domain(orm_plan) for orm_plan in orm_sales_plans
+            ]
+
+            logger.debug(f"DB: Successfully listed sales plans: count={len(domain_sales_plans)}, total={total}")
+            return domain_sales_plans, total
+        except Exception as e:
+            logger.error(f"DB: List sales plans failed: limit={limit}, offset={offset}, error={e}")
+            raise
 
     async def list_sales_plans_by_seller(
         self,
@@ -96,32 +122,39 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
         offset: int = 0
     ) -> Tuple[List[DomainSalesPlan], int]:
         """List sales plans for a specific seller with eager-loaded seller data."""
-        # Get total count for this seller
-        count_stmt = (
-            select(func.count())
-            .select_from(ORMSalesPlan)
-            .where(ORMSalesPlan.seller_id == seller_id)
-        )
-        count_result = await self.session.execute(count_stmt)
-        total = count_result.scalar()
+        logger.debug(f"DB: Listing sales plans by seller: seller_id={seller_id}, limit={limit}, offset={offset}")
 
-        # Get paginated data with eager loading
-        stmt = (
-            select(ORMSalesPlan)
-            .options(selectinload(ORMSalesPlan.seller))  # Eager load seller
-            .where(ORMSalesPlan.seller_id == seller_id)
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.session.execute(stmt)
-        orm_sales_plans = result.scalars().all()
+        try:
+            # Get total count for this seller
+            count_stmt = (
+                select(func.count())
+                .select_from(ORMSalesPlan)
+                .where(ORMSalesPlan.seller_id == seller_id)
+            )
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar()
 
-        # Map to domain entities
-        domain_sales_plans = [
-            self._to_domain(orm_plan) for orm_plan in orm_sales_plans
-        ]
+            # Get paginated data with eager loading
+            stmt = (
+                select(ORMSalesPlan)
+                .options(selectinload(ORMSalesPlan.seller))  # Eager load seller
+                .where(ORMSalesPlan.seller_id == seller_id)
+                .limit(limit)
+                .offset(offset)
+            )
+            result = await self.session.execute(stmt)
+            orm_sales_plans = result.scalars().all()
 
-        return domain_sales_plans, total
+            # Map to domain entities
+            domain_sales_plans = [
+                self._to_domain(orm_plan) for orm_plan in orm_sales_plans
+            ]
+
+            logger.debug(f"DB: Successfully listed sales plans by seller: seller_id={seller_id}, count={len(domain_sales_plans)}, total={total}")
+            return domain_sales_plans, total
+        except Exception as e:
+            logger.error(f"DB: List sales plans by seller failed: seller_id={seller_id}, limit={limit}, offset={offset}, error={e}")
+            raise
 
     @staticmethod
     def _to_domain(orm_sales_plan: ORMSalesPlan) -> DomainSalesPlan:

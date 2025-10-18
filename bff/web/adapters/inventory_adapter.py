@@ -4,6 +4,7 @@ Inventory adapter implementation.
 This adapter implements the InventoryPort interface using HTTP communication.
 """
 
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -18,6 +19,8 @@ from ..schemas.inventory_schemas import (
 )
 
 from .http_client import HttpClient
+
+logger = logging.getLogger(__name__)
 
 
 class InventoryAdapter(InventoryPort):
@@ -41,8 +44,9 @@ class InventoryAdapter(InventoryPort):
         self, warehouse_data: WarehouseCreate
     ) -> WarehouseCreateResponse:
         """Create a new warehouse."""
+        logger.info(f"Creating warehouse: name='{warehouse_data.name}'")
         response_data = await self.client.post(
-            "/inventory/warehouse",
+            "/warehouse",
             json=warehouse_data.model_dump(mode="json"),
         )
         return WarehouseCreateResponse(**response_data)
@@ -51,8 +55,9 @@ class InventoryAdapter(InventoryPort):
         self, limit: int = 10, offset: int = 0
     ) -> PaginatedWarehousesResponse:
         """Retrieve a paginated list of warehouses."""
+        logger.info(f"Getting warehouses: limit={limit}, offset={offset}")
         response_data = await self.client.get(
-            "/inventory/warehouses",
+            "/warehouses",
             params={"limit": limit, "offset": offset},
         )
         return PaginatedWarehousesResponse(**response_data)
@@ -61,8 +66,9 @@ class InventoryAdapter(InventoryPort):
         self, inventory_data: InventoryCreate
     ) -> InventoryCreateResponse:
         """Create a new inventory entry."""
+        logger.info(f"Creating inventory: product_id={inventory_data.product_id}, warehouse_id={inventory_data.warehouse_id}, sku='{inventory_data.product_sku}'")
         response_data = await self.client.post(
-            "/inventory/inventory",
+            "/inventory",
             json=inventory_data.model_dump(mode="json"),
         )
         return InventoryCreateResponse(**response_data)
@@ -75,6 +81,7 @@ class InventoryAdapter(InventoryPort):
         warehouse_id: Optional[UUID] = None,
     ) -> PaginatedInventoriesResponse:
         """Retrieve a paginated list of inventories with optional filters."""
+        logger.info(f"Getting inventories: limit={limit}, offset={offset}, sku={sku}, warehouse_id={warehouse_id}")
         params = {"limit": limit, "offset": offset}
         if sku:
             params["sku"] = sku
@@ -82,7 +89,7 @@ class InventoryAdapter(InventoryPort):
             params["warehouse_id"] = str(warehouse_id)
 
         response_data = await self.client.get(
-            "/inventory/inventories",
+            "/inventories",
             params=params,
         )
         return PaginatedInventoriesResponse(**response_data)

@@ -31,7 +31,7 @@ class TestInventoryAdapterCreateWarehouse:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, inventory_adapter, mock_http_client):
-        """Test that POST /inventory/warehouses is called."""
+        """Test that POST /warehouse is called."""
         warehouse_data = WarehouseCreate(
             name="Test Warehouse",
             location="Test Location",
@@ -49,7 +49,7 @@ class TestInventoryAdapterCreateWarehouse:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/inventory/warehouse"
+        assert call_args.args[0] == "/warehouse"
 
 
 class TestInventoryAdapterGetWarehouses:
@@ -57,7 +57,7 @@ class TestInventoryAdapterGetWarehouses:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, inventory_adapter, mock_http_client):
-        """Test that GET /inventory/warehouses is called."""
+        """Test that GET /warehouses is called."""
         mock_http_client.get = AsyncMock(
             return_value={
                 "items": [],
@@ -73,4 +73,61 @@ class TestInventoryAdapterGetWarehouses:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/inventory/warehouses"
+        assert call_args.args[0] == "/warehouses"
+
+
+class TestInventoryAdapterCreateInventory:
+    """Test create_inventory calls correct endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_calls_correct_endpoint(self, inventory_adapter, mock_http_client):
+        """Test that POST /inventory is called."""
+        from web.schemas.inventory_schemas import InventoryCreate
+        from datetime import date
+        from uuid import uuid4
+
+        inventory_data = InventoryCreate(
+            product_id=uuid4(),
+            warehouse_id=uuid4(),
+            total_quantity=100,
+            reserved_quantity=0,
+            batch_number="BATCH-001",
+            expiration_date=date(2025, 12, 31),
+            product_sku="TEST-SKU",
+            product_name="Test Product",
+            product_price=100.50,
+        )
+
+        mock_http_client.post = AsyncMock(
+            return_value={"id": "test-id", "message": "Created"}
+        )
+
+        await inventory_adapter.create_inventory(inventory_data)
+
+        mock_http_client.post.assert_called_once()
+        call_args = mock_http_client.post.call_args
+        assert call_args.args[0] == "/inventory"
+
+
+class TestInventoryAdapterGetInventories:
+    """Test get_inventories calls correct endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_calls_correct_endpoint(self, inventory_adapter, mock_http_client):
+        """Test that GET /inventories is called."""
+        mock_http_client.get = AsyncMock(
+            return_value={
+                "items": [],
+                "total": 0,
+                "page": 1,
+                "size": 10,
+                "has_next": False,
+                "has_previous": False,
+            }
+        )
+
+        await inventory_adapter.get_inventories()
+
+        mock_http_client.get.assert_called_once()
+        call_args = mock_http_client.get.call_args
+        assert call_args.args[0] == "/inventories"

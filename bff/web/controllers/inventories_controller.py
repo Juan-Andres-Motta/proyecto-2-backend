@@ -5,6 +5,7 @@ This controller handles inventory-related endpoints, orchestrating between
 the catalog microservice (for product data) and inventory microservice.
 """
 
+import logging
 from typing import Optional
 from uuid import UUID
 
@@ -19,6 +20,8 @@ from ..schemas import (
     InventoryCreateResponse,
     PaginatedInventoriesResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -68,6 +71,7 @@ async def create_inventory(
     Raises:
         HTTPException: 404 if product not found
     """
+    logger.info(f"Request: POST /inventory: product_id={product_id}, warehouse_id={warehouse_id}")
     # Step 1: Fetch product from catalog
     product = await catalog.get_product_by_id(product_id)
 
@@ -97,6 +101,7 @@ async def create_inventory(
         expiration_date=datetime.fromisoformat(expiration_date.replace('Z', '+00:00')),
         product_sku=product.sku,
         product_name=product.name,
+        product_price=float(product.price),
     )
 
     return await inventory.create_inventory(inventory_data)
@@ -130,6 +135,7 @@ async def get_inventories(
     Returns:
         Paginated list of inventories (with denormalized product and warehouse data)
     """
+    logger.info(f"Request: GET /inventories: limit={limit}, offset={offset}, sku={sku}, warehouse_id={warehouse_id}")
     return await inventory.get_inventories(
         limit=limit,
         offset=offset,

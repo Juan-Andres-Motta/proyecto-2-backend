@@ -7,15 +7,14 @@ dependencies throughout the application using FastAPI's dependency injection.
 
 from functools import lru_cache
 
+from common.http_client import HttpClient
 from config.settings import settings
 from web.adapters import (
     CatalogAdapter,
-    HttpClient,
     InventoryAdapter,
-    OrderAdapter,
     SellerAdapter,
 )
-from web.ports import CatalogPort, InventoryPort, OrderPort, SellerPort
+from web.ports import CatalogPort, InventoryPort, SellerPort
 
 
 # HTTP Client Factories
@@ -130,15 +129,32 @@ def get_inventory_port() -> InventoryPort:
     return InventoryAdapter(client)
 
 
-def get_order_port() -> OrderPort:
+def get_client_order_port():
     """
-    Factory for OrderPort implementation.
+    Factory for Client App OrderPort implementation.
 
     Returns:
-        OrderPort implementation (OrderAdapter)
+        OrderPort implementation for client app (ClientOrderAdapter)
     """
+    # Import here to avoid circular dependencies
+    from client_app.adapters import OrderAdapter as ClientOrderAdapter
+
     client = get_order_http_client()
-    return OrderAdapter(client)
+    return ClientOrderAdapter(client)
+
+
+def get_seller_order_port():
+    """
+    Factory for Sellers App OrderPort implementation.
+
+    Returns:
+        OrderPort implementation for sellers app (SellerOrderAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from sellers_app.adapters import OrderAdapter as SellerOrderAdapter
+
+    client = get_order_http_client()
+    return SellerOrderAdapter(client)
 
 
 # Cleanup function for testing

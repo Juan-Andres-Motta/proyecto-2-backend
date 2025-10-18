@@ -34,7 +34,7 @@ class TestCatalogAdapterCreateProvider:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, catalog_adapter, mock_http_client):
-        """Test that POST /catalog/provider is called."""
+        """Test that POST /provider is called."""
         provider_data = ProviderCreate(
             name="Test Provider",
             nit="123456789",
@@ -53,7 +53,7 @@ class TestCatalogAdapterCreateProvider:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/catalog/provider"
+        assert call_args.args[0] == "/provider"
 
 
 class TestCatalogAdapterGetProviders:
@@ -61,7 +61,7 @@ class TestCatalogAdapterGetProviders:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, catalog_adapter, mock_http_client):
-        """Test that GET /catalog/providers is called."""
+        """Test that GET /providers is called."""
         mock_http_client.get = AsyncMock(
             return_value={
                 "items": [],
@@ -77,7 +77,7 @@ class TestCatalogAdapterGetProviders:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/catalog/providers"
+        assert call_args.args[0] == "/providers"
 
 
 class TestCatalogAdapterCreateProducts:
@@ -85,7 +85,7 @@ class TestCatalogAdapterCreateProducts:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, catalog_adapter, mock_http_client):
-        """Test that POST /catalog/products is called."""
+        """Test that POST /products is called."""
         from web.schemas.catalog_schemas import ProductCreate
 
         products = [
@@ -106,7 +106,7 @@ class TestCatalogAdapterCreateProducts:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert call_args.args[0] == "/catalog/products"
+        assert call_args.args[0] == "/products"
 
 
 class TestCatalogAdapterGetProducts:
@@ -114,7 +114,7 @@ class TestCatalogAdapterGetProducts:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, catalog_adapter, mock_http_client):
-        """Test that GET /catalog/products is called."""
+        """Test that GET /products is called."""
         mock_http_client.get = AsyncMock(
             return_value={
                 "items": [],
@@ -130,4 +130,4 @@ class TestCatalogAdapterGetProducts:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/catalog/products"
+        assert call_args.args[0] == "/products"

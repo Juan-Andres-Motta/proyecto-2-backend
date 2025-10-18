@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -28,6 +29,7 @@ async def test_create_inventory():
         "expiration_date": "2026-12-31T00:00:00Z",
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": 100.50,
     }
 
     mock_inventory = DomainInventory(
@@ -40,6 +42,7 @@ async def test_create_inventory():
         expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
         product_sku="TEST-SKU-001",
         product_name="Test Product",
+        product_price=Decimal("100.50"),
         warehouse_name="Test Warehouse",
         warehouse_city="Test City",
         created_at=datetime.now(timezone.utc),
@@ -112,6 +115,7 @@ async def test_list_inventories_with_data():
             expiration_date=datetime(2026, 12, 31, tzinfo=timezone.utc),
             product_sku="TEST-SKU-001",
             product_name="Test Product",
+            product_price=Decimal("100.50"),
             warehouse_name="Test Warehouse",
             warehouse_city="Test City",
             created_at=datetime.now(timezone.utc),

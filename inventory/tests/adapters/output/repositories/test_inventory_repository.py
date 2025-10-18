@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,7 @@ async def test_create_inventory(db_session: AsyncSession):
         "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": Decimal("100.50"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
     }
@@ -72,6 +74,7 @@ async def test_list_inventories_with_data(db_session: AsyncSession):
             "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
             "product_sku": "TEST-SKU-001",
             "product_name": "Test Product",
+            "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
         }
@@ -101,6 +104,7 @@ async def test_list_inventories_pagination(db_session: AsyncSession):
             "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
             "product_sku": "TEST-SKU-001",
             "product_name": "Test Product",
+            "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
         }
@@ -131,6 +135,7 @@ async def test_find_by_id_found(db_session: AsyncSession):
         "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
+        "product_price": Decimal("100.50"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
     }
@@ -172,6 +177,7 @@ async def test_list_inventories_filter_by_sku(db_session: AsyncSession):
             "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
             "product_sku": sku,
             "product_name": f"Product {sku}",
+            "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
         }
@@ -207,6 +213,7 @@ async def test_list_inventories_filter_by_product_id(db_session: AsyncSession):
             "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
             "product_sku": "TEST-SKU-001",
             "product_name": "Test Product",
+            "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
         }
@@ -242,6 +249,7 @@ async def test_list_inventories_filter_by_warehouse_id(db_session: AsyncSession)
             "expiration_date": datetime(2026, 12, 31, tzinfo=timezone.utc),
             "product_sku": "TEST-SKU-001",
             "product_name": "Test Product",
+            "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
         }

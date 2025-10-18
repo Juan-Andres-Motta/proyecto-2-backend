@@ -1,6 +1,7 @@
 """Inventory domain entity."""
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 
@@ -18,6 +19,7 @@ class Inventory:
     # Denormalized fields for performance
     product_sku: str
     product_name: str
+    product_price: Decimal
     warehouse_name: str
     warehouse_city: str
     created_at: datetime

@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Set, Tuple
 from uuid import UUID
 
@@ -8,6 +9,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.application.ports.product_repository_port import ProductRepositoryPort
 from src.domain.entities.product import Product as DomainProduct
 from src.infrastructure.database.models import Product as ORMProduct
+
+logger = logging.getLogger(__name__)
 
 
 class ProductRepository(ProductRepositoryPort):
@@ -30,6 +33,7 @@ class ProductRepository(ProductRepositoryPort):
         Raises:
             SQLAlchemyError: If any product creation fails
         """
+        logger.debug(f"DB: Batch creating {len(products_data)} products")
         created_products = []
 
         try:
@@ -46,23 +50,28 @@ class ProductRepository(ProductRepositoryPort):
             for product in created_products:
                 await self.session.refresh(product)
 
+            logger.debug(f"DB: Successfully batch created {len(created_products)} products")
             # Map to domain entities
             return [self._to_domain(orm) for orm in created_products]
 
         except SQLAlchemyError as e:
             # Rollback on any error
+            logger.error(f"DB: Batch product creation failed, rolling back: {str(e)}")
             await self.session.rollback()
             raise e
 
     async def find_by_id(self, product_id: UUID) -> Optional[DomainProduct]:
         """Find a product by ID and return domain entity."""
+        logger.debug(f"DB: Finding product by ID: product_id={product_id}")
         stmt = select(ORMProduct).where(ORMProduct.id == product_id)
         result = await self.session.execute(stmt)
         orm_product = result.scalars().first()
 
         if orm_product is None:
+            logger.debug(f"DB: Product not found: product_id={product_id}")
             return None
 
+        logger.debug(f"DB: Product found: product_id={product_id}, sku='{orm_product.sku}'")
         return self._to_domain(orm_product)
 
     async def find_by_sku(self, sku: str) -> Optional[DomainProduct]:
@@ -98,6 +107,7 @@ class ProductRepository(ProductRepositoryPort):
         self, limit: int = 10, offset: int = 0
     ) -> Tuple[List[DomainProduct], int]:
         """List products and return domain entities."""
+        logger.debug(f"DB: Listing products with limit={limit}, offset={offset}")
         # Get total count
         count_stmt = select(func.count()).select_from(ORMProduct)
         count_result = await self.session.execute(count_stmt)
@@ -110,6 +120,7 @@ class ProductRepository(ProductRepositoryPort):
 
         # Map to domain entities
         domain_products = [self._to_domain(orm) for orm in orm_products]
+        logger.debug(f"DB: Retrieved {len(domain_products)} products from database")
 
         return domain_products, total
 

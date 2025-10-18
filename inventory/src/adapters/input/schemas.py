@@ -68,6 +68,7 @@ class InventoryCreate(BaseModel):
     # Denormalized product fields (provided by BFF)
     product_sku: str
     product_name: str
+    product_price: float
 
     model_config = {"json_schema_extra": {"examples": [inventory_create_example]}}
 
@@ -95,6 +96,7 @@ class InventoryResponse(BaseModel):
     # Denormalized fields
     product_sku: str
     product_name: str
+    product_price: float
     warehouse_name: str
     warehouse_city: str
     created_at: datetime

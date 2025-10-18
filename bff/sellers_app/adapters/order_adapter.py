@@ -5,12 +5,16 @@ This adapter implements the OrderPort interface using HTTP communication
 with the Order microservice.
 """
 
+import logging
+
 from sellers_app.ports.order_port import OrderPort
 from sellers_app.schemas.order_schemas import (
     OrderCreateInput,
     OrderCreateResponse,
 )
 from web.adapters.http_client import HttpClient
+
+logger = logging.getLogger(__name__)
 
 
 class OrderAdapter(OrderPort):
@@ -50,6 +54,7 @@ class OrderAdapter(OrderPort):
             MicroserviceConnectionError: If unable to connect to order service
             MicroserviceHTTPError: If order service returns an error
         """
+        logger.info(f"Creating order (sellers app): customer_id={order_data.customer_id}, seller_id={order_data.seller_id}, items_count={len(order_data.items)}, visit_id={order_data.visit_id}, metodo_creacion='app_vendedor'")
         # Transform sellers app schema to Order Service API schema
         payload = {
             "customer_id": str(order_data.customer_id),

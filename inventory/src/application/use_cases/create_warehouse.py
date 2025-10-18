@@ -1,5 +1,9 @@
+import logging
+
 from src.application.ports.warehouse_repository_port import WarehouseRepositoryPort
 from src.domain.entities.warehouse import Warehouse
+
+logger = logging.getLogger(__name__)
 
 
 class CreateWarehouseUseCase:
@@ -13,4 +17,10 @@ class CreateWarehouseUseCase:
 
     async def execute(self, warehouse_data: dict) -> Warehouse:
         """Create a new warehouse."""
-        return await self.repository.create(warehouse_data)
+        logger.info(f"Creating warehouse: name={warehouse_data.get('name')}, city={warehouse_data.get('city')}")
+        logger.debug(f"Warehouse data: {warehouse_data}")
+
+        warehouse = await self.repository.create(warehouse_data)
+
+        logger.info(f"Warehouse created successfully: id={warehouse.id}, name={warehouse.name}")
+        return warehouse

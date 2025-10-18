@@ -4,6 +4,7 @@ Seller adapter implementation.
 This adapter implements the SellerPort interface using HTTP communication.
 """
 
+import logging
 from uuid import UUID
 
 from ..ports.seller_port import SellerPort
@@ -17,6 +18,8 @@ from ..schemas.seller_schemas import (
 )
 
 from .http_client import HttpClient
+
+logger = logging.getLogger(__name__)
 
 
 class SellerAdapter(SellerPort):
@@ -38,6 +41,7 @@ class SellerAdapter(SellerPort):
 
     async def create_seller(self, seller_data: SellerCreate) -> SellerCreateResponse:
         """Create a new seller."""
+        logger.info(f"Creating seller: name='{seller_data.name}', email='{seller_data.email}'")
         response_data = await self.client.post(
             "/sellers",
             json=seller_data.model_dump(mode="json"),
@@ -48,6 +52,7 @@ class SellerAdapter(SellerPort):
         self, limit: int = 10, offset: int = 0
     ) -> PaginatedSellersResponse:
         """Retrieve a paginated list of sellers."""
+        logger.info(f"Getting sellers: limit={limit}, offset={offset}")
         response_data = await self.client.get(
             "/sellers",
             params={"limit": limit, "offset": offset},
@@ -58,6 +63,7 @@ class SellerAdapter(SellerPort):
         self, sales_plan_data: SalesPlanCreate
     ) -> SalesPlanCreateResponse:
         """Create a new sales plan for a seller."""
+        logger.info(f"Creating sales plan: seller_id={sales_plan_data.seller_id}, product_id={sales_plan_data.product_id}")
         response_data = await self.client.post(
             "/sales-plans",
             json=sales_plan_data.model_dump(mode="json"),
@@ -72,6 +78,7 @@ class SellerAdapter(SellerPort):
         self, limit: int = 10, offset: int = 0
     ) -> PaginatedSalesPlansResponse:
         """Retrieve a paginated list of sales plans."""
+        logger.info(f"Getting sales plans: limit={limit}, offset={offset}")
         response_data = await self.client.get(
             "/sales-plans",
             params={"limit": limit, "offset": offset},
@@ -82,6 +89,7 @@ class SellerAdapter(SellerPort):
         self, seller_id: UUID, limit: int = 10, offset: int = 0
     ) -> PaginatedSalesPlansResponse:
         """Retrieve sales plans for a specific seller."""
+        logger.info(f"Getting seller sales plans: seller_id={seller_id}, limit={limit}, offset={offset}")
         response_data = await self.client.get(
             f"/sellers/{seller_id}/sales-plans",
             params={"limit": limit, "offset": offset},

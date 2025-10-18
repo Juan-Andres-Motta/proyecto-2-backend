@@ -5,6 +5,7 @@ This controller handles seller-related endpoints using the seller port
 for communication with the seller microservice.
 """
 
+import logging
 from typing import List, Union
 from uuid import UUID
 
@@ -20,6 +21,8 @@ from ..schemas.seller_schemas import (
     SellerCreateResponse,
     SellerResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sellers")
 
@@ -39,6 +42,7 @@ async def create_seller(
     Returns:
         Created seller id and success message
     """
+    logger.info(f"Request: POST /sellers: name='{seller.name}'")
     return await seller_port.create_seller(seller)
 
 
@@ -59,6 +63,7 @@ async def get_sellers(
     Returns:
         Paginated list of sellers
     """
+    logger.info(f"Request: GET /sellers: limit={limit}, offset={offset}")
     return await seller_port.get_sellers(limit=limit, offset=offset)
 
 
@@ -81,6 +86,7 @@ async def get_seller_sales_plans(
     Returns:
         Paginated list of sales plans for the seller
     """
+    logger.info(f"Request: GET /sellers/{seller_id}/sales-plans: limit={limit}, offset={offset}")
     return await seller_port.get_seller_sales_plans(
         seller_id=seller_id, limit=limit, offset=offset
     )

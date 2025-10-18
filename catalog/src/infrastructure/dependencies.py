@@ -8,6 +8,7 @@ from src.application.ports.product_repository_port import ProductRepositoryPort
 from src.application.ports.provider_repository_port import ProviderRepositoryPort
 from src.application.use_cases.create_products import CreateProductsUseCase
 from src.application.use_cases.create_provider import CreateProviderUseCase
+from src.application.use_cases.get_product import GetProductUseCase
 from src.application.use_cases.list_products import ListProductsUseCase
 from src.application.use_cases.list_providers import ListProvidersUseCase
 from src.infrastructure.database.config import get_db
@@ -99,3 +100,17 @@ def get_list_products_use_case(
         ListProductsUseCase instance
     """
     return ListProductsUseCase(repo)
+
+
+def get_get_product_use_case(
+    repo: ProductRepositoryPort = Depends(get_product_repository)
+) -> GetProductUseCase:
+    """Get product use case with injected dependencies.
+
+    Args:
+        repo: Product repository port
+
+    Returns:
+        GetProductUseCase instance
+    """
+    return GetProductUseCase(repo)
