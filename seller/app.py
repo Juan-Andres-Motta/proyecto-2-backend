@@ -27,6 +27,7 @@ app = FastAPI(
     },
     docs_url=settings.docs_url,
     redoc_url=settings.redoc_url,
+    openapi_url=settings.openapi_url,
 )
 
 # Register global exception handlers (like Spring @ControllerAdvice)

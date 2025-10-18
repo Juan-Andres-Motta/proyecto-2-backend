@@ -44,7 +44,7 @@ class TestExceptionHandlerMiddlewareMapsBFFException:
         async def call_next(request):
             raise BFFException("Test error", status_code=400)
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 400
         assert b"Test error" in response.body
@@ -59,7 +59,7 @@ class TestExceptionHandlerMiddlewareMapsMicroserviceExceptions:
         async def call_next(request):
             raise MicroserviceTimeoutError("test-service", 10.0)
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 504
 
@@ -69,7 +69,7 @@ class TestExceptionHandlerMiddlewareMapsMicroserviceExceptions:
         async def call_next(request):
             raise MicroserviceConnectionError("test-service")
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 503
 
@@ -79,7 +79,7 @@ class TestExceptionHandlerMiddlewareMapsMicroserviceExceptions:
         async def call_next(request):
             raise ValidationError("Validation failed")
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 400
 
@@ -89,7 +89,7 @@ class TestExceptionHandlerMiddlewareMapsMicroserviceExceptions:
         async def call_next(request):
             raise MicroserviceHTTPError("test-service", 404, "Not found")
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 404
 
@@ -99,6 +99,6 @@ class TestExceptionHandlerMiddlewareMapsMicroserviceExceptions:
         async def call_next(request):
             raise Exception("Unexpected error")
 
-        response = await middleware(mock_request, call_next)
+        response = await middleware.dispatch(mock_request, call_next)
 
         assert response.status_code == 500

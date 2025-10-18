@@ -13,11 +13,17 @@ def mock_seller_port():
 class TestSellersController:
     @pytest.mark.asyncio
     async def test_create_seller(self, mock_seller_port):
-        seller_data = SellerCreate(name="Test", nit="123", contact_name="John", email="test@test.com", phone="123", city="City", country="US")
-        mock_seller_port.create_seller = AsyncMock(return_value={"id": "test-id"})
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@test.com",
+            phone="123456789",
+            city="Test City",
+            country="CO"
+        )
+        mock_seller_port.create_seller = AsyncMock(return_value={"id": "test-id", "message": "Created"})
         result = await create_seller(seller=seller_data, seller_port=mock_seller_port)
         mock_seller_port.create_seller.assert_called_once_with(seller_data)
-        assert result == {"id": "test-id"}
+        assert result == {"id": "test-id", "message": "Created"}
 
     @pytest.mark.asyncio
     async def test_get_sellers(self, mock_seller_port):

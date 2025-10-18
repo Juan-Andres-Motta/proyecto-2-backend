@@ -35,12 +35,10 @@ class TestSellerAdapterCreateSeller:
         """Test that POST /sellers is called."""
         seller_data = SellerCreate(
             name="Test Seller",
-            nit="123456789",
-            contact_name="John Doe",
             email="john@test.com",
             phone="+1234567890",
             city="Test City",
-            country="Test Country",
+            country="CO",
         )
 
         mock_http_client.post = AsyncMock(
@@ -83,24 +81,45 @@ class TestSellerAdapterCreateSalesPlan:
 
     @pytest.mark.asyncio
     async def test_calls_correct_endpoint(self, seller_adapter, mock_http_client):
-        """Test that POST /sales-plans is called."""
+        """Test that POST /sales-plans is called and response is parsed correctly."""
         sales_plan_data = SalesPlanCreate(
             seller_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
-            name="Test Plan",
-            description="Test Description",
-            sales_period="2025-Q1",
+            sales_period="Q1-2025",
             goal=10000.0,
         )
 
+        # Mock seller service response - returns full sales plan object
         mock_http_client.post = AsyncMock(
-            return_value={"id": "test-id", "message": "Created"}
+            return_value={
+                "id": "test-id",
+                "seller": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Test Seller",
+                    "email": "test@example.com",
+                    "phone": "1234567890",
+                    "city": "Test City",
+                    "country": "CO",
+                    "created_at": "2025-10-18T00:00:00Z",
+                    "updated_at": "2025-10-18T00:00:00Z"
+                },
+                "sales_period": "Q1-2025",
+                "goal": "10000.00",
+                "accumulate": "0.00",
+                "status": "in_progress",
+                "created_at": "2025-10-18T00:00:00Z",
+                "updated_at": "2025-10-18T00:00:00Z"
+            }
         )
 
-        await seller_adapter.create_sales_plan(sales_plan_data)
+        result = await seller_adapter.create_sales_plan(sales_plan_data)
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
         assert call_args.args[0] == "/sales-plans"
+
+        # Verify adapter extracts id and constructs response correctly
+        assert result.id == "test-id"
+        assert result.message == "Sales plan created successfully"
 
 
 class TestSellerAdapterGetSalesPlans:

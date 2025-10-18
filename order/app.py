@@ -23,6 +23,7 @@ app = FastAPI(
     },
     docs_url=settings.docs_url,
     redoc_url=settings.redoc_url,
+    openapi_url=settings.openapi_url,
 )
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")

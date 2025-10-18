@@ -10,13 +10,14 @@ from typing import Callable
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .exceptions import BFFException, MicroserviceError
 
 logger = logging.getLogger(__name__)
 
 
-class ExceptionHandlerMiddleware:
+class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
     """
     Generic exception handling middleware that converts exceptions into
     standardized JSON error responses.
@@ -25,10 +26,7 @@ class ExceptionHandlerMiddleware:
     consistent error handling across all endpoints.
     """
 
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         try:
             response = await call_next(request)
             return response
