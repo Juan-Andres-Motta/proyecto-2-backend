@@ -17,6 +17,7 @@ from dependencies import get_catalog_port, get_inventory_port
 from ..ports import CatalogPort, InventoryPort
 from ..schemas import (
     InventoryCreate,
+    InventoryCreateRequest,
     InventoryCreateResponse,
     PaginatedInventoriesResponse,
 )
@@ -38,7 +39,7 @@ router = APIRouter()
     },
 )
 async def create_inventory(
-    request_data: InventoryCreate,
+    request_data: InventoryCreateRequest,
     catalog: CatalogPort = Depends(get_catalog_port),
     inventory: InventoryPort = Depends(get_inventory_port),
 ):
@@ -51,7 +52,7 @@ async def create_inventory(
     3. Creates inventory with denormalized product data
 
     Args:
-        request_data: Inventory creation data (JSON body)
+        request_data: Inventory creation data from client (JSON body) - does NOT include denormalized fields
         catalog: Catalog port for service communication
         inventory: Inventory port for service communication
 

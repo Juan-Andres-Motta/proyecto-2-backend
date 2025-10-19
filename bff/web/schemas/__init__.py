@@ -11,6 +11,7 @@ from .catalog_schemas import (
 from .enums import ProductCategory
 from .inventory_schemas import (
     InventoryCreate,
+    InventoryCreateRequest,
     InventoryCreateResponse,
     InventoryResponse,
     PaginatedInventoriesResponse,
@@ -45,6 +46,7 @@ __all__ = [
     "WarehouseResponse",
     "PaginatedWarehousesResponse",
     "InventoryCreate",
+    "InventoryCreateRequest",
     "InventoryCreateResponse",
     "InventoryResponse",
     "PaginatedInventoriesResponse",

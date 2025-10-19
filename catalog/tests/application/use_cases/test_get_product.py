@@ -65,3 +65,5 @@ async def test_get_product_success(db_session):
     assert result.sku == "SKU-GET-TEST"
     assert result.price == Decimal("99.99")
     assert result.provider_id == provider.id
+    # Verify provider_name is included
+    assert result.provider_name == "Test Provider"

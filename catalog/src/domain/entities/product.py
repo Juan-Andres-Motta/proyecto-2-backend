@@ -10,6 +10,7 @@ class Product:
 
     id: UUID
     provider_id: UUID
+    provider_name: str  # Denormalized provider name
     name: str
     category: str  # Database value like "medicamentos_especiales"
     sku: str
@@ -35,6 +36,7 @@ class Product:
         return cls(
             id=orm_product.id,
             provider_id=orm_product.provider_id,
+            provider_name=orm_product.provider.name,
             name=orm_product.name,
             category=orm_product.category,
             sku=orm_product.sku,

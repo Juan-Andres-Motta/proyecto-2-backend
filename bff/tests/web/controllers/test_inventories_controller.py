@@ -15,7 +15,7 @@ from web.controllers.inventories_controller import create_inventory, get_invento
 from web.ports.catalog_port import CatalogPort
 from web.ports.inventory_port import InventoryPort
 from web.schemas.catalog_schemas import ProductCategory, ProductResponse
-from web.schemas.inventory_schemas import InventoryCreate, InventoryCreateResponse
+from web.schemas.inventory_schemas import InventoryCreateRequest, InventoryCreateResponse
 
 
 @pytest.fixture
@@ -36,6 +36,7 @@ def sample_product():
     return ProductResponse(
         id=UUID("550e8400-e29b-41d4-a716-446655440000"),
         provider_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
+        provider_name="Test Provider",
         name="Test Product",
         category=ProductCategory.SPECIAL_MEDICATIONS,
         sku="PROD-001",
@@ -56,16 +57,13 @@ class TestInventoriesControllerCreate:
         product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
         warehouse_id = UUID("770e8400-e29b-41d4-a716-446655440000")
 
-        # Create request data (JSON body)
-        request_data = InventoryCreate(
+        # Create request data from client (JSON body) - NO denormalized fields
+        request_data = InventoryCreateRequest(
             product_id=product_id,
             warehouse_id=warehouse_id,
             total_quantity=100,
             batch_number="BATCH-001",
             expiration_date=date(2025, 12, 31),
-            product_sku="",  # Will be enriched from catalog
-            product_name="",  # Will be enriched from catalog
-            product_price=0.0,  # Will be enriched from catalog
         )
 
         # Mock catalog returning product
@@ -111,16 +109,13 @@ class TestInventoriesControllerCreate:
         product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
         warehouse_id = UUID("770e8400-e29b-41d4-a716-446655440000")
 
-        # Create request data (JSON body)
-        request_data = InventoryCreate(
+        # Create request data from client (JSON body) - NO denormalized fields
+        request_data = InventoryCreateRequest(
             product_id=product_id,
             warehouse_id=warehouse_id,
             total_quantity=100,
             batch_number="BATCH-001",
             expiration_date=date(2025, 12, 31),
-            product_sku="",
-            product_name="",
-            product_price=0.0,
         )
 
         # Mock catalog returning None (product not found)

@@ -5,10 +5,11 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from src.application.ports.product_repository_port import ProductRepositoryPort
 from src.domain.entities.product import Product as DomainProduct
-from src.infrastructure.database.models import Product as ORMProduct
+from src.infrastructure.database.models import Product as ORMProduct, Provider as ORMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +47,9 @@ class ProductRepository(ProductRepositoryPort):
             # Commit the transaction
             await self.session.commit()
 
-            # Refresh all products to get generated IDs and timestamps
+            # Refresh all products to get generated IDs, timestamps, and provider relationship
             for product in created_products:
-                await self.session.refresh(product)
+                await self.session.refresh(product, ["provider"])
 
             logger.debug(f"DB: Successfully batch created {len(created_products)} products")
             # Map to domain entities
@@ -63,7 +64,7 @@ class ProductRepository(ProductRepositoryPort):
     async def find_by_id(self, product_id: UUID) -> Optional[DomainProduct]:
         """Find a product by ID and return domain entity."""
         logger.debug(f"DB: Finding product by ID: product_id={product_id}")
-        stmt = select(ORMProduct).where(ORMProduct.id == product_id)
+        stmt = select(ORMProduct).options(joinedload(ORMProduct.provider)).where(ORMProduct.id == product_id)
         result = await self.session.execute(stmt)
         orm_product = result.scalars().first()
 
@@ -113,8 +114,8 @@ class ProductRepository(ProductRepositoryPort):
         count_result = await self.session.execute(count_stmt)
         total = count_result.scalar()
 
-        # Get paginated data
-        stmt = select(ORMProduct).limit(limit).offset(offset)
+        # Get paginated data with provider join
+        stmt = select(ORMProduct).options(joinedload(ORMProduct.provider)).limit(limit).offset(offset)
         result = await self.session.execute(stmt)
         orm_products = result.scalars().all()
 
@@ -130,6 +131,7 @@ class ProductRepository(ProductRepositoryPort):
         return DomainProduct(
             id=orm_product.id,
             provider_id=orm_product.provider_id,
+            provider_name=orm_product.provider.name,
             name=orm_product.name,
             category=orm_product.category,
             sku=orm_product.sku,

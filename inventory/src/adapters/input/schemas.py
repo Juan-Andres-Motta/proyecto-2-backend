@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 
 import pycountry
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_serializer, field_validator
 
 from .examples import inventory_create_example, warehouse_create_example
 
@@ -16,10 +16,11 @@ class WarehouseCreate(BaseModel):
 
     model_config = {"json_schema_extra": {"examples": [warehouse_create_example]}}
 
-    @field_validator("name", "city", "address", "country")
+    @field_validator("name", "city", "address")
     @classmethod
-    def trim_and_lower(cls, v: str) -> str:
-        return v.strip().lower()
+    def trim_and_title(cls, v: str) -> str:
+        """Trim whitespace and capitalize each word."""
+        return v.strip().title()
 
     @field_validator("country")
     @classmethod
@@ -47,6 +48,15 @@ class WarehouseResponse(BaseModel):
     address: str
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer('country')
+    def serialize_country(self, country_code: str) -> str:
+        """Convert country code to full country name."""
+        try:
+            country = pycountry.countries.get(alpha_2=country_code.upper())
+            return country.name if country else country_code
+        except (LookupError, AttributeError):
+            return country_code
 
 
 class PaginatedWarehousesResponse(BaseModel):

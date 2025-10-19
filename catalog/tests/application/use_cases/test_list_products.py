@@ -55,6 +55,9 @@ async def test_list_products_use_case_with_data(db_session):
 
     assert len(products) == 3
     assert total == 5
+    # Verify provider_name is included
+    assert all(hasattr(p, "provider_name") for p in products)
+    assert products[0].provider_name == "Test Provider"
 
 
 @pytest.mark.asyncio
@@ -95,3 +98,6 @@ async def test_list_products_use_case_default_pagination(db_session):
 
     assert len(products) == 10  # Default limit
     assert total == 15
+    # Verify provider_name is included
+    assert all(hasattr(p, "provider_name") for p in products)
+    assert products[0].provider_name == "Test Provider"

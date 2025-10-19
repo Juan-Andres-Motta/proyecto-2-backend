@@ -36,13 +36,23 @@ class PaginatedWarehousesResponse(BaseModel):
     has_previous: bool
 
 
-class InventoryCreate(BaseModel):
+class InventoryCreateRequest(BaseModel):
+    """Client request schema for creating inventory - does NOT include denormalized fields"""
     product_id: UUID
     warehouse_id: UUID
     total_quantity: int
     batch_number: str
     expiration_date: datetime
-    # Denormalized fields (will be added by BFF after fetching product)
+
+
+class InventoryCreate(BaseModel):
+    """Internal schema for communicating with inventory service - includes denormalized fields"""
+    product_id: UUID
+    warehouse_id: UUID
+    total_quantity: int
+    batch_number: str
+    expiration_date: datetime
+    # Denormalized fields (added by BFF after fetching product)
     product_sku: str
     product_name: str
     product_price: float

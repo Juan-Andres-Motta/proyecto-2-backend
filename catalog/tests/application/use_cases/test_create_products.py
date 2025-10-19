@@ -40,6 +40,7 @@ async def test_create_products_use_case_success():
         Product(
             id=UUID("660e8400-e29b-41d4-a716-446655440000"),
             provider_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
+            provider_name="test provider",
             name="Product 1",
             category="medicamentos_especiales",
             sku="SKU-001",

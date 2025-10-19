@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 from src.infrastructure.database.models import ProductCategory
 
@@ -17,10 +17,23 @@ class ProductCreate(BaseModel):
     sku: str = Field(..., min_length=1, max_length=100, description="Product SKU (unique identifier)")
     price: float = Field(..., gt=0, description="Product price (must be greater than 0)")
 
+    @field_validator("name")
+    @classmethod
+    def trim_and_title(cls, v: str) -> str:
+        """Trim whitespace and capitalize each word for product names."""
+        return v.strip().title()
+
+    @field_validator("sku")
+    @classmethod
+    def trim_and_upper_sku(cls, v: str) -> str:
+        """Trim whitespace and uppercase SKU."""
+        return v.strip().upper()
+
 
 class ProductResponse(BaseModel):
     id: UUID
     provider_id: UUID
+    provider_name: str  # Denormalized provider name
     name: str
     category: str
     sku: str

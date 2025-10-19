@@ -91,6 +91,9 @@ async def test_list_products_with_data(db_session):
     assert data["page"] == 1  # (1 // 3) + 1 = 1
     assert data["has_next"] is True
     assert data["has_previous"] is True
+    # Verify provider_name is included
+    assert all("provider_name" in item for item in data["items"])
+    assert data["items"][0]["provider_name"] == "Test Provider"
 
 
 @pytest.mark.asyncio
@@ -199,6 +202,9 @@ async def test_create_products_success(db_session):
     assert data["count"] == 2
     assert data["created"][0]["name"] == "Product 1"
     assert data["created"][1]["name"] == "Product 2"
+    # Verify provider_name is included
+    assert data["created"][0]["provider_name"] == "Test Provider"
+    assert data["created"][1]["provider_name"] == "Test Provider"
 
 
 @pytest.mark.asyncio
@@ -387,3 +393,5 @@ async def test_get_product_success(db_session):
     assert data["sku"] == "SKU-GET-CONTROLLER"
     assert float(data["price"]) == 149.99
     assert data["provider_id"] == str(provider.id)
+    # Verify provider_name is included
+    assert data["provider_name"] == "Test Provider"
