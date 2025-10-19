@@ -79,8 +79,22 @@ jobs:
           poetry run pytest --cov=src --cov-report=xml --cov-report=term
         continue-on-error: false
 
-      # SonarCloud Scan
+      # Check if SonarCloud is configured
+      - name: Check SonarCloud Configuration
+        id: sonar_check
+        run: |
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ] || [ -z "${{ secrets.SONAR_ORGANIZATION }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SonarCloud not configured - skipping analysis"
+            echo "ℹ️ To enable: Add SONAR_TOKEN and SONAR_ORGANIZATION secrets"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✅ SonarCloud configured - running analysis"
+          fi
+
+      # SonarCloud Scan (only if configured)
       - name: SonarCloud Scan
+        if: steps.sonar_check.outputs.configured == 'true'
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
@@ -90,10 +104,26 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.verbose=true
 
-      # Optional: Quality Gate check
+      # Quality Gate check (only if configured)
       - name: SonarCloud Quality Gate check
+        if: steps.sonar_check.outputs.configured == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         continue-on-error: true
+
+      # Show message if SonarCloud is not configured
+      - name: SonarCloud Not Configured
+        if: steps.sonar_check.outputs.configured == 'false'
+        run: |
+          echo "ℹ️ SonarCloud analysis was skipped"
+          echo ""
+          echo "To enable SonarCloud:"
+          echo "1. Create account at https://sonarcloud.io"
+          echo "2. Import this repository"
+          echo "3. Add GitHub secrets:"
+          echo "   - SONAR_TOKEN"
+          echo "   - SONAR_ORGANIZATION"
+          echo ""
+          echo "See SONARCLOUD_SETUP.md for detailed instructions"
