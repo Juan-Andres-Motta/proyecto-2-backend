@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 
 import pycountry
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_serializer, field_validator
 
 from ..examples.provider_examples import provider_create_example
 
@@ -19,10 +19,17 @@ class ProviderCreate(BaseModel):
 
     model_config = {"json_schema_extra": {"examples": [provider_create_example]}}
 
-    @field_validator("name", "contact_name", "nit", "phone", "address", "country")
+    @field_validator("name", "contact_name", "address")
     @classmethod
-    def trim_and_lower(cls, v: str) -> str:
-        return v.strip().lower()
+    def trim_and_title(cls, v: str) -> str:
+        """Trim whitespace and capitalize each word."""
+        return v.strip().title()
+
+    @field_validator("nit", "phone")
+    @classmethod
+    def trim_only(cls, v: str) -> str:
+        """Trim whitespace only."""
+        return v.strip()
 
     @field_validator("country")
     @classmethod
@@ -53,6 +60,15 @@ class ProviderResponse(BaseModel):
     country: str
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer('country')
+    def serialize_country(self, country_code: str) -> str:
+        """Convert country code to full country name."""
+        try:
+            country = pycountry.countries.get(alpha_2=country_code.upper())
+            return country.name if country else country_code
+        except (LookupError, AttributeError):
+            return country_code
 
 
 class PaginatedProvidersResponse(BaseModel):

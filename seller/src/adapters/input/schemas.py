@@ -1,10 +1,9 @@
 from datetime import datetime
-from decimal import Decimal
-from typing import List
+from typing import Annotated, List
 from uuid import UUID
 
 import pycountry
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
 
 from .examples import sales_plan_create_example, seller_create_example
 
@@ -18,10 +17,17 @@ class SellerCreate(BaseModel):
 
     model_config = {"json_schema_extra": {"examples": [seller_create_example]}}
 
-    @field_validator("name", "phone", "city", "country")
+    @field_validator("name", "city")
     @classmethod
-    def trim_and_lower(cls, v: str) -> str:
-        return v.strip().lower()
+    def trim_and_title(cls, v: str) -> str:
+        """Trim whitespace and capitalize each word."""
+        return v.strip().title()
+
+    @field_validator("phone")
+    @classmethod
+    def trim_only(cls, v: str) -> str:
+        """Trim whitespace only."""
+        return v.strip()
 
     @field_validator("country")
     @classmethod
@@ -48,6 +54,15 @@ class SellerResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer('country')
+    def serialize_country(self, country_code: str) -> str:
+        """Convert country code to full country name."""
+        try:
+            country = pycountry.countries.get(alpha_2=country_code.upper())
+            return country.name if country else country_code
+        except (LookupError, AttributeError):
+            return country_code
+
 
 class PaginatedSellersResponse(BaseModel):
     items: List[SellerResponse]
@@ -62,7 +77,7 @@ class SalesPlanCreate(BaseModel):
     """Thin DTO for creating sales plan - NO validation decorators."""
     seller_id: UUID
     sales_period: str
-    goal: Decimal
+    goal: Annotated[float, Field(gt=0, description="Sales goal amount")]
     # Note: accumulate is NOT in input - always starts at 0
     # Note: status is NOT in input - calculated dynamically
     # Note: goal_type removed
@@ -75,8 +90,8 @@ class SalesPlanResponse(BaseModel):
     id: UUID
     seller: SellerResponse  # Nested seller object
     sales_period: str
-    goal: Decimal
-    accumulate: Decimal
+    goal: float
+    accumulate: float
     status: str  # Calculated by domain entity
     created_at: datetime
     updated_at: datetime

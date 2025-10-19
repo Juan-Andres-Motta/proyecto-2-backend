@@ -98,9 +98,11 @@ async def test_list_products_validation(db_session):
     from fastapi import FastAPI
 
     from src.adapters.input.controllers.product_controller import router
+    from src.infrastructure.api.exception_handlers import register_exception_handlers
     from src.infrastructure.database.config import get_db
 
     app = FastAPI()
+    register_exception_handlers(app)  # Register exception handlers
     app.include_router(router)
 
     async def override_get_db():
@@ -115,9 +117,21 @@ async def test_list_products_validation(db_session):
         response = await client.get("/products?limit=101")
         assert response.status_code == 422
 
+        # Verify standardized error format
+        data = response.json()
+        assert data["error_code"] == "VALIDATION_ERROR"
+        assert data["type"] == "validation_error"
+        assert "message" in data
+
         # Test invalid offset (negative)
         response = await client.get("/products?offset=-1")
         assert response.status_code == 422
+
+        # Verify standardized error format
+        data = response.json()
+        assert data["error_code"] == "VALIDATION_ERROR"
+        assert data["type"] == "validation_error"
+        assert "message" in data
 
 
 @pytest.mark.asyncio
@@ -226,6 +240,10 @@ async def test_create_products_provider_not_found(db_session):
     # Batch validation errors return 422
     assert response.status_code == 422
     response_data = response.json()
+
+    # Verify standardized error format
+    assert response_data["error_code"] == "VALIDATION_ERROR"
+    assert response_data["type"] == "validation_error"
     assert "provider" in response_data["message"].lower()
     assert "not found" in response_data["message"].lower()
 
@@ -237,9 +255,11 @@ async def test_create_products_invalid_category(db_session):
     import uuid
 
     from src.adapters.input.controllers.product_controller import router
+    from src.infrastructure.api.exception_handlers import register_exception_handlers
     from src.infrastructure.database.config import get_db
 
     app = FastAPI()
+    register_exception_handlers(app)  # Register exception handlers
     app.include_router(router)
 
     async def override_get_db():
@@ -266,6 +286,12 @@ async def test_create_products_invalid_category(db_session):
 
     assert response.status_code == 422
 
+    # Verify standardized error format
+    data = response.json()
+    assert data["error_code"] == "VALIDATION_ERROR"
+    assert data["type"] == "validation_error"
+    assert "message" in data
+
 
 @pytest.mark.asyncio
 async def test_get_product_not_found(db_session):
@@ -274,9 +300,11 @@ async def test_get_product_not_found(db_session):
     import uuid
 
     from src.adapters.input.controllers.product_controller import router
+    from src.infrastructure.api.exception_handlers import register_exception_handlers
     from src.infrastructure.database.config import get_db
 
     app = FastAPI()
+    register_exception_handlers(app)  # Register exception handlers
     app.include_router(router)
 
     async def override_get_db():
@@ -294,7 +322,11 @@ async def test_get_product_not_found(db_session):
 
     assert response.status_code == 404
     data = response.json()
-    assert "not found" in data["detail"].lower()
+
+    # Verify standardized error format
+    assert data["error_code"] == "PRODUCT_NOT_FOUND"
+    assert data["type"] == "not_found"
+    assert "not found" in data["message"].lower()
 
 
 @pytest.mark.asyncio

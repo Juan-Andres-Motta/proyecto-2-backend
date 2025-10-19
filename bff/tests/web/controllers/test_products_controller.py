@@ -6,7 +6,6 @@ Tests that controllers call the right ports.
 
 from unittest.mock import AsyncMock, Mock
 from uuid import UUID
-from decimal import Decimal
 
 import pytest
 
@@ -58,7 +57,7 @@ class TestProductsControllerCreateProduct:
             name="Test Product",
             category=ProductCategory.SPECIAL_MEDICATIONS,
             sku="PROD-001",
-            price=Decimal("99.99"),
+            price=99.99,
         )
         expected_response = {"created": [product_data], "count": 1}
         mock_catalog_port.create_products = AsyncMock(return_value=expected_response)

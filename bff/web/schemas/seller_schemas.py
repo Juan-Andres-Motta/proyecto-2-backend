@@ -1,9 +1,8 @@
 from datetime import datetime
-from decimal import Decimal
-from typing import List
+from typing import Annotated, List
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # Seller Schemas
@@ -44,7 +43,7 @@ class PaginatedSellersResponse(BaseModel):
 class SalesPlanCreate(BaseModel):
     seller_id: UUID
     sales_period: str
-    goal: Decimal
+    goal: Annotated[float, Field(gt=0, description="Sales goal amount")]
     # Note: accumulate is NOT in input - always starts at 0 per seller service
     # Note: status is NOT in input - calculated dynamically per seller service
     # Note: goal_type removed from seller service
@@ -59,8 +58,8 @@ class SalesPlanResponse(BaseModel):
     id: UUID
     seller: SellerResponse  # Nested seller object (matches seller service)
     sales_period: str
-    goal: Decimal
-    accumulate: Decimal
+    goal: float
+    accumulate: float
     status: str  # Calculated status string (e.g., "planned", "in_progress", "completed", "failed")
     created_at: datetime
     updated_at: datetime

@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 import pytest
 
@@ -51,7 +50,7 @@ def test_product_response_schema():
         "name": "test product",
         "category": "Medicamentos Especiales",  # Human-readable format from catalog service
         "sku": "TEST-PROD-001",
-        "price": Decimal("99.99"),
+        "price": 99.99,
         "created_at": now,
         "updated_at": now,
     }
@@ -62,7 +61,7 @@ def test_product_response_schema():
     assert product.provider_id == provider_id
     assert product.name == "test product"
     assert product.sku == "TEST-PROD-001"
-    assert product.price == Decimal("99.99")
+    assert product.price == 99.99
 
 
 def test_paginated_providers_response_schema():
@@ -119,7 +118,7 @@ def test_paginated_products_response_schema():
         name="test product",
         category="Medicamentos Especiales",  # Human-readable format from catalog service
         sku="TEST-PROD-001",
-        price=Decimal("99.99"),
+        price=99.99,
         created_at=now,
         updated_at=now,
     )

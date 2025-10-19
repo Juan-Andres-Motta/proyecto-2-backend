@@ -38,11 +38,7 @@ router = APIRouter()
     },
 )
 async def create_inventory(
-    product_id: UUID,
-    warehouse_id: UUID,
-    total_quantity: int,
-    batch_number: str,
-    expiration_date: str,
+    request_data: InventoryCreate,
     catalog: CatalogPort = Depends(get_catalog_port),
     inventory: InventoryPort = Depends(get_inventory_port),
 ):
@@ -55,12 +51,7 @@ async def create_inventory(
     3. Creates inventory with denormalized product data
 
     Args:
-        product_id: ID of the product
-        warehouse_id: ID of the warehouse
-        total_quantity: Total quantity in inventory
-        reserved_quantity: Reserved quantity (must be 0 at creation)
-        batch_number: Batch number for this inventory
-        expiration_date: Expiration date (ISO format)
+        request_data: Inventory creation data (JSON body)
         catalog: Catalog port for service communication
         inventory: Inventory port for service communication
 
@@ -70,9 +61,9 @@ async def create_inventory(
     Raises:
         HTTPException: 404 if product not found
     """
-    logger.info(f"Request: POST /inventory: product_id={product_id}, warehouse_id={warehouse_id}")
+    logger.info(f"Request: POST /inventory: product_id={request_data.product_id}, warehouse_id={request_data.warehouse_id}")
     # Step 1: Fetch product from catalog
-    product = await catalog.get_product_by_id(product_id)
+    product = await catalog.get_product_by_id(request_data.product_id)
 
     # Step 2: Validate product exists
     if not product:
@@ -80,29 +71,28 @@ async def create_inventory(
             status_code=status.HTTP_404_NOT_FOUND,
             content={
                 "error_code": "PRODUCT_NOT_FOUND",
-                "message": f"Product with ID '{product_id}' not found",
+                "message": f"Product with ID '{request_data.product_id}' not found",
                 "type": "not_found",
                 "details": {
                     "resource": "Product",
-                    "id": str(product_id)
+                    "id": str(request_data.product_id)
                 }
             }
         )
 
-    # Step 3: Create inventory with denormalized data
-    from datetime import datetime
-    inventory_data = InventoryCreate(
-        product_id=product_id,
-        warehouse_id=warehouse_id,
-        total_quantity=total_quantity,
-        batch_number=batch_number,
-        expiration_date=datetime.fromisoformat(expiration_date.replace('Z', '+00:00')),
+    # Step 3: Enrich request data with denormalized product data
+    enriched_inventory = InventoryCreate(
+        product_id=request_data.product_id,
+        warehouse_id=request_data.warehouse_id,
+        total_quantity=request_data.total_quantity,
+        batch_number=request_data.batch_number,
+        expiration_date=request_data.expiration_date,
         product_sku=product.sku,
         product_name=product.name,
         product_price=float(product.price),
     )
 
-    return await inventory.create_inventory(inventory_data)
+    return await inventory.create_inventory(enriched_inventory)
 
 
 @router.get(

@@ -8,7 +8,6 @@ These tests focus on OUR CSV parsing logic:
 """
 
 import io
-from decimal import Decimal
 from uuid import UUID
 
 import pytest
@@ -38,7 +37,7 @@ class TestCsvParserServiceValidCases:
         assert products[0].provider_id == UUID("550e8400-e29b-41d4-a716-446655440000")
         assert products[0].category == ProductCategory.SPECIAL_MEDICATIONS
         assert products[0].sku == "MED-001"
-        assert products[0].price == Decimal("15.99")
+        assert products[0].price == 15.99
 
     @pytest.mark.asyncio
     async def test_parses_multiple_products(self):
@@ -75,7 +74,7 @@ class TestCsvParserServiceValidCases:
         assert len(products) == 1
         assert products[0].name == "Product Name"
         assert products[0].sku == "SKU-001"
-        assert products[0].price == Decimal("99.99")
+        assert products[0].price == 99.99
 
     @pytest.mark.asyncio
     async def test_parses_all_product_categories(self):

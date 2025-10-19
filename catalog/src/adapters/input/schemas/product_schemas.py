@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -16,7 +15,7 @@ class ProductCreate(BaseModel):
         description="Product category"
     )
     sku: str = Field(..., min_length=1, max_length=100, description="Product SKU (unique identifier)")
-    price: Decimal = Field(..., gt=0, description="Product price (must be greater than 0)")
+    price: float = Field(..., gt=0, description="Product price (must be greater than 0)")
 
 
 class ProductResponse(BaseModel):
@@ -25,7 +24,7 @@ class ProductResponse(BaseModel):
     name: str
     category: str
     sku: str
-    price: Decimal
+    price: float
     created_at: datetime
     updated_at: datetime
 

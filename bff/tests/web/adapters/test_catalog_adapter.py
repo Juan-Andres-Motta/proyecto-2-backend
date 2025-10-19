@@ -8,7 +8,6 @@ Tests OUR logic:
 
 from unittest.mock import AsyncMock, Mock
 from uuid import UUID
-from decimal import Decimal
 
 import pytest
 
@@ -94,7 +93,7 @@ class TestCatalogAdapterCreateProducts:
                 name="Product 1",
                 category=ProductCategory.SPECIAL_MEDICATIONS,
                 sku="PROD-001",
-                price=Decimal("100.50"),
+                price=100.50,
             )
         ]
 

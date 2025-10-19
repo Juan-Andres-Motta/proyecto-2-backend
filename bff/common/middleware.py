@@ -8,6 +8,7 @@ import logging
 from typing import Callable
 
 from fastapi import Request, Response, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -33,9 +34,12 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
         except BFFException as exc:
             # Handle our custom exceptions
             return self._handle_bff_exception(exc, request)
+        except RequestValidationError as exc:
+            # Handle FastAPI request validation errors
+            return self._handle_request_validation_error(exc, request)
         except PydanticValidationError as exc:
             # Handle Pydantic validation errors
-            return self._handle_validation_error(exc, request)
+            return self._handle_pydantic_validation_error(exc, request)
         except Exception as exc:
             # Handle unexpected exceptions
             return self._handle_unexpected_exception(exc, request)
@@ -72,12 +76,20 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             content=response_body,
         )
 
-    def _handle_validation_error(
-        self, exc: PydanticValidationError, request: Request
+    def _handle_request_validation_error(
+        self, exc: RequestValidationError, request: Request
     ) -> JSONResponse:
-        """Handle Pydantic validation errors."""
+        """Handle FastAPI/Pydantic validation errors (422)."""
+        errors = exc.errors()
+        if errors:
+            first_error = errors[0]
+            field = ".".join(str(loc) for loc in first_error["loc"][1:])  # Skip 'body'
+            message = f"{field}: {first_error['msg']}" if field else first_error['msg']
+        else:
+            message = "Validation error"
+
         logger.warning(
-            f"Validation error: {exc}",
+            f"Request validation error: {message}",
             extra={
                 "path": request.url.path,
                 "method": request.method,
@@ -87,12 +99,39 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
-                "error": {
-                    "message": "Validation error",
-                    "status_code": 422,
-                    "details": exc.errors(),
-                }
+                "error_code": "VALIDATION_ERROR",
+                "message": message,
+                "type": "validation_error"
+            }
+        )
+
+    def _handle_pydantic_validation_error(
+        self, exc: PydanticValidationError, request: Request
+    ) -> JSONResponse:
+        """Handle Pydantic validation errors (422)."""
+        errors = exc.errors()
+        if errors:
+            first_error = errors[0]
+            field = ".".join(str(loc) for loc in first_error["loc"])
+            message = f"{field}: {first_error['msg']}"
+        else:
+            message = "Validation error"
+
+        logger.warning(
+            f"Pydantic validation error: {message}",
+            extra={
+                "path": request.url.path,
+                "method": request.method,
             },
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error_code": "VALIDATION_ERROR",
+                "message": message,
+                "type": "validation_error"
+            }
         )
 
     def _handle_unexpected_exception(
@@ -111,10 +150,9 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
-                "error": {
-                    "message": "An unexpected error occurred",
-                    "status_code": 500,
-                }
+                "error_code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred",
+                "type": "system_error",
             },
         )
 

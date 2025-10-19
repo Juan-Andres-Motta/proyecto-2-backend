@@ -4,7 +4,7 @@ Unit tests for inventories controller.
 Tests the orchestration between catalog and inventory services.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import AsyncMock, Mock
 from uuid import UUID
 
@@ -15,7 +15,7 @@ from web.controllers.inventories_controller import create_inventory, get_invento
 from web.ports.catalog_port import CatalogPort
 from web.ports.inventory_port import InventoryPort
 from web.schemas.catalog_schemas import ProductCategory, ProductResponse
-from web.schemas.inventory_schemas import InventoryCreateResponse
+from web.schemas.inventory_schemas import InventoryCreate, InventoryCreateResponse
 
 
 @pytest.fixture
@@ -56,6 +56,18 @@ class TestInventoriesControllerCreate:
         product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
         warehouse_id = UUID("770e8400-e29b-41d4-a716-446655440000")
 
+        # Create request data (JSON body)
+        request_data = InventoryCreate(
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            total_quantity=100,
+            batch_number="BATCH-001",
+            expiration_date=date(2025, 12, 31),
+            product_sku="",  # Will be enriched from catalog
+            product_name="",  # Will be enriched from catalog
+            product_price=0.0,  # Will be enriched from catalog
+        )
+
         # Mock catalog returning product
         mock_catalog_port.get_product_by_id = AsyncMock(return_value=sample_product)
 
@@ -68,11 +80,7 @@ class TestInventoriesControllerCreate:
 
         # Call controller
         result = await create_inventory(
-            product_id=product_id,
-            warehouse_id=warehouse_id,
-            total_quantity=100,
-            batch_number="BATCH-001",
-            expiration_date="2025-12-31T00:00:00Z",
+            request_data=request_data,
             catalog=mock_catalog_port,
             inventory=mock_inventory_port,
         )
@@ -91,6 +99,7 @@ class TestInventoriesControllerCreate:
         # Denormalized fields from catalog
         assert call_args.product_sku == sample_product.sku
         assert call_args.product_name == sample_product.name
+        assert call_args.product_price == float(sample_product.price)
 
         assert result == expected_response
 
@@ -102,16 +111,24 @@ class TestInventoriesControllerCreate:
         product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
         warehouse_id = UUID("770e8400-e29b-41d4-a716-446655440000")
 
+        # Create request data (JSON body)
+        request_data = InventoryCreate(
+            product_id=product_id,
+            warehouse_id=warehouse_id,
+            total_quantity=100,
+            batch_number="BATCH-001",
+            expiration_date=date(2025, 12, 31),
+            product_sku="",
+            product_name="",
+            product_price=0.0,
+        )
+
         # Mock catalog returning None (product not found)
         mock_catalog_port.get_product_by_id = AsyncMock(return_value=None)
 
         # Call controller
         result = await create_inventory(
-            product_id=product_id,
-            warehouse_id=warehouse_id,
-            total_quantity=100,
-            batch_number="BATCH-001",
-            expiration_date="2025-12-31T00:00:00Z",
+            request_data=request_data,
             catalog=mock_catalog_port,
             inventory=mock_inventory_port,
         )

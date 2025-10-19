@@ -1,7 +1,6 @@
 """Input/Output schemas for the Order service."""
 
 from datetime import date, datetime
-from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -71,8 +70,8 @@ class OrderItemResponse(BaseModel):
     producto_id: UUID
     inventario_id: UUID
     cantidad: int
-    precio_unitario: Decimal
-    precio_total: Decimal
+    precio_unitario: float
+    precio_total: float
 
     # Denormalized product data
     product_name: str
@@ -119,7 +118,7 @@ class OrderResponse(BaseModel):
     seller_email: Optional[str]
 
     # Stored total
-    monto_total: Decimal
+    monto_total: float
 
     created_at: datetime
     updated_at: datetime
