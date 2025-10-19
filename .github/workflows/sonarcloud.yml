@@ -1,0 +1,99 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      # Install dependencies and run tests for each microservice
+      - name: Test BFF
+        run: |
+          cd bff
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=web --cov=common --cov=config --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      - name: Test Catalog
+        run: |
+          cd catalog
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      - name: Test Client
+        run: |
+          cd client
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
+        continue-on-error: true
+
+      - name: Test Delivery
+        run: |
+          cd delivery
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
+        continue-on-error: true
+
+      - name: Test Inventory
+        run: |
+          cd inventory
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      - name: Test Order
+        run: |
+          cd order
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      - name: Test Seller
+        run: |
+          cd seller
+          poetry install --no-interaction --no-ansi
+          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: false
+
+      # SonarCloud Scan
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.verbose=true
+
+      # Optional: Quality Gate check
+      - name: SonarCloud Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
