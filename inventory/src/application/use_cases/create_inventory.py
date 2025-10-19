@@ -39,7 +39,9 @@ class CreateInventoryUseCase:
         logger.debug(f"Inventory data: {inventory_data}")
 
         warehouse_id = inventory_data.get("warehouse_id")
-        reserved_quantity = inventory_data.get("reserved_quantity")
+        # Reserved quantity defaults to 0 at creation - clients don't provide it
+        reserved_quantity = inventory_data.get("reserved_quantity", 0)
+        inventory_data["reserved_quantity"] = reserved_quantity
         total_quantity = inventory_data.get("total_quantity")
         expiration_date = inventory_data.get("expiration_date")
 
@@ -70,8 +72,8 @@ class CreateInventoryUseCase:
         inventory_data["warehouse_name"] = warehouse.name
         inventory_data["warehouse_city"] = warehouse.city
 
-        # Validation 2: Reserved quantity must be 0 at creation
-        logger.debug(f"Validating reserved quantity: reserved_quantity={reserved_quantity}")
+        # Validation 2: Reserved quantity must be 0 at creation (now enforced by default)
+        logger.debug(f"Reserved quantity set to: {reserved_quantity}")
         if reserved_quantity != 0:
             logger.warning(f"Inventory creation failed: reserved quantity must be 0 at creation: reserved_quantity={reserved_quantity}")
             raise ReservedQuantityMustBeZeroException(reserved_quantity)

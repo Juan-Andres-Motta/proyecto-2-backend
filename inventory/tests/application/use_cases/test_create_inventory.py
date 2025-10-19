@@ -38,7 +38,7 @@ async def test_create_inventory_use_case_success():
         "product_id": uuid.uuid4(),
         "warehouse_id": warehouse.id,
         "total_quantity": 100,
-        "reserved_quantity": 0,  # Must be 0 at creation
+        # reserved_quantity not provided - defaults to 0
         "batch_number": "BATCH001",
         "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
         "product_sku": "TEST-SKU-001",
@@ -51,7 +51,7 @@ async def test_create_inventory_use_case_success():
         product_id=inventory_data["product_id"],
         warehouse_id=inventory_data["warehouse_id"],
         total_quantity=inventory_data["total_quantity"],
-        reserved_quantity=inventory_data["reserved_quantity"],
+        reserved_quantity=0,  # Always 0 at creation
         batch_number=inventory_data["batch_number"],
         expiration_date=inventory_data["expiration_date"],
         product_sku="TEST-SKU-001",
@@ -69,9 +69,10 @@ async def test_create_inventory_use_case_success():
 
     assert result == created_inventory
     mock_warehouse_repo.find_by_id.assert_called_once_with(warehouse.id)
-    # Verify warehouse data was denormalized
+    # Verify warehouse data was denormalized and reserved_quantity was added
     expected_data = {
         **inventory_data,
+        "reserved_quantity": 0,  # Added by use case
         "warehouse_name": "test warehouse",
         "warehouse_city": "Miami",
     }
@@ -92,7 +93,7 @@ async def test_create_inventory_warehouse_not_found():
         "product_id": uuid.uuid4(),
         "warehouse_id": warehouse_id,
         "total_quantity": 100,
-        "reserved_quantity": 0,
+        # reserved_quantity not provided - defaults to 0
         "batch_number": "BATCH001",
         "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
         "product_sku": "TEST-SKU-001",
@@ -209,7 +210,7 @@ async def test_create_inventory_expired_date():
         "product_id": uuid.uuid4(),
         "warehouse_id": warehouse.id,
         "total_quantity": 100,
-        "reserved_quantity": 0,
+        # reserved_quantity not provided - defaults to 0
         "batch_number": "BATCH001",
         "expiration_date": expired_date,
         "product_sku": "TEST-SKU-001",

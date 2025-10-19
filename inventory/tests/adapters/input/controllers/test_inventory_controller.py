@@ -24,7 +24,7 @@ async def test_create_inventory():
         "product_id": "550e8400-e29b-41d4-a716-446655440000",
         "warehouse_id": "550e8400-e29b-41d4-a716-446655440001",
         "total_quantity": 100,
-        "reserved_quantity": 0,  # Must be 0 at creation
+        # reserved_quantity not provided - defaults to 0
         "batch_number": "BATCH001",
         "expiration_date": "2026-12-31T00:00:00Z",
         "product_sku": "TEST-SKU-001",
