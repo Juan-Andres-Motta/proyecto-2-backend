@@ -12,6 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
+from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
 from dependencies import get_catalog_port, get_inventory_port
 
 from ..ports import CatalogPort, InventoryPort
@@ -33,9 +34,8 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Inventory created successfully"},
-        404: {"description": "Product not found"},
-        400: {"description": "Invalid inventory data"},
-        500: {"description": "Error communicating with microservices"},
+        404: {"description": "Product not found", "model": NotFoundErrorResponse},
+        422: {"description": "Invalid inventory data", "model": ValidationErrorResponse},
     },
 )
 async def create_inventory(
@@ -101,7 +101,7 @@ async def create_inventory(
     response_model=PaginatedInventoriesResponse,
     responses={
         200: {"description": "List of inventories from inventory microservice"},
-        500: {"description": "Error communicating with inventory microservice"},
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def get_inventories(

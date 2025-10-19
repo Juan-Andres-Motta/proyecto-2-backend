@@ -6,6 +6,7 @@ All exceptions are handled by global exception handlers.
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
+from src.adapters.input.error_schemas import ValidationErrorResponse
 from src.adapters.input.examples import (
     warehouse_create_response_example,
     warehouses_list_response_example,
@@ -33,7 +34,8 @@ router = APIRouter(tags=["warehouses"])
             "content": {
                 "application/json": {"example": warehouse_create_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid warehouse data", "model": ValidationErrorResponse},
     },
 )
 async def create_warehouse(
@@ -61,7 +63,8 @@ async def create_warehouse(
             "content": {
                 "application/json": {"example": warehouses_list_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def list_warehouses(

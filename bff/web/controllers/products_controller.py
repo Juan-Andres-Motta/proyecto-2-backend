@@ -9,6 +9,7 @@ import logging
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
+from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
 from dependencies import get_catalog_port
 
 from ..ports import CatalogPort
@@ -26,9 +27,8 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Product created successfully"},
-        400: {"description": "Invalid product data"},
-        404: {"description": "Provider not found"},
-        500: {"description": "Error communicating with catalog microservice"},
+        404: {"description": "Provider not found", "model": NotFoundErrorResponse},
+        422: {"description": "Invalid product data", "model": ValidationErrorResponse},
     },
 )
 async def create_product(
@@ -58,10 +58,8 @@ async def create_product(
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Products created successfully from CSV"},
-        400: {"description": "Invalid CSV format or product data"},
-        404: {"description": "Provider not found"},
-        422: {"description": "CSV parsing error"},
-        500: {"description": "Error communicating with catalog microservice"},
+        404: {"description": "Provider not found", "model": NotFoundErrorResponse},
+        422: {"description": "CSV parsing error or invalid product data", "model": ValidationErrorResponse},
     },
 )
 async def create_products_from_csv(
@@ -98,7 +96,7 @@ async def create_products_from_csv(
     response_model=PaginatedProductsResponse,
     responses={
         200: {"description": "List of products from catalog microservice"},
-        500: {"description": "Error communicating with catalog microservice"},
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def get_products(

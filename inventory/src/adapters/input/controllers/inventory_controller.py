@@ -9,6 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
+from src.adapters.input.error_schemas import ValidationErrorResponse
 from src.adapters.input.examples import (
     inventories_list_response_example,
     inventory_create_response_example,
@@ -36,7 +37,8 @@ router = APIRouter(tags=["inventories"])
             "content": {
                 "application/json": {"example": inventory_create_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid inventory data", "model": ValidationErrorResponse},
     },
 )
 async def create_inventory(
@@ -64,7 +66,8 @@ async def create_inventory(
             "content": {
                 "application/json": {"example": inventories_list_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def list_inventories(
