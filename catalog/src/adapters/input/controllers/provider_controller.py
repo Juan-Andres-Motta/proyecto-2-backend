@@ -14,6 +14,7 @@ from src.adapters.input.schemas import (
     PaginatedProvidersResponse,
     ProviderCreate,
     ProviderResponse,
+    ValidationErrorResponse,
 )
 from src.application.use_cases.create_provider import CreateProviderUseCase
 from src.application.use_cases.list_providers import ListProvidersUseCase
@@ -34,7 +35,8 @@ router = APIRouter(tags=["providers"])
             "content": {
                 "application/json": {"example": provider_create_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid provider data", "model": ValidationErrorResponse},
     },
 )
 async def create_provider(
@@ -74,7 +76,8 @@ async def create_provider(
             "content": {
                 "application/json": {"example": providers_list_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def list_providers(

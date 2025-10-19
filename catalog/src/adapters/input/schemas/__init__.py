@@ -1,3 +1,9 @@
+from .error_schemas import (
+    BusinessRuleErrorResponse,
+    ErrorResponse,
+    NotFoundErrorResponse,
+    ValidationErrorResponse,
+)
 from .provider_schemas import (
     PaginatedProvidersResponse,
     ProviderCreate,
@@ -24,4 +30,8 @@ __all__ = [
     "BatchProductsResponse",
     "BatchProductsErrorResponse",
     "ProductError",
+    "ErrorResponse",
+    "ValidationErrorResponse",
+    "NotFoundErrorResponse",
+    "BusinessRuleErrorResponse",
 ]

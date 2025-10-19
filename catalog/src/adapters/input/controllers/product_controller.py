@@ -11,8 +11,10 @@ from src.adapters.input.examples import products_list_response_example
 from src.adapters.input.schemas import (
     BatchProductsRequest,
     BatchProductsResponse,
+    NotFoundErrorResponse,
     PaginatedProductsResponse,
     ProductResponse,
+    ValidationErrorResponse,
 )
 from src.application.use_cases.create_products import CreateProductsUseCase
 from src.application.use_cases.get_product import GetProductUseCase
@@ -33,9 +35,8 @@ router = APIRouter(tags=["products"])
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Products created successfully"},
-        400: {"description": "Validation error or product creation failed"},
-        404: {"description": "Provider not found"},
-        422: {"description": "Invalid product data"},
+        404: {"description": "Provider not found", "model": NotFoundErrorResponse},
+        422: {"description": "Invalid product data", "model": ValidationErrorResponse},
     },
 )
 async def create_products(
@@ -79,7 +80,8 @@ async def create_products(
             "content": {
                 "application/json": {"example": products_list_response_example}
             },
-        }
+        },
+        422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
 async def list_products(
@@ -126,7 +128,7 @@ async def list_products(
     response_model=ProductResponse,
     responses={
         200: {"description": "Product details"},
-        404: {"description": "Product not found"},
+        404: {"description": "Product not found", "model": NotFoundErrorResponse},
     },
 )
 async def get_product(

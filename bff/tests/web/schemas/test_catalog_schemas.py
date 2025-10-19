@@ -47,6 +47,7 @@ def test_product_response_schema():
     product_data = {
         "id": product_id,
         "provider_id": provider_id,
+        "provider_name": "Test Provider",
         "name": "test product",
         "category": "Medicamentos Especiales",  # Human-readable format from catalog service
         "sku": "TEST-PROD-001",
@@ -59,6 +60,7 @@ def test_product_response_schema():
 
     assert product.id == product_id
     assert product.provider_id == provider_id
+    assert product.provider_name == "Test Provider"
     assert product.name == "test product"
     assert product.sku == "TEST-PROD-001"
     assert product.price == 99.99
@@ -115,6 +117,7 @@ def test_paginated_products_response_schema():
     product = ProductResponse(
         id=product_id,
         provider_id=provider_id,
+        provider_name="Test Provider",
         name="test product",
         category="Medicamentos Especiales",  # Human-readable format from catalog service
         sku="TEST-PROD-001",

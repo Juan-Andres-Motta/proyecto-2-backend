@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import List
 from uuid import UUID
-
 from pydantic import BaseModel, EmailStr, Field
 
+from .enums import ProductCategory
 
 class ProviderCreate(BaseModel):
     name: str
@@ -18,9 +18,6 @@ class ProviderCreate(BaseModel):
 class ProviderCreateResponse(BaseModel):
     id: str
     message: str
-from pydantic import BaseModel, Field
-
-from .enums import ProductCategory
 
 
 class ProviderResponse(BaseModel):
@@ -50,6 +47,7 @@ class ProductCreate(BaseModel):
 class ProductResponse(BaseModel):
     id: UUID
     provider_id: UUID
+    provider_name: str  # Denormalized provider name from catalog service
     name: str
     category: str  # Human-readable Spanish format from catalog service
     sku: str
