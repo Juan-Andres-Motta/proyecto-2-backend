@@ -77,7 +77,7 @@ class ProductRepository(ProductRepositoryPort):
 
     async def find_by_sku(self, sku: str) -> Optional[DomainProduct]:
         """Find a product by SKU and return domain entity."""
-        stmt = select(ORMProduct).where(ORMProduct.sku == sku)
+        stmt = select(ORMProduct).options(joinedload(ORMProduct.provider)).where(ORMProduct.sku == sku)
         result = await self.session.execute(stmt)
         orm_product = result.scalars().first()
 
