@@ -41,9 +41,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://develop.medisupply.andres-duque.com",
         "https://bffproyecto.juanandresdeveloper.com"
     ],
+    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)?medisupply\.andres-duque\.com$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
