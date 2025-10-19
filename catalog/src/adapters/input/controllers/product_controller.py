@@ -5,7 +5,7 @@ All exceptions are handled by global exception handlers.
 """
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from src.adapters.input.examples import products_list_response_example
 from src.adapters.input.schemas import (
@@ -17,6 +17,7 @@ from src.adapters.input.schemas import (
 from src.application.use_cases.create_products import CreateProductsUseCase
 from src.application.use_cases.get_product import GetProductUseCase
 from src.application.use_cases.list_products import ListProductsUseCase
+from src.domain.exceptions import ProductNotFoundException
 from src.infrastructure.dependencies import (
     get_create_products_use_case,
     get_get_product_use_case,
@@ -149,12 +150,9 @@ async def get_product(
     # Delegate to use case
     product = await use_case.execute(product_id)
 
-    # Return 404 if not found
+    # Return 404 if not found (raise domain exception that will be handled by exception handler)
     if product is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product not found: {product_id}"
-        )
+        raise ProductNotFoundException(product_id)
 
     # Map domain entity to DTO
     return ProductResponse.model_validate(product, from_attributes=True)

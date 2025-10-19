@@ -1,0 +1,11 @@
+provider_id,name,category,sku,price
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Paracetamol 500mg,medicamentos_especiales,MED-PARA-500,15.99
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Ibuprofeno 400mg,medicamentos_especiales,MED-IBU-400,12.50
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Guantes Quirúrgicos Estériles,insumos_quirurgicos,INS-GUAN-EST,25.00
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Mascarillas N95,insumos_quirurgicos,INS-MASK-N95,8.75
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Kit de Prueba COVID-19,reactivos_diagnosticos,REAC-COVID-19,45.00
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Prueba Rápida de Glucosa,reactivos_diagnosticos,REAC-GLUC-RAP,22.50
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Termómetro Digital,equipos_biomedicos,EQUIP-TERM-DIG,35.00
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Oxímetro de Pulso,equipos_biomedicos,EQUIP-OXI-PUL,65.00
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Alcohol Antiséptico 70%,otros,OTRO-ALC-70,5.50
+6a8610d4-3a83-4bb2-9782-603b6d5064d5,Gasas Estériles 10x10cm,otros,OTRO-GASA-10,3.25

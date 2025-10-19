@@ -242,7 +242,7 @@ async def test_create_products_provider_not_found(db_session):
     response_data = response.json()
 
     # Verify standardized error format
-    assert response_data["error_code"] == "VALIDATION_ERROR"
+    assert response_data["error_code"] == "BATCH_PRODUCT_CREATION_FAILED"
     assert response_data["type"] == "validation_error"
     assert "provider" in response_data["message"].lower()
     assert "not found" in response_data["message"].lower()

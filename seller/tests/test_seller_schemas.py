@@ -20,10 +20,10 @@ def test_seller_create_with_country_normalization(country_input, expected_output
 
     seller = SellerCreate(**data)
 
-    assert seller.name == "john doe"  # Trimmed and lowercased
+    assert seller.name == "John Doe"  # Trimmed and capitalized
     assert seller.email == "john@example.com"
     assert seller.phone == "1234567890"  # Trimmed
-    assert seller.city == "miami"  # Trimmed and lowercased
+    assert seller.city == "Miami"  # Trimmed and capitalized
     assert seller.country == expected_output
 
 

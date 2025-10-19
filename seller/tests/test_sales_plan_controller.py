@@ -49,7 +49,7 @@ async def test_create_sales_plan(db_session):
     data = response.json()
     assert "id" in data
     assert data["sales_period"] == "Q1-2024"
-    assert data["goal"] == "100000.00"
+    assert data["goal"] == 100000.0  # Now returns float instead of string
 
 
 @pytest.mark.asyncio
