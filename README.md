@@ -1,6 +1,6 @@
 # Microservices Project
 
-This project consists of a set of microservices built with FastAPI and Python, orchestrated using Docker Compose. It includes a BFF (Backend for Frontend) service and 6 domain-specific services, each with its own PostgreSQL database.
+This project consists of a set of microservices built with FastAPI and Python, orchestrated using Docker Compose. It includes a BFF (Backend for Frontend) service and 6 domain-specific services, each with its own PostgreSQL database
 
 ## Services
 
