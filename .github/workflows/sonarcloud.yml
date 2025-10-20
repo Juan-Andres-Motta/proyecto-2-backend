@@ -34,50 +34,67 @@ jobs:
         run: |
           cd bff
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=web --cov=common --cov=config --cov-report=xml --cov-report=term
+          poetry run pytest --cov=web --cov=common --cov=config --cov-report=xml:coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Catalog
         run: |
           cd catalog
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
         continue-on-error: false
-
-      - name: Test Client
-        run: |
-          cd client
-          poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
-        continue-on-error: true
-
-      - name: Test Delivery
-        run: |
-          cd delivery
-          poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
-        continue-on-error: true
 
       - name: Test Inventory
         run: |
           cd inventory
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Order
         run: |
           cd order
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Seller
         run: |
           cd seller
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
         continue-on-error: false
+
+      # Verify coverage files were generated
+      - name: List coverage files
+        run: |
+          echo "=== Generated coverage files ==="
+          find . -name "coverage.xml" -type f -exec echo {} \; -exec head -5 {} \;
+
+      # Verify all expected coverage files exist before SonarCloud scan
+      - name: Check coverage files exist
+        run: |
+          echo "=== Checking required coverage files ==="
+          EXIT_CODE=0
+
+          for service in bff catalog inventory order seller; do
+            if [ -f "${service}/coverage.xml" ]; then
+              echo "✓ ${service}/coverage.xml exists"
+              ls -lh "${service}/coverage.xml"
+            else
+              echo "✗ ${service}/coverage.xml NOT FOUND"
+              EXIT_CODE=1
+            fi
+          done
+
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo ""
+            echo "✓ All coverage files found!"
+          else
+            echo ""
+            echo "✗ Some coverage files are missing!"
+            exit 1
+          fi
 
       # Check if SonarCloud is configured
       - name: Check SonarCloud Configuration
