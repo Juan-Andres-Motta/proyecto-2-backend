@@ -15,7 +15,7 @@ async def test_create_provider(async_client):
         "country": "United States",
     }
 
-    response = await async_client.post("/provider", json=provider_data)
+    response = await async_client.post("/catalog/provider", json=provider_data)
 
     assert response.status_code == 201
     data = response.json()
@@ -25,7 +25,7 @@ async def test_create_provider(async_client):
 
 @pytest.mark.asyncio
 async def test_list_providers_empty(async_client):
-    response = await async_client.get("/providers")
+    response = await async_client.get("/catalog/providers")
 
     assert response.status_code == 200
     data = response.json()
@@ -54,7 +54,7 @@ async def test_list_providers_with_data(async_client, db_session):
             }
         )
 
-    response = await async_client.get("/providers?limit=2&offset=2")
+    response = await async_client.get("/catalog/providers?limit=2&offset=2")
 
     assert response.status_code == 200
     data = response.json()

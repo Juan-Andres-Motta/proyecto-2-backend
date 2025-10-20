@@ -12,7 +12,7 @@ async def test_engine():
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         echo=False,
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
     )
 
     # Enable foreign key constraints for SQLite
@@ -55,14 +55,10 @@ async def clear_tables(test_engine):
 
 @pytest_asyncio.fixture
 async def async_client(db_session: AsyncSession):
-    from fastapi import FastAPI
+    from app import app  # Import the full app
     from httpx import ASGITransport, AsyncClient
 
-    from src.adapters.input.controllers.provider_controller import router
     from src.infrastructure.database.config import get_db
-
-    app = FastAPI()
-    app.include_router(router)
 
     # Override the dependency
     async def override_get_db():
