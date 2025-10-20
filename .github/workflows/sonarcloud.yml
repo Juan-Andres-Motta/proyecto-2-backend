@@ -34,49 +34,49 @@ jobs:
         run: |
           cd bff
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=web --cov=common --cov=config --cov-report=xml --cov-report=term
+          poetry run pytest --cov=bff/web --cov=bff/common --cov=bff/config --cov-report=xml:bff/coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Catalog
         run: |
           cd catalog
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=seller/src --cov-report=xml:seller/coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Client
         run: |
           cd client
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
+          poetry run pytest --cov=delivery/src --cov-report=xml:delivery/coverage.xml --cov-report=term || true
         continue-on-error: true
 
       - name: Test Delivery
         run: |
           cd delivery
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term || true
+          poetry run pytest --cov=client/src --cov-report=xml:client/coverage.xml --cov-report=term || true
         continue-on-error: true
 
       - name: Test Inventory
         run: |
           cd inventory
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=catalog/src --cov-report=xml:catalog/coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Order
         run: |
           cd order
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=inventory/src --cov-report=xml:inventory/coverage.xml --cov-report=term
         continue-on-error: false
 
       - name: Test Seller
         run: |
           cd seller
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml --cov-report=term
+          poetry run pytest --cov=order/src --cov-report=xml:order/coverage.xml --cov-report=term
         continue-on-error: false
 
       # Check if SonarCloud is configured
