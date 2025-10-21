@@ -44,7 +44,7 @@ jobs:
         run: |
           cd catalog
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
           # Fix paths in coverage.xml for SonarCloud
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
           sed -i 's|filename="\([^"]*\)"|filename="catalog/\1"|g' coverage.xml
@@ -54,7 +54,7 @@ jobs:
         run: |
           cd client
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term || true
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
           # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
@@ -66,7 +66,7 @@ jobs:
         run: |
           cd delivery
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term || true
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
           # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
@@ -78,7 +78,7 @@ jobs:
         run: |
           cd inventory
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
           # Fix paths in coverage.xml for SonarCloud
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
           sed -i 's|filename="\([^"]*\)"|filename="inventory/\1"|g' coverage.xml
@@ -88,7 +88,7 @@ jobs:
         run: |
           cd order
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
           # Fix paths in coverage.xml for SonarCloud
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
           sed -i 's|filename="\([^"]*\)"|filename="order/\1"|g' coverage.xml
@@ -98,7 +98,7 @@ jobs:
         run: |
           cd seller
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=. --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
           # Fix paths in coverage.xml for SonarCloud
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
           sed -i 's|filename="\([^"]*\)"|filename="seller/\1"|g' coverage.xml

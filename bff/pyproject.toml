@@ -49,8 +49,8 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["web", "common", "client_app", "sellers_app"]
-omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "config/*", "*/config/*"]
+source = ["."]
+omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "config/*", "*/config/*", "tests/*", ".venv/*", "__pycache__/*"]
 relative_files = true
 concurrency = ["thread", "greenlet"]
 branch = true
