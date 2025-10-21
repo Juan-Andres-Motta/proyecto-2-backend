@@ -39,19 +39,5 @@ class Settings(BaseSettings):
     jwt_issuer_url: str = Field(default="")
     jwt_jwks_url: str = Field(default="")
 
-    # Real-time messaging (provider-agnostic)
-    realtime_provider: str = Field(default="noop")  # "ably", "noop", or future providers
-    realtime_environment: str = Field(default="dev")  # Channel prefix: dev, staging, prod
-
-    # Ably configuration (loaded from AWS SSM in production)
-    ably_api_key: str = Field(default="")  # From SSM: /medisupply/prod/ably/api_key
-    ably_environment: str = Field(default="dev")  # dev, staging, prod
-
-    # SQS Event Consumer
-    sqs_queue_url: str = Field(default="")
-    sqs_region: str = Field(default="us-east-1")
-    sqs_max_messages: int = Field(default=10)
-    sqs_wait_time_seconds: int = Field(default=20)
-
 
 settings = Settings()
