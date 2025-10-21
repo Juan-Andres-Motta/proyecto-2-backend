@@ -6,12 +6,13 @@ the catalog microservice (for product data) and inventory microservice.
 """
 
 import logging
-from typing import Optional
+from typing import Dict, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
+from common.auth.dependencies import require_web_user
 from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
 from dependencies import get_catalog_port, get_inventory_port
 

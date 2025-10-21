@@ -31,5 +31,13 @@ class Settings(BaseSettings):
     # Service communication settings
     service_timeout: float = Field(default=10.0)
 
+    # AWS Cognito Authentication
+    aws_cognito_user_pool_id: str = Field(default="")
+    aws_cognito_web_client_id: str = Field(default="")
+    aws_cognito_mobile_client_id: str = Field(default="")
+    aws_cognito_region: str = Field(default="us-east-1")
+    jwt_issuer_url: str = Field(default="")
+    jwt_jwks_url: str = Field(default="")
+
 
 settings = Settings()

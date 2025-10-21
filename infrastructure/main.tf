@@ -23,6 +23,13 @@ locals {
       INVENTORY_URL = "http://inventory.medisupply.local:8000"
       ORDER_URL     = "http://order.medisupply.local:8000"
       SELLER_URL    = "http://seller.medisupply.local:8000"
+      # Cognito Authentication Configuration
+      AWS_COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
+      AWS_COGNITO_WEB_CLIENT_ID    = module.cognito.web_client_id
+      AWS_COGNITO_MOBILE_CLIENT_ID = module.cognito.mobile_client_id
+      AWS_COGNITO_REGION           = var.aws_region
+      JWT_ISSUER_URL               = module.cognito.jwt_issuer_url
+      JWT_JWKS_URL                 = module.cognito.jwks_url
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
@@ -92,6 +99,20 @@ module "iam" {
 
   name_prefix = local.name_prefix
   tags        = local.common_tags
+}
+
+# Cognito Module for Authentication
+module "cognito" {
+  source = "./modules/cognito"
+
+  name_prefix = local.name_prefix
+  tags        = local.common_tags
+
+  # Frontend callback URLs (update with actual URLs when deployed)
+  web_callback_urls    = ["http://localhost:3000/callback", "https://localhost:3000/callback"]
+  web_logout_urls      = ["http://localhost:3000/", "https://localhost:3000/"]
+  mobile_callback_urls = ["medisupply://callback"]
+  mobile_logout_urls   = ["medisupply://logout"]
 }
 
 # CloudWatch Log Groups (one per service)

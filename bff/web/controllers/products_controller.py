@@ -6,9 +6,11 @@ for communication with the catalog microservice.
 """
 
 import logging
+from typing import Dict
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
+from common.auth.dependencies import require_web_user
 from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
 from dependencies import get_catalog_port
 
@@ -27,6 +29,8 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Product created successfully"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         404: {"description": "Provider not found", "model": NotFoundErrorResponse},
         422: {"description": "Invalid product data", "model": ValidationErrorResponse},
     },
@@ -34,6 +38,7 @@ router = APIRouter()
 async def create_product(
     product: ProductCreate,
     catalog: CatalogPort = Depends(get_catalog_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a single product.
@@ -58,6 +63,8 @@ async def create_product(
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Products created successfully from CSV"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         404: {"description": "Provider not found", "model": NotFoundErrorResponse},
         422: {"description": "CSV parsing error or invalid product data", "model": ValidationErrorResponse},
     },
@@ -65,6 +72,7 @@ async def create_product(
 async def create_products_from_csv(
     file: UploadFile = File(...),
     catalog: CatalogPort = Depends(get_catalog_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create multiple products from a CSV file.
@@ -96,6 +104,8 @@ async def create_products_from_csv(
     response_model=PaginatedProductsResponse,
     responses={
         200: {"description": "List of products from catalog microservice"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         422: {"description": "Invalid query parameters", "model": ValidationErrorResponse},
     },
 )
@@ -103,6 +113,7 @@ async def get_products(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     catalog: CatalogPort = Depends(get_catalog_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Retrieve products from the catalog microservice.

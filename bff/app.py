@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from common.auth.controller import router as auth_router
 from common.middleware import setup_exception_handlers
 from config.settings import settings
 from web.router import router as web_router
@@ -51,6 +52,7 @@ app.add_middleware(
 
 logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
+app.include_router(auth_router)
 app.include_router(web_router)
 app.include_router(client_app_router)
 app.include_router(sellers_app_router)

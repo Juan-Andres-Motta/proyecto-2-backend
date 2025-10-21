@@ -101,3 +101,43 @@ output "rds_connection_strings" {
   }
 }
 
+# Cognito Authentication Outputs
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = module.cognito.user_pool_id
+}
+
+output "cognito_web_client_id" {
+  description = "Web application client ID"
+  value       = module.cognito.web_client_id
+}
+
+output "cognito_mobile_client_id" {
+  description = "Mobile application client ID"
+  value       = module.cognito.mobile_client_id
+}
+
+output "cognito_user_pool_domain" {
+  description = "Cognito User Pool domain"
+  value       = module.cognito.user_pool_domain
+}
+
+output "cognito_jwt_issuer_url" {
+  description = "JWT issuer URL for token validation"
+  value       = module.cognito.jwt_issuer_url
+}
+
+output "cognito_jwks_url" {
+  description = "JWKS URL for JWT signature verification"
+  value       = module.cognito.jwks_url
+}
+
+output "cognito_user_groups" {
+  description = "Configured Cognito user groups"
+  value = {
+    web_users    = module.cognito.web_users_group_name
+    seller_users = module.cognito.seller_users_group_name
+    client_users = module.cognito.client_users_group_name
+  }
+}
+

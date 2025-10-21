@@ -34,10 +34,10 @@ jobs:
         run: |
           cd bff
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=web --cov=common --cov=config --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud (prepend bff/)
-          sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/bff</source>|g' coverage.xml
-          sed -i 's|filename="|filename="bff/|g' coverage.xml
+          poetry run pytest --cov --cov-report=xml:coverage.xml --cov-report=term
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="bff/\1"|g' coverage.xml
         continue-on-error: false
 
       - name: Test Catalog
@@ -45,9 +45,9 @@ jobs:
           cd catalog
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud (prepend catalog/)
-          sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/catalog</source>|g' coverage.xml
-          sed -i 's|filename="|filename="catalog/|g' coverage.xml
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="catalog/\1"|g' coverage.xml
         continue-on-error: false
 
       - name: Test Client
@@ -55,10 +55,10 @@ jobs:
           cd client
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
-          # Fix paths in coverage.xml for SonarCloud (prepend client/)
+          # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
-            sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/client</source>|g' coverage.xml
-            sed -i 's|filename="|filename="client/|g' coverage.xml
+            sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+            sed -i 's|filename="\([^"]*\)"|filename="client/\1"|g' coverage.xml
           fi
         continue-on-error: true
 
@@ -67,10 +67,10 @@ jobs:
           cd delivery
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
-          # Fix paths in coverage.xml for SonarCloud (prepend delivery/)
+          # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
-            sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/delivery</source>|g' coverage.xml
-            sed -i 's|filename="|filename="delivery/|g' coverage.xml
+            sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+            sed -i 's|filename="\([^"]*\)"|filename="delivery/\1"|g' coverage.xml
           fi
         continue-on-error: true
 
@@ -79,9 +79,9 @@ jobs:
           cd inventory
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud (prepend inventory/)
-          sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/inventory</source>|g' coverage.xml
-          sed -i 's|filename="|filename="inventory/|g' coverage.xml
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="inventory/\1"|g' coverage.xml
         continue-on-error: false
 
       - name: Test Order
@@ -89,9 +89,9 @@ jobs:
           cd order
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud (prepend order/)
-          sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/order</source>|g' coverage.xml
-          sed -i 's|filename="|filename="order/|g' coverage.xml
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="order/\1"|g' coverage.xml
         continue-on-error: false
 
       - name: Test Seller
@@ -99,16 +99,28 @@ jobs:
           cd seller
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud (prepend seller/)
-          sed -i 's|<source>.*</source>|<source>/home/runner/work/proyecto-2-backend/proyecto-2-backend/seller</source>|g' coverage.xml
-          sed -i 's|filename="|filename="seller/|g' coverage.xml
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="seller/\1"|g' coverage.xml
         continue-on-error: false
 
       # Verify coverage files were generated
       - name: List coverage files
         run: |
           echo "=== Generated coverage files ==="
-          find . -name "coverage.xml" -type f -exec echo {} \; -exec head -5 {} \;
+          find . -name "coverage.xml" -type f -exec echo {} \; -exec head -10 {} \;
+
+      # Show actual paths in coverage files for debugging
+      - name: Debug coverage file paths
+        run: |
+          echo "=== Checking file paths in coverage files ==="
+          for service in bff catalog inventory order seller client delivery; do
+            if [ -f "${service}/coverage.xml" ]; then
+              echo ""
+              echo "📄 ${service}/coverage.xml file paths:"
+              grep -o 'filename="[^"]*"' "${service}/coverage.xml" | head -5 || echo "No filename attributes found"
+            fi
+          done
 
       # Verify all expected coverage files exist before SonarCloud scan
       - name: Check coverage files exist
