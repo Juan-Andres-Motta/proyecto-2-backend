@@ -6,9 +6,11 @@ Orders created through this endpoint automatically have metodo_creacion='app_cli
 """
 
 import logging
+from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from common.auth.dependencies import require_client_user
 from client_app.ports import OrderPort
 from client_app.schemas import OrderCreateInput, OrderCreateResponse
 from common.exceptions import (
@@ -23,10 +25,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/orders", response_model=OrderCreateResponse, status_code=201)
+@router.post(
+    "/orders",
+    response_model=OrderCreateResponse,
+    status_code=201,
+    responses={
+        201: {"description": "Order created successfully via client app"},
+        400: {"description": "Invalid order data"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires client_users group"},
+        503: {"description": "Order service unavailable"},
+    },
+)
 async def create_order(
     order_input: OrderCreateInput,
     order_port: OrderPort = Depends(get_client_order_port),
+    user: Dict = Depends(require_client_user),
 ):
     """
     Create a new order via client app.

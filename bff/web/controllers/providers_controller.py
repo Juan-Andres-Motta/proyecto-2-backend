@@ -6,9 +6,11 @@ for communication with the catalog microservice.
 """
 
 import logging
+from typing import Dict
 
 from fastapi import APIRouter, Depends, Query, status
 
+from common.auth.dependencies import require_web_user
 from dependencies import get_catalog_port
 
 from ..ports import CatalogPort
@@ -26,12 +28,15 @@ router = APIRouter()
     responses={
         201: {"description": "Provider created successfully"},
         400: {"description": "Invalid provider data"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         500: {"description": "Error communicating with catalog microservice"},
     },
 )
 async def create_provider(
     provider: ProviderCreate,
     catalog: CatalogPort = Depends(get_catalog_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a new provider in the catalog microservice.
@@ -52,6 +57,8 @@ async def create_provider(
     response_model=PaginatedProvidersResponse,
     responses={
         200: {"description": "List of providers from catalog microservice"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         500: {"description": "Error communicating with catalog microservice"},
     },
 )
@@ -59,6 +66,7 @@ async def get_providers(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     catalog: CatalogPort = Depends(get_catalog_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Retrieve providers from the catalog microservice.

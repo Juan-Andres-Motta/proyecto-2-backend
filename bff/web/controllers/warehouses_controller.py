@@ -6,9 +6,11 @@ for communication with the inventory microservice.
 """
 
 import logging
+from typing import Dict
 
 from fastapi import APIRouter, Depends, Query, status
 
+from common.auth.dependencies import require_web_user
 from dependencies import get_inventory_port
 
 from ..ports import InventoryPort
@@ -26,12 +28,15 @@ router = APIRouter()
     responses={
         201: {"description": "Warehouse created successfully"},
         400: {"description": "Invalid warehouse data"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         500: {"description": "Error communicating with inventory microservice"},
     },
 )
 async def create_warehouse(
     warehouse: WarehouseCreate,
     inventory: InventoryPort = Depends(get_inventory_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a new warehouse in the inventory microservice.
@@ -52,6 +57,8 @@ async def create_warehouse(
     response_model=PaginatedWarehousesResponse,
     responses={
         200: {"description": "List of warehouses from inventory microservice"},
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Requires web_users group"},
         500: {"description": "Error communicating with inventory microservice"},
     },
 )
@@ -59,6 +66,7 @@ async def get_warehouses(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     inventory: InventoryPort = Depends(get_inventory_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Retrieve warehouses from the inventory microservice.
