@@ -14,6 +14,7 @@ from config.settings import settings
 from web.ports.catalog_port import CatalogPort
 from web.ports.inventory_port import InventoryPort
 from web.ports.seller_port import SellerPort
+from common.realtime import RealtimePublisher, get_publisher
 
 
 # HTTP Client Factories
@@ -160,6 +161,11 @@ def get_seller_order_port():
 
     client = get_order_http_client()
     return SellerOrderAdapter(client)
+
+
+def get_realtime_publisher() -> RealtimePublisher:
+    """Factory for RealtimePublisher implementation."""
+    return get_publisher()
 
 
 # Cleanup function for testing
