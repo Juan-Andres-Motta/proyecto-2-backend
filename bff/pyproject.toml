@@ -52,7 +52,14 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["."]
-omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "config/*", "*/config/*", "tests/*", ".venv/*", "__pycache__/*"]
+omit = [
+  "*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py",
+  "*/infrastructure/config/*", "config/*", "*/config/*", "tests/*",
+  ".venv/*", "__pycache__/*",
+  "app.py", "main.py",  # Entry points - hard to unit test
+  "*/router.py",  # Router registration - just imports
+  "dependencies.py",  # Dependency injection - integration concern
+]
 relative_files = true
 concurrency = ["thread", "greenlet"]
 branch = true
