@@ -6,9 +6,11 @@ for communication with the seller microservice.
 """
 
 import logging
+from typing import Dict
 
 from fastapi import APIRouter, Depends, Query, status
 
+from common.auth.dependencies import require_web_user
 from dependencies import get_seller_port
 
 from ..ports import SellerPort
@@ -29,6 +31,7 @@ router = APIRouter(prefix="/sales-plans")
 async def create_sales_plan(
     sales_plan: SalesPlanCreate,
     seller_port: SellerPort = Depends(get_seller_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a new sales plan.
@@ -49,6 +52,7 @@ async def get_sales_plans(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     seller_port: SellerPort = Depends(get_seller_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Get sales plans with pagination.

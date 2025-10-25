@@ -6,11 +6,12 @@ for communication with the seller microservice.
 """
 
 import logging
-from typing import List, Union
+from typing import Dict, List, Union
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
+from common.auth.dependencies import require_web_user
 from dependencies import get_seller_port
 
 from ..ports import SellerPort
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/sellers")
 async def create_seller(
     seller: SellerCreate,
     seller_port: SellerPort = Depends(get_seller_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a new seller.
@@ -51,6 +53,7 @@ async def get_sellers(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     seller_port: SellerPort = Depends(get_seller_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Get sellers with pagination.
@@ -73,6 +76,7 @@ async def get_seller_sales_plans(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     seller_port: SellerPort = Depends(get_seller_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Get sales plans for a specific seller with pagination.

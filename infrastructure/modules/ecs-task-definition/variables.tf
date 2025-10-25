@@ -41,6 +41,12 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "secrets" {
+  description = "Secrets from AWS Systems Manager Parameter Store (key = env var name, value = SSM parameter ARN)"
+  type        = map(string)
+  default     = {}
+}
+
 variable "log_group_name" {
   description = "Name of the CloudWatch log group"
   type        = string

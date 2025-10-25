@@ -1,3 +1,6 @@
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
 # Retrieve DB password from AWS Secrets Manager
 data "aws_secretsmanager_secret" "db_password" {
   name = "medisupply-db-password"
@@ -14,6 +17,20 @@ locals {
     ManagedBy = "terraform"
   }
 
+  # Service-specific secrets from AWS Systems Manager Parameter Store
+  service_secrets = {
+    bff = {
+      ABLY_API_KEY = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/medisupply/prod/ably/api_key"
+    }
+    # Other services don't need secrets yet
+    catalog   = {}
+    client    = {}
+    delivery  = {}
+    inventory = {}
+    order     = {}
+    seller    = {}
+  }
+
   # Service-specific environment variables
   service_env_vars = {
     bff = {
@@ -23,6 +40,16 @@ locals {
       INVENTORY_URL = "http://inventory.medisupply.local:8000"
       ORDER_URL     = "http://order.medisupply.local:8000"
       SELLER_URL    = "http://seller.medisupply.local:8000"
+      # Cognito Authentication Configuration
+      AWS_COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
+      AWS_COGNITO_WEB_CLIENT_ID    = module.cognito.web_client_id
+      AWS_COGNITO_MOBILE_CLIENT_ID = module.cognito.mobile_client_id
+      AWS_COGNITO_REGION           = var.aws_region
+      JWT_ISSUER_URL               = module.cognito.jwt_issuer_url
+      JWT_JWKS_URL                 = module.cognito.jwks_url
+      # Real-time messaging configuration
+      REALTIME_PROVIDER   = "ably"
+      ABLY_ENVIRONMENT    = "prod"
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
@@ -94,6 +121,20 @@ module "iam" {
   tags        = local.common_tags
 }
 
+# Cognito Module for Authentication
+module "cognito" {
+  source = "./modules/cognito"
+
+  name_prefix = local.name_prefix
+  tags        = local.common_tags
+
+  # Frontend callback URLs (update with actual URLs when deployed)
+  web_callback_urls    = ["http://localhost:3000/callback", "https://localhost:3000/callback"]
+  web_logout_urls      = ["http://localhost:3000/", "https://localhost:3000/"]
+  mobile_callback_urls = ["medisupply://callback"]
+  mobile_logout_urls   = ["medisupply://logout"]
+}
+
 # CloudWatch Log Groups (one per service)
 module "cloudwatch" {
   source   = "./modules/cloudwatch"
@@ -143,19 +184,20 @@ module "ecs_task_definition" {
   source   = "./modules/ecs-task-definition"
   for_each = toset(var.services)
 
-  name_prefix          = local.name_prefix
-  service_name         = each.value
-  image_uri            = "${module.ecr[each.value].repository_url}:latest"
-  cpu                  = "256"  # 0.25 vCPU
-  memory               = "512"  # 0.5 GB
-  execution_role_arn   = module.iam.ecs_task_execution_role_arn
-  task_role_arn        = module.iam.ecs_task_role_arn
+  name_prefix           = local.name_prefix
+  service_name          = each.value
+  image_uri             = "${module.ecr[each.value].repository_url}:latest"
+  cpu                   = "256"  # 0.25 vCPU
+  memory                = "512"  # 0.5 GB
+  execution_role_arn    = module.iam.ecs_task_execution_role_arn
+  task_role_arn         = module.iam.ecs_task_role_arn
   environment_variables = local.service_env_vars[each.value]
-  log_group_name       = module.cloudwatch[each.value].log_group_name
-  aws_region           = var.aws_region
-  container_port       = local.service_container_ports[each.value]
-  health_check_path    = local.service_health_check_paths[each.value]
-  tags                 = local.common_tags
+  secrets               = local.service_secrets[each.value]
+  log_group_name        = module.cloudwatch[each.value].log_group_name
+  aws_region            = var.aws_region
+  container_port        = local.service_container_ports[each.value]
+  health_check_path     = local.service_health_check_paths[each.value]
+  tags                  = local.common_tags
 }
 
 # ECS Services (one per service)
