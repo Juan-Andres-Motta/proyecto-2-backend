@@ -1,3 +1,6 @@
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
 # Retrieve DB password from AWS Secrets Manager
 data "aws_secretsmanager_secret" "db_password" {
   name = "medisupply-db-password"
@@ -12,6 +15,20 @@ locals {
   db_password     = data.aws_secretsmanager_secret_version.db_password.secret_string
   common_tags = {
     ManagedBy = "terraform"
+  }
+
+  # Service-specific secrets from AWS Systems Manager Parameter Store
+  service_secrets = {
+    bff = {
+      ABLY_API_KEY = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/medisupply/prod/ably/api_key"
+    }
+    # Other services don't need secrets yet
+    catalog   = {}
+    client    = {}
+    delivery  = {}
+    inventory = {}
+    order     = {}
+    seller    = {}
   }
 
   # Service-specific environment variables
@@ -30,6 +47,9 @@ locals {
       AWS_COGNITO_REGION           = var.aws_region
       JWT_ISSUER_URL               = module.cognito.jwt_issuer_url
       JWT_JWKS_URL                 = module.cognito.jwks_url
+      # Real-time messaging configuration
+      REALTIME_PROVIDER   = "ably"
+      ABLY_ENVIRONMENT    = "prod"
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
@@ -164,19 +184,20 @@ module "ecs_task_definition" {
   source   = "./modules/ecs-task-definition"
   for_each = toset(var.services)
 
-  name_prefix          = local.name_prefix
-  service_name         = each.value
-  image_uri            = "${module.ecr[each.value].repository_url}:latest"
-  cpu                  = "256"  # 0.25 vCPU
-  memory               = "512"  # 0.5 GB
-  execution_role_arn   = module.iam.ecs_task_execution_role_arn
-  task_role_arn        = module.iam.ecs_task_role_arn
+  name_prefix           = local.name_prefix
+  service_name          = each.value
+  image_uri             = "${module.ecr[each.value].repository_url}:latest"
+  cpu                   = "256"  # 0.25 vCPU
+  memory                = "512"  # 0.5 GB
+  execution_role_arn    = module.iam.ecs_task_execution_role_arn
+  task_role_arn         = module.iam.ecs_task_role_arn
   environment_variables = local.service_env_vars[each.value]
-  log_group_name       = module.cloudwatch[each.value].log_group_name
-  aws_region           = var.aws_region
-  container_port       = local.service_container_ports[each.value]
-  health_check_path    = local.service_health_check_paths[each.value]
-  tags                 = local.common_tags
+  secrets               = local.service_secrets[each.value]
+  log_group_name        = module.cloudwatch[each.value].log_group_name
+  aws_region            = var.aws_region
+  container_port        = local.service_container_ports[each.value]
+  health_check_path     = local.service_health_check_paths[each.value]
+  tags                  = local.common_tags
 }
 
 # ECS Services (one per service)
