@@ -452,3 +452,71 @@ class TestOrderRepositoryFindAll:
         assert total == 100
         assert len(orders) == 1
         assert mock_session.execute.call_count == 2
+
+
+class TestOrderRepositoryFindByCustomer:
+    """Test find_by_customer method."""
+
+    @pytest.mark.asyncio
+    async def test_finds_orders_by_customer_with_pagination(
+        self, order_repository, sample_order_model, mock_session
+    ):
+        """Test that find_by_customer returns paginated orders for a specific customer (covers lines 181-198)."""
+        customer_id = uuid.uuid4()
+
+        # Mock count query
+        mock_count_result = AsyncMock()
+        mock_count_result.scalar = Mock(return_value=3)
+
+        # Mock data query
+        mock_data_result = AsyncMock()
+        mock_scalars = Mock()
+        mock_scalars.all = Mock(return_value=[sample_order_model])
+        mock_data_result.scalars = Mock(return_value=mock_scalars)
+
+        # Configure session.execute to return different results for count and data queries
+        mock_session.execute = AsyncMock(
+            side_effect=[mock_count_result, mock_data_result]
+        )
+
+        # Call find_by_customer
+        orders, total = await order_repository.find_by_customer(
+            customer_id=customer_id, limit=10, offset=0
+        )
+
+        # Verify results
+        assert len(orders) == 1
+        assert isinstance(orders[0], OrderEntity)
+        assert total == 3
+        assert mock_session.execute.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_find_by_customer_handles_empty_result(
+        self, order_repository, mock_session
+    ):
+        """Test that find_by_customer handles empty result correctly."""
+        customer_id = uuid.uuid4()
+
+        # Mock count query
+        mock_count_result = AsyncMock()
+        mock_count_result.scalar = Mock(return_value=0)
+
+        # Mock data query
+        mock_data_result = AsyncMock()
+        mock_scalars = Mock()
+        mock_scalars.all = Mock(return_value=[])
+        mock_data_result.scalars = Mock(return_value=mock_scalars)
+
+        mock_session.execute = AsyncMock(
+            side_effect=[mock_count_result, mock_data_result]
+        )
+
+        # Call find_by_customer
+        orders, total = await order_repository.find_by_customer(
+            customer_id=customer_id, limit=10, offset=0
+        )
+
+        # Verify results
+        assert len(orders) == 0
+        assert total == 0
+        assert mock_session.execute.call_count == 2

@@ -544,3 +544,112 @@ async def test_list_customer_orders_with_pagination():
         assert data["size"] == 1
         assert data["has_next"] is True
         assert data["has_previous"] is True
+
+
+@pytest.mark.asyncio
+async def test_create_order_unexpected_exception():
+    """Test create order with unexpected exception (covers lines 178-180)."""
+    app = FastAPI()
+    app.include_router(router)
+
+    order_data = {
+        "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+        "metodo_creacion": "app_cliente",
+        "items": [
+            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 10}
+        ],
+    }
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.CreateOrderUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        # Simulate unexpected error (not ValueError)
+        mock_use_case.execute = AsyncMock(
+            side_effect=Exception("Database connection error")
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post("/order", json=order_data)
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal server error" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_orders_unexpected_exception():
+    """Test list orders with unexpected exception (covers lines 230-232)."""
+    app = FastAPI()
+    app.include_router(router)
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.ListOrdersUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(
+            side_effect=Exception("Database query error")
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get("/orders")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal server error" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_get_order_unexpected_exception():
+    """Test get order with unexpected exception (covers lines 272-274)."""
+    app = FastAPI()
+    app.include_router(router)
+
+    order_id = uuid.uuid4()
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.GetOrderByIdUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(
+            side_effect=Exception("Database error")
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(f"/orders/{order_id}")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal server error" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_customer_orders_unexpected_exception():
+    """Test list customer orders with unexpected exception (covers lines 327-329)."""
+    app = FastAPI()
+    app.include_router(router)
+
+    customer_id = uuid.uuid4()
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.ListCustomerOrdersUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(
+            side_effect=Exception("Database error")
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(f"/customers/{customer_id}/orders")
+
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal server error" in data["detail"]

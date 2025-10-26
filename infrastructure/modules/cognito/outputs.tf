@@ -13,11 +13,6 @@ output "user_pool_endpoint" {
   value       = aws_cognito_user_pool.main.endpoint
 }
 
-output "user_pool_domain" {
-  description = "The domain of the Cognito User Pool"
-  value       = aws_cognito_user_pool_domain.main.domain
-}
-
 output "web_client_id" {
   description = "The ID of the web application client"
   value       = aws_cognito_user_pool_client.web_app.id
@@ -26,11 +21,6 @@ output "web_client_id" {
 output "mobile_client_id" {
   description = "The ID of the mobile application client"
   value       = aws_cognito_user_pool_client.mobile_app.id
-}
-
-output "identity_pool_id" {
-  description = "The ID of the Cognito Identity Pool"
-  value       = aws_cognito_identity_pool.main.id
 }
 
 output "web_users_group_name" {
