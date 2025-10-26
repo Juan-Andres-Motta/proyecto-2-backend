@@ -64,3 +64,23 @@ class OrderRepository(ABC):
             RepositoryError: If query fails
         """
         pass
+
+    @abstractmethod
+    async def find_by_customer(
+        self, customer_id: UUID, limit: int = 10, offset: int = 0
+    ) -> Tuple[List[Order], int]:
+        """
+        Find all orders for a specific customer with pagination.
+
+        Args:
+            customer_id: The customer UUID
+            limit: Maximum number of orders to return
+            offset: Number of orders to skip
+
+        Returns:
+            Tuple of (list of orders, total count)
+
+        Raises:
+            RepositoryError: If query fails
+        """
+        pass
