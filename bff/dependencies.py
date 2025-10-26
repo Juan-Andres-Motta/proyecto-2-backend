@@ -241,6 +241,20 @@ def get_order_reports_adapter():
     return ClientAdapter(client)
 
 
+def get_seller_client_port():
+    """
+    Factory for Sellers App ClientPort implementation.
+
+    Returns:
+        ClientPort implementation for sellers app (ClientAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from sellers_app.adapters.client_adapter import ClientAdapter
+
+    client = get_client_http_client()
+    return ClientAdapter(client)
+
+
 def get_realtime_publisher() -> RealtimePublisher:
     """Factory for RealtimePublisher implementation."""
     return get_publisher()
