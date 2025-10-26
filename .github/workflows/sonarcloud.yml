@@ -93,9 +93,9 @@ jobs:
           cd order
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud - add order/src/ prefix
-          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-          sed -i 's|filename="|filename="order/src/|g' coverage.xml
+          # Fix paths in coverage.xml for SonarCloud
+          sed -i 's|<source>.*</source>|<source>/github/workspace</source>|g' coverage.xml
+          sed -i 's|filename="src/|filename="order/src/|g' coverage.xml
         continue-on-error: false
 
       - name: Test Seller
