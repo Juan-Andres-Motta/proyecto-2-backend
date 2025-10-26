@@ -7,12 +7,14 @@ with the Order microservice.
 
 import logging
 from typing import List
+from uuid import UUID
 
 from client_app.ports.order_port import OrderPort
 from client_app.schemas.order_schemas import (
     OrderCreateInput,
     OrderCreateResponse,
     OrderItemInput,
+    PaginatedOrdersResponse,
 )
 from web.adapters.http_client import HttpClient
 
@@ -72,3 +74,31 @@ class OrderAdapter(OrderPort):
         return OrderCreateResponse(
             id=response_data["id"], message=response_data.get("message", "Order created successfully")
         )
+
+    async def list_customer_orders(
+        self, customer_id: UUID, limit: int = 10, offset: int = 0
+    ) -> PaginatedOrdersResponse:
+        """
+        List orders for a specific customer.
+
+        Args:
+            customer_id: Customer UUID
+            limit: Maximum number of orders to return
+            offset: Number of orders to skip
+
+        Returns:
+            PaginatedOrdersResponse with customer's orders
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect to order service
+            MicroserviceHTTPError: If order service returns an error
+        """
+        logger.info(f"Listing orders for customer {customer_id} (limit={limit}, offset={offset})")
+
+        params = {"limit": limit, "offset": offset}
+
+        response_data = await self.client.get(
+            f"/order/customers/{customer_id}/orders", params=params
+        )
+
+        return PaginatedOrdersResponse(**response_data)

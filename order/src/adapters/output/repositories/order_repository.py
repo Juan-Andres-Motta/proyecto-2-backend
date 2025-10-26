@@ -157,6 +157,46 @@ class OrderRepository(OrderRepositoryPort):
 
         return orders, total
 
+    async def find_by_customer(
+        self, customer_id: UUID, limit: int = 10, offset: int = 0
+    ) -> Tuple[List[OrderEntity], int]:
+        """
+        Find all orders for a specific customer with pagination.
+
+        Args:
+            customer_id: Customer UUID
+            limit: Maximum number of orders
+            offset: Number of orders to skip
+
+        Returns:
+            Tuple of (list of order entities, total count)
+        """
+        logger.debug(f"Finding orders for customer {customer_id}")
+
+        # Get total count for this customer
+        count_stmt = select(func.count()).select_from(OrderModel).where(
+            OrderModel.customer_id == customer_id
+        )
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar()
+
+        # Get paginated data with items loaded
+        stmt = (
+            select(OrderModel)
+            .options(selectinload(OrderModel.items))
+            .where(OrderModel.customer_id == customer_id)
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(stmt)
+        order_models = result.scalars().all()
+
+        # Convert to domain entities
+        orders = [self._to_entity(model) for model in order_models]
+
+        logger.debug(f"Found {len(orders)} orders for customer {customer_id} (total: {total})")
+        return orders, total
+
     def _to_entity(self, model: OrderModel) -> OrderEntity:
         """
         Convert ORM model to domain entity.

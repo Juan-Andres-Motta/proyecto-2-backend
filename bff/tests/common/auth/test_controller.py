@@ -35,96 +35,221 @@ class TestLoginEndpoint:
     """Tests for POST /auth/login endpoint."""
 
     @pytest.mark.asyncio
-    async def test_login_endpoint_success(self, mock_cognito_service):
-        """Test successful login returns tokens."""
-        request = LoginRequest(email="user@test.com", password="Password123")
-
-        mock_cognito_service.login = AsyncMock(
-            return_value={
-                "access_token": "test-access-token",
-                "id_token": "test-id-token",
-                "refresh_token": "test-refresh-token",
-                "expires_in": 3600,
-            }
+    async def test_login_endpoint_success_web_user(self):
+        """Test successful login for web user with web client_type."""
+        request = LoginRequest(
+            email="web@test.com", password="Password123", client_type="web"
         )
 
-        result = await login(request, mock_cognito_service)
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class, \
+             patch("common.auth.jwt_validator.get_jwt_validator") as mock_validator:
 
-        assert result.access_token == "test-access-token"
-        assert result.id_token == "test-id-token"
-        assert result.refresh_token == "test-refresh-token"
-        assert result.token_type == "Bearer"
-        assert result.expires_in == 3600
-        mock_cognito_service.login.assert_called_once_with("user@test.com", "Password123")
+            # Mock Cognito service
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                return_value={
+                    "access_token": "test-access-token",
+                    "id_token": "test-id-token",
+                    "refresh_token": "test-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+            mock_cognito_class.return_value = mock_cognito_instance
+
+            # Mock JWT validator
+            mock_validator_instance = Mock()
+            mock_validator_instance.validate_token = AsyncMock(
+                return_value={"cognito:groups": ["web_users"], "email": "web@test.com"}
+            )
+            mock_validator.return_value = mock_validator_instance
+
+            result = await login(request)
+
+            assert result.access_token == "test-access-token"
+            assert result.id_token == "test-id-token"
+            assert result.refresh_token == "test-refresh-token"
+            assert result.token_type == "Bearer"
+            assert result.expires_in == 3600
+            assert result.user_groups == ["web_users"]
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_success_mobile_user(self):
+        """Test successful login for seller user with mobile client_type."""
+        request = LoginRequest(
+            email="seller@test.com", password="Password123", client_type="mobile"
+        )
+
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class, \
+             patch("common.auth.jwt_validator.get_jwt_validator") as mock_validator:
+
+            # Mock Cognito service
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                return_value={
+                    "access_token": "test-access-token",
+                    "id_token": "test-id-token",
+                    "refresh_token": "test-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+            mock_cognito_class.return_value = mock_cognito_instance
+
+            # Mock JWT validator
+            mock_validator_instance = Mock()
+            mock_validator_instance.validate_token = AsyncMock(
+                return_value={"cognito:groups": ["seller_users"], "email": "seller@test.com"}
+            )
+            mock_validator.return_value = mock_validator_instance
+
+            result = await login(request)
+
+            assert result.access_token == "test-access-token"
+            assert result.user_groups == ["seller_users"]
 
     @pytest.mark.asyncio
     async def test_login_endpoint_invalid_email_format(self):
         """Test login with malformed email returns 422."""
         with pytest.raises(Exception):  # Pydantic validation error
-            LoginRequest(email="invalid-email", password="Password123")
+            LoginRequest(email="invalid-email", password="Password123", client_type="web")
 
     @pytest.mark.asyncio
     async def test_login_endpoint_missing_password(self):
         """Test login without password returns 422."""
         with pytest.raises(Exception):  # Pydantic validation error
-            LoginRequest(email="user@test.com", password=None)
+            LoginRequest(email="user@test.com", password=None, client_type="web")
 
     @pytest.mark.asyncio
-    async def test_login_endpoint_short_password(self):
-        """Test login with password < 8 chars returns 422."""
-        with pytest.raises(Exception):  # Pydantic validation error
-            LoginRequest(email="user@test.com", password="short")
+    async def test_login_endpoint_invalid_client_type(self):
+        """Test login with invalid client_type returns 400."""
+        request = LoginRequest(email="user@test.com", password="Password123", client_type="invalid")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await login(request)
+
+        assert exc_info.value.status_code == 400
+        assert "client_type" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
-    async def test_login_endpoint_unauthorized(self, mock_cognito_service):
+    async def test_login_endpoint_web_user_tries_mobile(self):
+        """Test web user trying to login with mobile client_type returns 403."""
+        request = LoginRequest(email="web@test.com", password="Password123", client_type="mobile")
+
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class, \
+             patch("common.auth.jwt_validator.get_jwt_validator") as mock_validator:
+
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                return_value={
+                    "access_token": "test-access-token",
+                    "id_token": "test-id-token",
+                    "refresh_token": "test-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+            mock_cognito_class.return_value = mock_cognito_instance
+
+            mock_validator_instance = Mock()
+            mock_validator_instance.validate_token = AsyncMock(
+                return_value={"cognito:groups": ["web_users"], "email": "web@test.com"}
+            )
+            mock_validator.return_value = mock_validator_instance
+
+            with pytest.raises(HTTPException) as exc_info:
+                await login(request)
+
+            assert exc_info.value.status_code == 403
+            assert "web users must use web" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_seller_user_tries_web(self):
+        """Test seller user trying to login with web client_type returns 403."""
+        request = LoginRequest(email="seller@test.com", password="Password123", client_type="web")
+
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class, \
+             patch("common.auth.jwt_validator.get_jwt_validator") as mock_validator:
+
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                return_value={
+                    "access_token": "test-access-token",
+                    "id_token": "test-id-token",
+                    "refresh_token": "test-refresh-token",
+                    "expires_in": 3600,
+                }
+            )
+            mock_cognito_class.return_value = mock_cognito_instance
+
+            mock_validator_instance = Mock()
+            mock_validator_instance.validate_token = AsyncMock(
+                return_value={"cognito:groups": ["seller_users"], "email": "seller@test.com"}
+            )
+            mock_validator.return_value = mock_validator_instance
+
+            with pytest.raises(HTTPException) as exc_info:
+                await login(request)
+
+            assert exc_info.value.status_code == 403
+            assert "seller and client users must use mobile" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_unauthorized(self):
         """Test login with wrong credentials returns 401."""
-        request = LoginRequest(email="user@test.com", password="WrongPassword")
+        request = LoginRequest(email="user@test.com", password="WrongPassword", client_type="web")
 
-        mock_cognito_service.login = AsyncMock(
-            side_effect=HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class:
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                side_effect=HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password",
+                )
             )
-        )
+            mock_cognito_class.return_value = mock_cognito_instance
 
-        with pytest.raises(HTTPException) as exc_info:
-            await login(request, mock_cognito_service)
+            with pytest.raises(HTTPException) as exc_info:
+                await login(request)
 
-        assert exc_info.value.status_code == 401
+            assert exc_info.value.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_login_endpoint_unverified_user(self, mock_cognito_service):
+    async def test_login_endpoint_unverified_user(self):
         """Test login with unverified email returns 403."""
-        request = LoginRequest(email="unverified@test.com", password="Password123")
+        request = LoginRequest(email="unverified@test.com", password="Password123", client_type="web")
 
-        mock_cognito_service.login = AsyncMock(
-            side_effect=HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User email not verified",
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class:
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                side_effect=HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User email not verified",
+                )
             )
-        )
+            mock_cognito_class.return_value = mock_cognito_instance
 
-        with pytest.raises(HTTPException) as exc_info:
-            await login(request, mock_cognito_service)
+            with pytest.raises(HTTPException) as exc_info:
+                await login(request)
 
-        assert exc_info.value.status_code == 403
+            assert exc_info.value.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_login_endpoint_service_unavailable(self, mock_cognito_service):
+    async def test_login_endpoint_service_unavailable(self):
         """Test login when Cognito is down returns 503."""
-        request = LoginRequest(email="user@test.com", password="Password123")
+        request = LoginRequest(email="user@test.com", password="Password123", client_type="web")
 
-        mock_cognito_service.login = AsyncMock(
-            side_effect=HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Authentication service temporarily unavailable",
+        with patch("common.auth.controller.CognitoService") as mock_cognito_class:
+            mock_cognito_instance = Mock()
+            mock_cognito_instance.login = AsyncMock(
+                side_effect=HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Authentication service temporarily unavailable",
+                )
             )
-        )
+            mock_cognito_class.return_value = mock_cognito_instance
 
-        with pytest.raises(HTTPException) as exc_info:
-            await login(request, mock_cognito_service)
+            with pytest.raises(HTTPException) as exc_info:
+                await login(request)
 
-        assert exc_info.value.status_code == 503
+            assert exc_info.value.status_code == 503
 
 
 class TestRefreshEndpoint:
@@ -180,9 +305,19 @@ class TestSignupEndpoint:
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_success(self, mock_cognito_service):
-        """Test successful user registration."""
+        """Test successful user registration with client user type and client record creation."""
         request = SignupRequest(
-            email="newuser@test.com", password="Password123", user_type="seller"
+            email="newuser@test.com",
+            password="Password123",
+            user_type="client",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
         mock_cognito_service.signup = AsyncMock(
@@ -192,75 +327,145 @@ class TestSignupEndpoint:
             }
         )
 
-        result = await signup(request, mock_cognito_service)
+        with patch("dependencies.get_auth_client_port") as mock_get_client_port:
+            mock_client_port = Mock()
+            mock_client_port.create_client = AsyncMock(
+                return_value={
+                    "cliente_id": "client-uuid-123",
+                    "cognito_user_id": "new-user-id-123",
+                    "email": "newuser@test.com",
+                    "nombre_institucion": "Test Hospital",
+                }
+            )
+            mock_get_client_port.return_value = mock_client_port
 
-        assert result.user_id == "new-user-id-123"
-        assert result.email == "newuser@test.com"
-        assert "verification" in result.message.lower()
-        mock_cognito_service.signup.assert_called_once_with(
-            "newuser@test.com", "Password123", "seller"
-        )
+            result = await signup(request, mock_cognito_service)
+
+            assert result.user_id == "new-user-id-123"
+            assert result.email == "newuser@test.com"
+            assert result.cliente_id == "client-uuid-123"
+            assert result.nombre_institucion == "Test Hospital"
+            assert "verification" in result.message.lower()
+
+            mock_cognito_service.signup.assert_called_once_with(
+                "newuser@test.com", "Password123", "client"
+            )
+            mock_client_port.create_client.assert_called_once()
+            client_data = mock_client_port.create_client.call_args[0][0]
+            assert client_data["cognito_user_id"] == "new-user-id-123"
+            assert client_data["email"] == "newuser@test.com"
+            assert client_data["telefono"] == "+1234567890"
+            assert client_data["nombre_institucion"] == "Test Hospital"
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_web_user_type(self, mock_cognito_service):
-        """Test signup accepts user_type='web'."""
+        """Test signup rejects user_type='web' with 403."""
         request = SignupRequest(
-            email="web@test.com", password="Password123", user_type="web"
+            email="web@test.com",
+            password="Password123",
+            user_type="web",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
-        mock_cognito_service.signup = AsyncMock(
-            return_value={"user_id": "test-id", "email": "web@test.com"}
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await signup(request, mock_cognito_service)
 
-        result = await signup(request, mock_cognito_service)
-
-        assert result.user_id == "test-id"
-        mock_cognito_service.signup.assert_called_once_with(
-            "web@test.com", "Password123", "web"
-        )
+        assert exc_info.value.status_code == 403
+        assert "client" in exc_info.value.detail.lower()
+        mock_cognito_service.signup.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_seller_user_type(self, mock_cognito_service):
-        """Test signup accepts user_type='seller'."""
+        """Test signup rejects user_type='seller' with 403."""
         request = SignupRequest(
-            email="seller@test.com", password="Password123", user_type="seller"
+            email="seller@test.com",
+            password="Password123",
+            user_type="seller",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
-        mock_cognito_service.signup = AsyncMock(
-            return_value={"user_id": "test-id", "email": "seller@test.com"}
-        )
+        with pytest.raises(HTTPException) as exc_info:
+            await signup(request, mock_cognito_service)
 
-        result = await signup(request, mock_cognito_service)
-
-        assert result.user_id == "test-id"
+        assert exc_info.value.status_code == 403
+        assert "client" in exc_info.value.detail.lower()
+        mock_cognito_service.signup.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_client_user_type(self, mock_cognito_service):
-        """Test signup accepts user_type='client'."""
+        """Test signup accepts user_type='client' and creates client record."""
         request = SignupRequest(
-            email="client@test.com", password="Password123", user_type="client"
+            email="client@test.com",
+            password="Password123",
+            user_type="client",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
         mock_cognito_service.signup = AsyncMock(
             return_value={"user_id": "test-id", "email": "client@test.com"}
         )
 
-        result = await signup(request, mock_cognito_service)
+        with patch("dependencies.get_auth_client_port") as mock_get_client_port:
+            mock_client_port = Mock()
+            mock_client_port.create_client = AsyncMock(
+                return_value={
+                    "cliente_id": "client-123",
+                    "cognito_user_id": "test-id",
+                    "email": "client@test.com",
+                    "nombre_institucion": "Test Hospital",
+                }
+            )
+            mock_get_client_port.return_value = mock_client_port
 
-        assert result.user_id == "test-id"
+            result = await signup(request, mock_cognito_service)
+
+            assert result.user_id == "test-id"
+            assert result.cliente_id == "client-123"
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_invalid_user_type(self, mock_cognito_service):
-        """Test signup with invalid user_type returns 400."""
+        """Test signup with non-client user_type returns 403."""
         request = SignupRequest(
-            email="user@test.com", password="Password123", user_type="admin"
+            email="user@test.com",
+            password="Password123",
+            user_type="admin",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
         with pytest.raises(HTTPException) as exc_info:
             await signup(request, mock_cognito_service)
 
-        assert exc_info.value.status_code == 400
-        assert "Invalid user_type" in exc_info.value.detail
+        assert exc_info.value.status_code == 403
+        assert "client" in exc_info.value.detail.lower()
+        mock_cognito_service.signup.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_signup_endpoint_missing_user_type(self):
@@ -279,7 +484,19 @@ class TestSignupEndpoint:
     @pytest.mark.asyncio
     async def test_signup_endpoint_weak_password(self, mock_cognito_service):
         """Test signup with weak password returns 400."""
-        request = SignupRequest(email="user@test.com", password="Password123", user_type="web")
+        request = SignupRequest(
+            email="user@test.com",
+            password="Password123",
+            user_type="client",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
+        )
 
         mock_cognito_service.signup = AsyncMock(
             side_effect=HTTPException(
@@ -297,7 +514,17 @@ class TestSignupEndpoint:
     async def test_signup_endpoint_duplicate_user(self, mock_cognito_service):
         """Test signup with existing email returns 409."""
         request = SignupRequest(
-            email="existing@test.com", password="Password123", user_type="seller"
+            email="existing@test.com",
+            password="Password123",
+            user_type="client",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
         )
 
         mock_cognito_service.signup = AsyncMock(
@@ -311,6 +538,43 @@ class TestSignupEndpoint:
             await signup(request, mock_cognito_service)
 
         assert exc_info.value.status_code == 409
+
+    @pytest.mark.asyncio
+    async def test_signup_endpoint_client_creation_failure(self, mock_cognito_service):
+        """Test signup when client record creation fails returns 500."""
+        request = SignupRequest(
+            email="newuser@test.com",
+            password="Password123",
+            user_type="client",
+            telefono="+1234567890",
+            nombre_institucion="Test Hospital",
+            tipo_institucion="hospital",
+            nit="123456789",
+            direccion="123 Test St",
+            ciudad="Test City",
+            pais="Test Country",
+            representante="John Doe",
+        )
+
+        mock_cognito_service.signup = AsyncMock(
+            return_value={
+                "user_id": "new-user-id-123",
+                "email": "newuser@test.com",
+            }
+        )
+
+        with patch("dependencies.get_auth_client_port") as mock_get_client_port:
+            mock_client_port = Mock()
+            mock_client_port.create_client = AsyncMock(
+                side_effect=Exception("Client service unavailable")
+            )
+            mock_get_client_port.return_value = mock_client_port
+
+            with pytest.raises(HTTPException) as exc_info:
+                await signup(request, mock_cognito_service)
+
+            assert exc_info.value.status_code == 500
+            assert "client profile creation failed" in exc_info.value.detail.lower()
 
 
 class TestGetMeEndpoint:
