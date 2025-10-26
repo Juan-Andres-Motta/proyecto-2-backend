@@ -26,17 +26,14 @@ class WarehouseCreate(BaseModel):
     @classmethod
     def normalize_country(cls, v: str) -> str:
         v = v.strip().upper()
-        try:
-            country = (
-                pycountry.countries.get(name=v)
-                or pycountry.countries.get(alpha_2=v)
-                or pycountry.countries.get(alpha_3=v)
-            )
-            if country:
-                return country.alpha_2
-            else:
-                raise ValueError(f"Invalid country: {v}")
-        except LookupError:
+        country = (
+            pycountry.countries.get(name=v)
+            or pycountry.countries.get(alpha_2=v)
+            or pycountry.countries.get(alpha_3=v)
+        )
+        if country:
+            return country.alpha_2
+        else:
             raise ValueError(f"Invalid country: {v}")
 
 

@@ -225,3 +225,100 @@ async def test_create_inventory_expired_date():
 
     assert exc_info.value.expiration_date == expired_date
     mock_inventory_repo.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_inventory_missing_product_sku():
+    """Test that product_sku is required (covers lines 51-52)."""
+    from src.domain.exceptions import ValidationException
+
+    mock_inventory_repo = AsyncMock()
+    mock_warehouse_repo = AsyncMock()
+
+    inventory_data = {
+        "product_id": uuid.uuid4(),
+        "warehouse_id": uuid.uuid4(),
+        "total_quantity": 100,
+        "batch_number": "BATCH001",
+        "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
+        # Missing product_sku
+        "product_name": "Test Product",
+        "product_price": 100.50,
+    }
+
+    use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)
+
+    with pytest.raises(ValidationException) as exc_info:
+        await use_case.execute(inventory_data)
+
+    assert "product_sku is required" in exc_info.value.message
+    assert exc_info.value.error_code == "MISSING_PRODUCT_SKU"
+    mock_inventory_repo.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_inventory_missing_product_name():
+    """Test that product_name is required (covers lines 57-58)."""
+    from src.domain.exceptions import ValidationException
+
+    mock_inventory_repo = AsyncMock()
+    mock_warehouse_repo = AsyncMock()
+
+    inventory_data = {
+        "product_id": uuid.uuid4(),
+        "warehouse_id": uuid.uuid4(),
+        "total_quantity": 100,
+        "batch_number": "BATCH001",
+        "expiration_date": datetime.now(timezone.utc) + timedelta(days=365),
+        "product_sku": "TEST-SKU-001",
+        # Missing product_name
+        "product_price": 100.50,
+    }
+
+    use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)
+
+    with pytest.raises(ValidationException) as exc_info:
+        await use_case.execute(inventory_data)
+
+    assert "product_name is required" in exc_info.value.message
+    assert exc_info.value.error_code == "MISSING_PRODUCT_NAME"
+    mock_inventory_repo.create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_inventory_expiration_date_timezone_naive():
+    """Test handling of timezone-naive expiration date (covers line 94)."""
+    mock_inventory_repo = AsyncMock()
+    mock_warehouse_repo = AsyncMock()
+
+    # Setup warehouse exists
+    warehouse = Warehouse(
+        id=uuid.UUID("550e8400-e29b-41d4-a716-446655440000"),
+        name="test warehouse",
+        country="US",
+        city="Miami",
+        address="123 Test St",
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    mock_warehouse_repo.find_by_id.return_value = warehouse
+
+    # Use timezone-naive datetime in the past
+    expired_date = datetime.now() - timedelta(days=1)  # No timezone info
+    inventory_data = {
+        "product_id": uuid.uuid4(),
+        "warehouse_id": warehouse.id,
+        "total_quantity": 100,
+        "batch_number": "BATCH001",
+        "expiration_date": expired_date,
+        "product_sku": "TEST-SKU-001",
+        "product_name": "Test Product",
+        "product_price": 100.50,
+    }
+
+    use_case = CreateInventoryUseCase(mock_inventory_repo, mock_warehouse_repo)
+
+    with pytest.raises(ExpiredInventoryException):
+        await use_case.execute(inventory_data)
+
+    mock_inventory_repo.create.assert_not_called()
