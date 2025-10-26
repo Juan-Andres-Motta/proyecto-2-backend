@@ -81,21 +81,6 @@ def get_order_http_client() -> HttpClient:
     )
 
 
-@lru_cache()
-def get_client_http_client() -> HttpClient:
-    """
-    Factory for client HTTP client.
-
-    Returns:
-        Configured HttpClient for the client service
-    """
-    return HttpClient(
-        base_url=settings.client_url,
-        timeout=settings.service_timeout,
-        service_name="client",
-    )
-
-
 # Port/Adapter Factories
 # These can be used with FastAPI's Depends() for dependency injection
 
@@ -164,20 +149,6 @@ def get_client_order_port():
     return ClientOrderAdapter(client)
 
 
-def get_client_app_client_port():
-    """
-    Factory for Client App ClientPort implementation.
-
-    Returns:
-        ClientPort implementation for client app (ClientAdapter)
-    """
-    # Import here to avoid circular dependencies
-    from client_app.adapters.client_adapter import ClientAdapter
-
-    client = get_client_http_client()
-    return ClientAdapter(client)
-
-
 def get_seller_order_port():
     """
     Factory for Sellers App OrderPort implementation.
@@ -190,34 +161,6 @@ def get_seller_order_port():
 
     client = get_order_http_client()
     return SellerOrderAdapter(client)
-
-
-def get_seller_client_port():
-    """
-    Factory for Sellers App ClientPort implementation.
-
-    Returns:
-        ClientPort implementation for sellers app (ClientAdapter)
-    """
-    # Import here to avoid circular dependencies
-    from sellers_app.adapters.client_adapter import ClientAdapter
-
-    client = get_client_http_client()
-    return ClientAdapter(client)
-
-
-def get_auth_client_port():
-    """
-    Factory for Auth Module ClientPort implementation.
-
-    Returns:
-        ClientPort implementation for auth module (ClientAdapter)
-    """
-    # Import here to avoid circular dependencies
-    from common.auth.adapters import ClientAdapter
-
-    client = get_client_http_client()
-    return ClientAdapter(client)
 
 
 def get_realtime_publisher() -> RealtimePublisher:
@@ -236,4 +179,3 @@ def clear_dependency_cache():
     get_seller_http_client.cache_clear()
     get_inventory_http_client.cache_clear()
     get_order_http_client.cache_clear()
-    get_client_http_client.cache_clear()

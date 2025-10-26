@@ -76,6 +76,27 @@ class TestSQSConsumerStart:
 
         assert "SQS queue URL not configured" in caplog.text
 
+    @pytest.mark.asyncio
+    @patch("common.sqs.consumer.aioboto3.Session")
+    async def test_start_initializes_session(self, mock_session):
+        """Test start creates AWS session."""
+        consumer = SQSConsumer(queue_url="https://test")
+
+        # Mock the client to avoid actual polling
+        mock_sqs_client = AsyncMock()
+        mock_sqs_client.receive_message = AsyncMock(return_value={"Messages": []})
+        mock_session.return_value.client.return_value.__aenter__.return_value = mock_sqs_client
+
+        # Stop after one iteration
+        async def stop_after_one():
+            await asyncio.sleep(0.1)
+            await consumer.stop()
+
+        asyncio.create_task(stop_after_one())
+        await consumer.start()
+
+        mock_session.assert_called_once()
+
 
 class TestSQSConsumerProcessMessage:
     """Tests for message processing."""
