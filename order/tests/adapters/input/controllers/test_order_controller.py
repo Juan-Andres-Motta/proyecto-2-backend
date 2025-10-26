@@ -3,7 +3,7 @@
 import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -418,3 +418,129 @@ async def test_get_order_not_found():
         assert response.status_code == 404
         data = response.json()
         assert "Order not found" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_list_customer_orders_success():
+    """Test listing orders for a specific customer."""
+    app = FastAPI()
+    app.include_router(router)
+
+    customer_id = uuid.uuid4()
+
+    # Create mock orders
+    order1 = Order(
+        id=uuid.uuid4(),
+        customer_id=customer_id,
+        fecha_pedido=datetime.now(),
+        fecha_entrega_estimada=date.today() + timedelta(days=2),
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        direccion_entrega="123 Test St",
+        ciudad_entrega="Test City",
+        pais_entrega="Test Country",
+        customer_name="Test Customer",
+        monto_total=Decimal("100.00"),
+    )
+
+    order2 = Order(
+        id=uuid.uuid4(),
+        customer_id=customer_id,
+        fecha_pedido=datetime.now() - timedelta(days=1),
+        fecha_entrega_estimada=date.today() + timedelta(days=3),
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        direccion_entrega="456 Test Ave",
+        ciudad_entrega="Test City",
+        pais_entrega="Test Country",
+        customer_name="Test Customer",
+        monto_total=Decimal("200.00"),
+    )
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.ListCustomerOrdersUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(return_value=([order1, order2], 2))
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(f"/customers/{customer_id}/orders")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert data["page"] == 1
+        assert data["size"] == 2
+        assert len(data["items"]) == 2
+        assert data["items"][0]["customer_id"] == str(customer_id)
+        assert data["items"][1]["customer_id"] == str(customer_id)
+
+
+@pytest.mark.asyncio
+async def test_list_customer_orders_empty():
+    """Test listing orders for a customer with no orders."""
+    app = FastAPI()
+    app.include_router(router)
+
+    customer_id = uuid.uuid4()
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.ListCustomerOrdersUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(return_value=([], 0))
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(f"/customers/{customer_id}/orders")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert data["size"] == 0
+        assert len(data["items"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_list_customer_orders_with_pagination():
+    """Test listing customer orders with pagination."""
+    app = FastAPI()
+    app.include_router(router)
+
+    customer_id = uuid.uuid4()
+
+    # Create single mock order
+    order1 = Order(
+        id=uuid.uuid4(),
+        customer_id=customer_id,
+        fecha_pedido=datetime.now(),
+        fecha_entrega_estimada=date.today() + timedelta(days=2),
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        direccion_entrega="123 Test St",
+        ciudad_entrega="Test City",
+        pais_entrega="Test Country",
+        customer_name="Test Customer",
+        monto_total=Decimal("100.00"),
+    )
+
+    with patch(
+        "src.adapters.input.controllers.order_controller.ListCustomerOrdersUseCase"
+    ) as MockUseCase:
+        mock_use_case = MockUseCase.return_value
+        mock_use_case.execute = AsyncMock(return_value=([order1], 5))
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get(
+                f"/customers/{customer_id}/orders?limit=1&offset=2"
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["page"] == 3  # (offset 2 // limit 1) + 1
+        assert data["size"] == 1
+        assert data["has_next"] is True
+        assert data["has_previous"] is True
