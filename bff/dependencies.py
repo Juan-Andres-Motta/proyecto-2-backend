@@ -164,20 +164,6 @@ def get_client_order_port():
     return ClientOrderAdapter(client)
 
 
-def get_seller_order_port():
-    """
-    Factory for Sellers App OrderPort implementation.
-
-    Returns:
-        OrderPort implementation for sellers app (SellerOrderAdapter)
-    """
-    # Import here to avoid circular dependencies
-    from sellers_app.adapters import OrderAdapter as SellerOrderAdapter
-
-    client = get_order_http_client()
-    return SellerOrderAdapter(client)
-
-
 def get_client_app_client_port():
     """
     Factory for Client App ClientPort implementation.
@@ -192,18 +178,18 @@ def get_client_app_client_port():
     return ClientAdapter(client)
 
 
-def get_auth_client_port():
+def get_seller_order_port():
     """
-    Factory for Auth ClientPort implementation.
+    Factory for Sellers App OrderPort implementation.
 
     Returns:
-        ClientPort implementation for auth module (ClientAdapter from common.auth)
+        OrderPort implementation for sellers app (SellerOrderAdapter)
     """
     # Import here to avoid circular dependencies
-    from common.auth.adapters import ClientAdapter
+    from sellers_app.adapters import OrderAdapter as SellerOrderAdapter
 
-    client = get_client_http_client()
-    return ClientAdapter(client)
+    client = get_order_http_client()
+    return SellerOrderAdapter(client)
 
 
 def get_seller_client_port():
@@ -215,6 +201,20 @@ def get_seller_client_port():
     """
     # Import here to avoid circular dependencies
     from sellers_app.adapters.client_adapter import ClientAdapter
+
+    client = get_client_http_client()
+    return ClientAdapter(client)
+
+
+def get_auth_client_port():
+    """
+    Factory for Auth Module ClientPort implementation.
+
+    Returns:
+        ClientPort implementation for auth module (ClientAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from common.auth.adapters import ClientAdapter
 
     client = get_client_http_client()
     return ClientAdapter(client)
