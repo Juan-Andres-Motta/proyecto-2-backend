@@ -32,6 +32,7 @@ from src.application.use_cases import (
     ListOrdersUseCase,
     OrderItemInput as UseCaseOrderItemInput,
 )
+from src.application.use_cases.list_customer_orders import ListCustomerOrdersUseCase
 from src.domain.entities import Order as OrderEntity
 from src.domain.value_objects import CreationMethod
 from src.infrastructure.database.config import get_db
@@ -270,4 +271,59 @@ async def get_order(order_id: UUID, db: AsyncSession = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Error fetching order {order_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get(
+    "/customers/{customer_id}/orders",
+    response_model=PaginatedOrdersResponse,
+    responses={
+        200: {
+            "description": "List of orders for a specific customer",
+        }
+    },
+)
+async def list_customer_orders(
+    customer_id: UUID,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List orders for a specific customer with pagination.
+
+    Args:
+        customer_id: Customer UUID
+        limit: Maximum number of orders to return (1-100)
+        offset: Number of orders to skip
+        db: Database session
+
+    Returns:
+        PaginatedOrdersResponse with customer's orders
+    """
+    logger.info(f"Listing orders for customer {customer_id} (limit={limit}, offset={offset})")
+
+    try:
+        repository = OrderRepository(db)
+        use_case = ListCustomerOrdersUseCase(order_repository=repository)
+
+        orders, total = await use_case.execute(
+            customer_id=customer_id, limit=limit, offset=offset
+        )
+
+        page = (offset // limit) + 1 if limit > 0 else 1
+        has_next = (offset + limit) < total
+        has_previous = offset > 0
+
+        return PaginatedOrdersResponse(
+            items=[_entity_to_response(order) for order in orders],
+            total=total,
+            page=page,
+            size=len(orders),
+            has_next=has_next,
+            has_previous=has_previous,
+        )
+
+    except Exception as e:
+        logger.error(f"Error listing orders for customer {customer_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

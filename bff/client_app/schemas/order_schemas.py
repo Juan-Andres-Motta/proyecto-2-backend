@@ -1,6 +1,7 @@
 """Order schemas for client app."""
 
-from typing import List
+from datetime import date, datetime
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, field_validator
@@ -45,3 +46,61 @@ class OrderCreateResponse(BaseModel):
 
     id: UUID
     message: str
+
+
+class OrderItemResponse(BaseModel):
+    """Response schema for an order item."""
+
+    id: UUID
+    pedido_id: UUID
+    producto_id: UUID
+    inventario_id: UUID
+    cantidad: int
+    precio_unitario: float
+    precio_total: float
+    product_name: str
+    product_sku: str
+    warehouse_id: UUID
+    warehouse_name: str
+    warehouse_city: str
+    warehouse_country: str
+    batch_number: str
+    expiration_date: date
+    created_at: datetime
+    updated_at: datetime
+
+
+class OrderResponse(BaseModel):
+    """Response schema for an order."""
+
+    id: UUID
+    customer_id: UUID
+    seller_id: Optional[UUID]
+    visit_id: Optional[UUID]
+    route_id: Optional[UUID]
+    fecha_pedido: datetime
+    fecha_entrega_estimada: Optional[date]
+    metodo_creacion: str
+    direccion_entrega: str
+    ciudad_entrega: str
+    pais_entrega: str
+    customer_name: str
+    customer_phone: Optional[str]
+    customer_email: Optional[str]
+    seller_name: Optional[str]
+    seller_email: Optional[str]
+    monto_total: float
+    created_at: datetime
+    updated_at: datetime
+    items: List[OrderItemResponse]
+
+
+class PaginatedOrdersResponse(BaseModel):
+    """Paginated response for listing orders."""
+
+    items: List[OrderResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool

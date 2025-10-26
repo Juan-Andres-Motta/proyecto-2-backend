@@ -328,3 +328,90 @@ class TestOrderEntityItems:
         order.add_item(item2)
 
         assert order.total_quantity == 8  # 5 + 3
+
+    def test_order_requires_metodo_creacion(self):
+        """Test that metodo_creacion is required (covers line 69)."""
+        with pytest.raises(ValueError, match="metodo_creacion is required"):
+            Order(
+                id=uuid4(),
+                customer_id=uuid4(),
+                seller_id=None,
+                visit_id=None,
+                fecha_pedido=datetime.now(),
+                fecha_entrega_estimada=date.today() + timedelta(days=1),
+                metodo_creacion=None,  # Missing
+                direccion_entrega="123 Main St",
+                ciudad_entrega="City",
+                pais_entrega="Country",
+                customer_name="John Doe",
+            )
+
+    def test_order_visita_vendedor_requires_seller_name(self):
+        """Test that seller_name is required for visita_vendedor (covers line 82)."""
+        with pytest.raises(ValueError, match="seller_name is required"):
+            Order(
+                id=uuid4(),
+                customer_id=uuid4(),
+                seller_id=uuid4(),
+                visit_id=uuid4(),
+                fecha_pedido=datetime.now(),
+                fecha_entrega_estimada=date.today() + timedelta(days=1),
+                metodo_creacion=CreationMethod.VISITA_VENDEDOR,
+                direccion_entrega="123 Main St",
+                ciudad_entrega="City",
+                pais_entrega="Country",
+                customer_name="John Doe",
+                seller_name=None,  # Missing
+            )
+
+    def test_order_app_vendedor_requires_seller_name(self):
+        """Test that seller_name is required for app_vendedor (covers line 93)."""
+        with pytest.raises(ValueError, match="seller_name is required"):
+            Order(
+                id=uuid4(),
+                customer_id=uuid4(),
+                seller_id=uuid4(),
+                visit_id=None,
+                fecha_pedido=datetime.now(),
+                fecha_entrega_estimada=date.today() + timedelta(days=1),
+                metodo_creacion=CreationMethod.APP_VENDEDOR,
+                direccion_entrega="123 Main St",
+                ciudad_entrega="City",
+                pais_entrega="Country",
+                customer_name="John Doe",
+                seller_name=None,  # Missing
+            )
+
+    def test_order_requires_ciudad_entrega(self):
+        """Test that ciudad_entrega is required (covers line 115)."""
+        with pytest.raises(ValueError, match="ciudad_entrega is required"):
+            Order(
+                id=uuid4(),
+                customer_id=uuid4(),
+                seller_id=None,
+                visit_id=None,
+                fecha_pedido=datetime.now(),
+                fecha_entrega_estimada=date.today() + timedelta(days=1),
+                metodo_creacion=CreationMethod.APP_CLIENTE,
+                direccion_entrega="123 Main St",
+                ciudad_entrega="",  # Empty
+                pais_entrega="Country",
+                customer_name="John Doe",
+            )
+
+    def test_order_requires_pais_entrega(self):
+        """Test that pais_entrega is required (covers line 117)."""
+        with pytest.raises(ValueError, match="pais_entrega is required"):
+            Order(
+                id=uuid4(),
+                customer_id=uuid4(),
+                seller_id=None,
+                visit_id=None,
+                fecha_pedido=datetime.now(),
+                fecha_entrega_estimada=date.today() + timedelta(days=1),
+                metodo_creacion=CreationMethod.APP_CLIENTE,
+                direccion_entrega="123 Main St",
+                ciudad_entrega="City",
+                pais_entrega="",  # Empty
+                customer_name="John Doe",
+            )

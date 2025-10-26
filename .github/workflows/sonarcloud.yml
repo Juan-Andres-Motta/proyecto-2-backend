@@ -1,17 +1,20 @@
 name: SonarCloud Analysis
 
 on:
+  # Only run on pull requests to avoid duplicate runs
+  # This covers all PR updates (new commits, reopened PRs, etc.)
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # Run on merge to main (after PR is merged)
   push:
     branches:
       - main
-      - develop
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout code
@@ -55,10 +58,10 @@ jobs:
           cd client
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
-          # Fix paths in coverage.xml for SonarCloud
+          # Fix paths in coverage.xml for SonarCloud - add client/src/ prefix
           if [ -f coverage.xml ]; then
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-            sed -i 's|filename="\([^"]*\)"|filename="client/\1"|g' coverage.xml
+            sed -i 's|filename="|filename="client/src/|g' coverage.xml
           fi
         continue-on-error: true
 
@@ -89,9 +92,9 @@ jobs:
           cd order
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud
+          # Fix paths in coverage.xml for SonarCloud - add order/src/ prefix
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-          sed -i 's|filename="\([^"]*\)"|filename="order/\1"|g' coverage.xml
+          sed -i 's|filename="|filename="order/src/|g' coverage.xml
         continue-on-error: false
 
       - name: Test Seller
@@ -117,8 +120,13 @@ jobs:
           for service in bff catalog inventory order seller client delivery; do
             if [ -f "${service}/coverage.xml" ]; then
               echo ""
-              echo "📄 ${service}/coverage.xml file paths:"
-              grep -o 'filename="[^"]*"' "${service}/coverage.xml" | head -5 || echo "No filename attributes found"
+              echo "📄 ${service}/coverage.xml:"
+              echo "  Source tags:"
+              grep -o '<source>.*</source>' "${service}/coverage.xml" || echo "  No source tags found"
+              echo "  Sample file paths (first 5):"
+              grep -o 'filename="[^"]*"' "${service}/coverage.xml" | head -5 || echo "  No filename attributes found"
+              echo "  Total files with coverage:"
+              grep -c 'filename="' "${service}/coverage.xml" || echo "  0"
             fi
           done
 

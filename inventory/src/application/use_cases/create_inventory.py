@@ -78,15 +78,7 @@ class CreateInventoryUseCase:
             logger.warning(f"Inventory creation failed: reserved quantity must be 0 at creation: reserved_quantity={reserved_quantity}")
             raise ReservedQuantityMustBeZeroException(reserved_quantity)
 
-        # Validation 3: Reserved quantity <= total quantity
-        logger.debug(f"Validating quantity relationship: reserved={reserved_quantity}, total={total_quantity}")
-        if reserved_quantity > total_quantity:
-            logger.warning(f"Inventory creation failed: reserved quantity exceeds total: reserved={reserved_quantity}, total={total_quantity}")
-            raise ReservedQuantityExceedsTotalException(
-                reserved_quantity, total_quantity
-            )
-
-        # Validation 4: Expiration date must not be in the past
+        # Validation 3: Expiration date must not be in the past
         logger.debug(f"Validating expiration date: expiration_date={expiration_date}")
         now = datetime.now(timezone.utc)
         # Make expiration_date timezone-aware if it isn't

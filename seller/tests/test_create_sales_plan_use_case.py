@@ -162,3 +162,21 @@ async def test_duplicate_sales_plan_raises_exception(
     mock_sales_plan_repo.create.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_create_sales_plan_invalid_period_exception(
+    use_case,
+    mock_seller_repo,
+    sample_seller
+):
+    """Test creating sales plan with invalid period format that raises exception (covers lines 82-84)."""
+    seller_id = sample_seller.id
+    invalid_period = "INVALID-FORMAT"  # This will raise exception when creating SalesPeriod
+    goal = Decimal("5000.00")
+
+    mock_seller_repo.find_by_id.return_value = sample_seller
+
+    # This should raise an exception when trying to create SalesPeriod
+    with pytest.raises(InvalidSalesPeriodException):
+        await use_case.execute(seller_id, invalid_period, goal)
+
+
