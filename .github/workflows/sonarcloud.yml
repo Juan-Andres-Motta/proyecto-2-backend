@@ -58,10 +58,16 @@ jobs:
           cd client
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
-          # Fix paths in coverage.xml for SonarCloud - add client/src/ prefix
+          # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
+            # Debug: Show paths BEFORE transformation
+            echo "=== Client coverage.xml paths BEFORE sed ==="
+            grep -o 'filename="[^"]*"' coverage.xml | head -3
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-            sed -i 's|filename="|filename="client/src/|g' coverage.xml
+            sed -i 's|filename="\([^"]*\)"|filename="client/\1"|g' coverage.xml
+            # Debug: Show paths AFTER transformation
+            echo "=== Client coverage.xml paths AFTER sed ==="
+            grep -o 'filename="[^"]*"' coverage.xml | head -3
           fi
         continue-on-error: true
 
@@ -93,9 +99,15 @@ jobs:
           cd order
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
+          # Debug: Show paths BEFORE transformation
+          echo "=== Order coverage.xml paths BEFORE sed ==="
+          grep -o 'filename="[^"]*"' coverage.xml | head -3
           # Fix paths in coverage.xml for SonarCloud
-          sed -i 's|<source>.*</source>|<source>/github/workspace</source>|g' coverage.xml
-          sed -i 's|filename="src/|filename="order/src/|g' coverage.xml
+          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
+          sed -i 's|filename="\([^"]*\)"|filename="order/\1"|g' coverage.xml
+          # Debug: Show paths AFTER transformation
+          echo "=== Order coverage.xml paths AFTER sed ==="
+          grep -o 'filename="[^"]*"' coverage.xml | head -3
         continue-on-error: false
 
       - name: Test Seller
