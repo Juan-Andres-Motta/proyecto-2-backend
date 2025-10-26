@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "instance_type" {
   description = "EC2 instance type for staging"
   type        = string
-  default     = "t3.medium"  # 2 vCPU, 4GB RAM
+  default     = "t3.micro"  # Free tier eligible - 2 vCPU, 1GB RAM
 }
 
 variable "key_name" {
