@@ -57,8 +57,8 @@ jobs:
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
           # Fix paths in coverage.xml for SonarCloud
           if [ -f coverage.xml ]; then
-            sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-            sed -i 's|filename="\([^"]*\)"|filename="client/\1"|g' coverage.xml
+            sed -i 's|<source>.*</source>|<source>/github/workspace</source>|g' coverage.xml
+            sed -i 's|filename="src/|filename="client/src/|g' coverage.xml
           fi
         continue-on-error: true
 
@@ -90,8 +90,8 @@ jobs:
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
           # Fix paths in coverage.xml for SonarCloud
-          sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-          sed -i 's|filename="\([^"]*\)"|filename="order/\1"|g' coverage.xml
+          sed -i 's|<source>.*</source>|<source>/github/workspace</source>|g' coverage.xml
+          sed -i 's|filename="src/|filename="order/src/|g' coverage.xml
         continue-on-error: false
 
       - name: Test Seller
