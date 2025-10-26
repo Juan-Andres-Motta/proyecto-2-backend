@@ -1,17 +1,20 @@
 name: SonarCloud Analysis
 
 on:
+  # Only run on pull requests to avoid duplicate runs
+  # This covers all PR updates (new commits, reopened PRs, etc.)
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # Run on merge to main (after PR is merged)
   push:
     branches:
       - main
-      - develop
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout code
