@@ -133,7 +133,7 @@ class TestCreateReport:
 
         mock_adapter = Mock(spec=ReportsPort)
         mock_adapter.create_report = AsyncMock(
-            side_effect=MicroserviceError("Service unavailable", 503)
+            side_effect=MicroserviceError("order", "Service unavailable", 503)
         )
 
         with patch(
@@ -250,7 +250,7 @@ class TestListReports:
     ):
         """Test listing reports aggregates from both Order and Inventory."""
         order_report = ReportResponse(
-            report_id=uuid4(),
+            id=uuid4(),
             report_type="orders_per_seller",
             status="completed",
             created_at=datetime(2025, 1, 15),
@@ -259,7 +259,7 @@ class TestListReports:
         )
 
         inventory_report = ReportResponse(
-            report_id=uuid4(),
+            id=uuid4(),
             report_type="low_stock",
             status="completed",
             created_at=datetime(2025, 1, 10),
@@ -315,7 +315,7 @@ class TestListReports:
     ):
         """Test that aggregated reports are sorted by created_at DESC."""
         older_report = ReportResponse(
-            report_id=uuid4(),
+            id=uuid4(),
             report_type="orders_per_seller",
             status="completed",
             created_at=datetime(2025, 1, 10),
@@ -324,7 +324,7 @@ class TestListReports:
         )
 
         newer_report = ReportResponse(
-            report_id=uuid4(),
+            id=uuid4(),
             report_type="low_stock",
             status="completed",
             created_at=datetime(2025, 1, 20),
@@ -372,7 +372,7 @@ class TestListReports:
         mock_order_adapter.list_reports = AsyncMock(side_effect=Exception("Order service down"))
 
         inventory_report = ReportResponse(
-            report_id=uuid4(),
+            id=uuid4(),
             report_type="low_stock",
             status="completed",
             created_at=datetime(2025, 1, 10),
@@ -417,7 +417,7 @@ class TestGetReport:
         """Test getting a report from Order service."""
         report_id = uuid4()
         mock_response = ReportResponse(
-            report_id=report_id,
+            id=report_id,
             report_type="orders_per_seller",
             status="completed",
             created_at=datetime.now(),
@@ -437,7 +437,7 @@ class TestGetReport:
 
             result = await get_report(report_id, mock_user)
 
-            assert result.report_id == report_id
+            assert result.id == report_id
             mock_order_adapter.get_report.assert_called_once()
 
     @pytest.mark.asyncio
@@ -454,7 +454,7 @@ class TestGetReport:
 
         # Inventory service has it
         mock_response = ReportResponse(
-            report_id=report_id,
+            id=report_id,
             report_type="low_stock",
             status="completed",
             created_at=datetime.now(),
@@ -478,7 +478,7 @@ class TestGetReport:
 
             result = await get_report(report_id, mock_user)
 
-            assert result.report_id == report_id
+            assert result.id == report_id
             assert result.report_type == "low_stock"
 
     @pytest.mark.asyncio

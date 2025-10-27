@@ -165,8 +165,12 @@ class TestOrderReportsAdapterGetReport:
 
         mock_http_client.get = AsyncMock(
             return_value={
-                "report_id": str(report_id),
+                "id": str(report_id),
+                "report_type": "orders_per_seller",
                 "status": "completed",
+                "start_date": "2025-01-01T00:00:00",
+                "end_date": "2025-01-31T23:59:59",
+                "created_at": "2025-01-01T00:00:00",
                 "download_url": "https://s3.example.com/report.json",
             }
         )
@@ -187,8 +191,12 @@ class TestOrderReportsAdapterGetReport:
 
         mock_http_client.get = AsyncMock(
             return_value={
-                "report_id": str(report_id),
+                "id": str(report_id),
+                "report_type": "orders_per_seller",
                 "status": "completed",
+                "start_date": "2025-01-01T00:00:00",
+                "end_date": "2025-01-31T23:59:59",
+                "created_at": "2025-01-01T00:00:00",
             }
         )
 
@@ -291,8 +299,12 @@ class TestInventoryReportsAdapterGetReport:
 
         mock_http_client.get = AsyncMock(
             return_value={
-                "report_id": str(report_id),
+                "id": str(report_id),
+                "report_type": "low_stock",
                 "status": "completed",
+                "start_date": "2025-01-01T00:00:00",
+                "end_date": "2025-01-31T23:59:59",
+                "created_at": "2025-01-01T00:00:00",
             }
         )
 

@@ -46,7 +46,7 @@ class ReportCreateResponse(BaseModel):
 
     report_id: UUID
     status: ReportStatus
-    message: str
+    message: Optional[str] = None
 
 
 class ReportResponse(BaseModel):
