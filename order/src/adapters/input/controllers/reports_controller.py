@@ -91,6 +91,8 @@ async def create_report(
             message="Report generation started. You will be notified when ready.",
         )
 
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except ValueError as e:
         logger.error(f"Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -159,7 +161,7 @@ async def list_reports(
         # Convert to response schema
         items = [
             ReportResponse(
-                id=r.id,
+                report_id=r.id,
                 report_type=r.report_type.value,
                 status=r.status.value,
                 start_date=r.start_date,
@@ -234,7 +236,7 @@ async def get_report(
             raise HTTPException(status_code=404, detail="Report not found")
 
         return ReportResponse(
-            id=report.id,
+            report_id=report.id,
             report_type=report.report_type.value,
             status=report.status.value,
             start_date=report.start_date,
