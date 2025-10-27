@@ -19,13 +19,22 @@ if [ ! -d ".terraform" ]; then
 fi
 
 # Export ECR URLs
-export ECR_BFF_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.bff')
-export ECR_CATALOG_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.catalog')
-export ECR_CLIENT_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.client')
-export ECR_DELIVERY_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.delivery')
-export ECR_INVENTORY_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.inventory')
-export ECR_ORDER_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.order')
-export ECR_SELLER_REPO=$(terraform output -raw ecr_repository_urls | jq -r '.seller')
+export ECR_BFF_REPO=$(terraform output -json ecr_repository_urls | jq -r '.bff')
+export ECR_CATALOG_REPO=$(terraform output -json ecr_repository_urls | jq -r '.catalog')
+export ECR_CLIENT_REPO=$(terraform output -json ecr_repository_urls | jq -r '.client')
+export ECR_DELIVERY_REPO=$(terraform output -json ecr_repository_urls | jq -r '.delivery')
+export ECR_INVENTORY_REPO=$(terraform output -json ecr_repository_urls | jq -r '.inventory')
+export ECR_ORDER_REPO=$(terraform output -json ecr_repository_urls | jq -r '.order')
+export ECR_SELLER_REPO=$(terraform output -json ecr_repository_urls | jq -r '.seller')
+
+# Export AWS resource URLs
+export AWS_REGION=us-east-1
+export SQS_QUEUE_URL=$(terraform output -raw sqs_reports_queue_url)
+export SQS_REGION=us-east-1
+export SQS_REPORTS_QUEUE_URL=$(terraform output -raw sqs_reports_queue_url)
+export S3_REPORTS_BUCKET=$(terraform output -raw s3_order_reports_bucket_name)
+export S3_ORDER_REPORTS_BUCKET=$(terraform output -raw s3_order_reports_bucket_name)
+export S3_INVENTORY_REPORTS_BUCKET=$(terraform output -raw s3_inventory_reports_bucket_name)
 
 echo "ECR repositories loaded"
 echo ""

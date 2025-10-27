@@ -104,7 +104,7 @@ locals {
 
 # VPC Module
 module "vpc" {
-  source = "./modules/vpc"
+  source = "../modules/vpc"
 
   name_prefix = local.name_prefix
   tags        = local.common_tags
@@ -112,7 +112,7 @@ module "vpc" {
 
 # Security Groups Module
 module "security_groups" {
-  source = "./modules/security-groups"
+  source = "../modules/security-groups"
 
   name_prefix = local.name_prefix
   vpc_id      = module.vpc.vpc_id
@@ -121,7 +121,7 @@ module "security_groups" {
 
 # IAM Roles Module
 module "iam" {
-  source = "./modules/iam"
+  source = "../modules/iam"
 
   name_prefix = local.name_prefix
   tags        = local.common_tags
@@ -138,7 +138,7 @@ data "terraform_remote_state" "common" {
 
 # Cognito Module for Authentication
 module "cognito" {
-  source = "./modules/cognito"
+  source = "../modules/cognito"
 
   name_prefix = local.name_prefix
   tags        = local.common_tags
@@ -152,7 +152,7 @@ module "cognito" {
 
 # CloudWatch Log Groups (one per service)
 module "cloudwatch" {
-  source   = "./modules/cloudwatch"
+  source   = "../modules/cloudwatch"
   for_each = toset(var.services)
 
   name_prefix         = local.name_prefix
@@ -163,7 +163,7 @@ module "cloudwatch" {
 
 # Application Load Balancer
 module "alb" {
-  source = "./modules/alb"
+  source = "../modules/alb"
 
   name_prefix              = local.name_prefix
   vpc_id                   = module.vpc.vpc_id
@@ -176,7 +176,7 @@ module "alb" {
 
 # ECS Cluster
 module "ecs_cluster" {
-  source = "./modules/ecs-cluster"
+  source = "../modules/ecs-cluster"
 
   cluster_name              = "${local.name_prefix}-cluster"
   service_connect_namespace = "medisupply.local"
@@ -185,7 +185,7 @@ module "ecs_cluster" {
 
 # ECR Repositories
 module "ecr" {
-  source   = "./modules/ecr"
+  source   = "../modules/ecr"
   for_each = toset(var.services)
 
   repository_name      = each.value
@@ -196,7 +196,7 @@ module "ecr" {
 
 # ECS Task Definitions (one per service)
 module "ecs_task_definition" {
-  source   = "./modules/ecs-task-definition"
+  source   = "../modules/ecs-task-definition"
   for_each = toset(var.services)
 
   name_prefix           = local.name_prefix
@@ -217,7 +217,7 @@ module "ecs_task_definition" {
 
 # ECS Services (one per service)
 module "ecs_service" {
-  source   = "./modules/ecs-service"
+  source   = "../modules/ecs-service"
   for_each = toset(var.services)
 
   name_prefix                    = local.name_prefix
@@ -240,7 +240,7 @@ module "ecs_service" {
 # Using cheapest possible configuration (db.t3.micro, 20GB storage)
 
 module "rds_catalog" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "catalogdb2"
@@ -251,7 +251,7 @@ module "rds_catalog" {
 }
 
 module "rds_client" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "client2"
@@ -262,7 +262,7 @@ module "rds_client" {
 }
 
 module "rds_delivery" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "delivery2"
@@ -273,7 +273,7 @@ module "rds_delivery" {
 }
 
 module "rds_inventory" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "inventory2"
@@ -284,7 +284,7 @@ module "rds_inventory" {
 }
 
 module "rds_order" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "orderdb2"
@@ -295,7 +295,7 @@ module "rds_order" {
 }
 
 module "rds_seller" {
-  source = "./modules/rds"
+  source = "../modules/rds"
 
   name_prefix        = local.name_prefix
   db_name            = "seller2"
