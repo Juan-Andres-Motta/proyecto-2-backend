@@ -88,6 +88,12 @@ resource "aws_cognito_user_pool" "main" {
   tags = var.tags
 }
 
+# Cognito User Pool Domain
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = "${var.name_prefix}-auth"
+  user_pool_id = aws_cognito_user_pool.main.id
+}
+
 # Cognito User Pool Client for Web Application
 resource "aws_cognito_user_pool_client" "web_app" {
   name         = "${var.name_prefix}-web-client"
@@ -114,8 +120,14 @@ resource "aws_cognito_user_pool_client" "web_app" {
   # No secret for public clients (SPA/web apps)
   generate_secret = false
 
-  # OAuth flows disabled - using direct password authentication (USER_PASSWORD_AUTH)
-  allowed_oauth_flows_user_pool_client = false
+  # OAuth settings
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code", "implicit"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+
+  # Callback URLs (update with actual frontend URLs)
+  callback_urls = var.web_callback_urls
+  logout_urls   = var.web_logout_urls
 
   # Enable token revocation
   enable_token_revocation = true
@@ -164,8 +176,14 @@ resource "aws_cognito_user_pool_client" "mobile_app" {
   # No secret for public clients (mobile apps)
   generate_secret = false
 
-  # OAuth flows disabled - using direct password authentication (USER_PASSWORD_AUTH)
-  allowed_oauth_flows_user_pool_client = false
+  # OAuth settings
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+
+  # Callback URLs (update with actual mobile app deep links)
+  callback_urls = var.mobile_callback_urls
+  logout_urls   = var.mobile_logout_urls
 
   # Enable token revocation
   enable_token_revocation = true
@@ -213,4 +231,25 @@ resource "aws_cognito_user_group" "client_users" {
   user_pool_id = aws_cognito_user_pool.main.id
   description  = "Institutional clients with access to mobile client app endpoints"
   precedence   = 30
+}
+
+# Identity Pool (optional for future AWS service access)
+resource "aws_cognito_identity_pool" "main" {
+  identity_pool_name               = "${var.name_prefix}-identity-pool"
+  allow_unauthenticated_identities = false
+  allow_classic_flow               = false
+
+  cognito_identity_providers {
+    client_id               = aws_cognito_user_pool_client.web_app.id
+    provider_name           = aws_cognito_user_pool.main.endpoint
+    server_side_token_check = true
+  }
+
+  cognito_identity_providers {
+    client_id               = aws_cognito_user_pool_client.mobile_app.id
+    provider_name           = aws_cognito_user_pool.main.endpoint
+    server_side_token_check = true
+  }
+
+  tags = var.tags
 }

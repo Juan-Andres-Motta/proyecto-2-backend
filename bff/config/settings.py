@@ -53,5 +53,8 @@ class Settings(BaseSettings):
     sqs_max_messages: int = Field(default=10)
     sqs_wait_time_seconds: int = Field(default=20)
 
+    # SQS Reports Queue
+    sqs_reports_queue_url: str = Field(default="")
+
 
 settings = Settings()

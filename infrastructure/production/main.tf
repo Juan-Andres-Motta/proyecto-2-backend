@@ -41,15 +41,15 @@ locals {
       ORDER_URL     = "http://order.medisupply.local:8000"
       SELLER_URL    = "http://seller.medisupply.local:8000"
       # Cognito Authentication Configuration
-      AWS_COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
-      AWS_COGNITO_WEB_CLIENT_ID    = module.cognito.web_client_id
-      AWS_COGNITO_MOBILE_CLIENT_ID = module.cognito.mobile_client_id
-      AWS_COGNITO_REGION           = var.aws_region
-      JWT_ISSUER_URL               = module.cognito.jwt_issuer_url
-      JWT_JWKS_URL                 = module.cognito.jwks_url
+      AWS_COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+      AWS_COGNITO_REGION       = var.aws_region
+      JWT_ISSUER_URL           = module.cognito.jwt_issuer_url
+      JWT_JWKS_URL             = module.cognito.jwks_url
       # Real-time messaging configuration
-      REALTIME_PROVIDER   = "ably"
-      ABLY_ENVIRONMENT    = "prod"
+      REALTIME_PROVIDER = "ably"
+      ABLY_ENVIRONMENT  = "prod"
+      # Reports SQS Queue
+      SQS_REPORTS_QUEUE_URL = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
@@ -63,10 +63,16 @@ locals {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_delivery.db_instance_address}:5432/delivery2"
     }
     inventory = {
-      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
+      DATABASE_URL          = "postgresql://postgres:${local.db_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
+      S3_REPORTS_BUCKET     = data.terraform_remote_state.common.outputs.s3_inventory_reports_bucket_name
+      SQS_REPORTS_QUEUE_URL = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
+      AWS_REGION            = var.aws_region
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
+      DATABASE_URL          = "postgresql://postgres:${local.db_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
+      S3_REPORTS_BUCKET     = data.terraform_remote_state.common.outputs.s3_order_reports_bucket_name
+      SQS_REPORTS_QUEUE_URL = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
+      AWS_REGION            = var.aws_region
     }
     seller = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_seller.db_instance_address}:5432/seller2"
@@ -119,6 +125,15 @@ module "iam" {
 
   name_prefix = local.name_prefix
   tags        = local.common_tags
+}
+
+# Remote state data source for common infrastructure
+data "terraform_remote_state" "common" {
+  backend = "local"
+
+  config = {
+    path = "../common/terraform.tfstate"
+  }
 }
 
 # Cognito Module for Authentication
