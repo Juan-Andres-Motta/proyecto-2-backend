@@ -142,3 +142,47 @@ class PaginatedOrdersResponse(BaseModel):
     size: int
     has_next: bool
     has_previous: bool
+
+
+# Report Schemas
+
+
+class ReportCreateInput(BaseModel):
+    """Input schema for creating a report."""
+
+    report_type: str  # orders_per_seller, orders_per_status
+    start_date: datetime
+    end_date: datetime
+    filters: Optional[dict] = None
+
+
+class ReportCreateResponse(BaseModel):
+    """Response after creating a report."""
+
+    report_id: UUID
+    status: str  # pending
+
+
+class ReportResponse(BaseModel):
+    """Output schema for a report."""
+
+    report_id: UUID
+    report_type: str
+    status: str
+    start_date: datetime
+    end_date: datetime
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    download_url: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class PaginatedReportsResponse(BaseModel):
+    """Paginated response for listing reports."""
+
+    items: List[ReportResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool

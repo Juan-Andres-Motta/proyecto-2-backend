@@ -141,3 +141,22 @@ output "cognito_user_groups" {
   }
 }
 
+# Reports Infrastructure Outputs
+output "s3_reports_buckets" {
+  description = "S3 buckets for reports storage"
+  value = {
+    order     = module.s3_order_reports.bucket_name
+    inventory = module.s3_inventory_reports.bucket_name
+  }
+}
+
+output "sqs_reports_queue_url" {
+  description = "URL of the SQS queue for report events"
+  value       = module.sqs_reports_queue.queue_url
+}
+
+output "sqs_reports_queue_arn" {
+  description = "ARN of the SQS queue for report events"
+  value       = module.sqs_reports_queue.queue_arn
+}
+

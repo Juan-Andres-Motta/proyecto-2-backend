@@ -50,6 +50,8 @@ locals {
       # Real-time messaging configuration
       REALTIME_PROVIDER   = "ably"
       ABLY_ENVIRONMENT    = "prod"
+      # Reports SQS Queue
+      SQS_REPORTS_QUEUE_URL = module.sqs_reports_queue.queue_url
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
@@ -63,10 +65,16 @@ locals {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_delivery.db_instance_address}:5432/delivery2"
     }
     inventory = {
-      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
+      DATABASE_URL          = "postgresql://postgres:${local.db_password}@${module.rds_inventory.db_instance_address}:5432/inventory2"
+      S3_REPORTS_BUCKET     = module.s3_inventory_reports.bucket_name
+      SQS_REPORTS_QUEUE_URL = module.sqs_reports_queue.queue_url
+      AWS_REGION            = var.aws_region
     }
     order = {
-      DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
+      DATABASE_URL          = "postgresql://postgres:${local.db_password}@${module.rds_order.db_instance_address}:5432/orderdb2"
+      S3_REPORTS_BUCKET     = module.s3_order_reports.bucket_name
+      SQS_REPORTS_QUEUE_URL = module.sqs_reports_queue.queue_url
+      AWS_REGION            = var.aws_region
     }
     seller = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_seller.db_instance_address}:5432/seller2"
@@ -133,6 +141,29 @@ module "cognito" {
   web_logout_urls      = ["http://localhost:3000/", "https://localhost:3000/"]
   mobile_callback_urls = ["medisupply://callback"]
   mobile_logout_urls   = ["medisupply://logout"]
+}
+
+# S3 Buckets for Reports
+module "s3_order_reports" {
+  source = "./modules/s3-reports-bucket"
+
+  bucket_name = "${local.name_prefix}-order-reports"
+  tags        = local.common_tags
+}
+
+module "s3_inventory_reports" {
+  source = "./modules/s3-reports-bucket"
+
+  bucket_name = "${local.name_prefix}-inventory-reports"
+  tags        = local.common_tags
+}
+
+# SQS Queue for Report Events
+module "sqs_reports_queue" {
+  source = "./modules/sqs-queue"
+
+  queue_name = "${local.name_prefix}-reports-queue"
+  tags       = local.common_tags
 }
 
 # CloudWatch Log Groups (one per service)
