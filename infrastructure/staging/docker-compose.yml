@@ -40,23 +40,9 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@catalog-db:5432/catalog
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
     depends_on:
-      - catalog-db
-    networks:
-      - microservices
-    restart: unless-stopped
-
-  catalog-db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=catalog
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - catalog-db-data:/var/lib/postgresql/data
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
@@ -69,23 +55,9 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@client-db:5432/client
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
     depends_on:
-      - client-db
-    networks:
-      - microservices
-    restart: unless-stopped
-
-  client-db:
-    image: postgres:15
-    ports:
-      - "5433:5432"
-    environment:
-      - POSTGRES_DB=client
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - client-db-data:/var/lib/postgresql/data
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
@@ -98,23 +70,9 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@delivery-db:5432/delivery
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
     depends_on:
-      - delivery-db
-    networks:
-      - microservices
-    restart: unless-stopped
-
-  delivery-db:
-    image: postgres:15
-    ports:
-      - "5434:5432"
-    environment:
-      - POSTGRES_DB=delivery
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - delivery-db-data:/var/lib/postgresql/data
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
@@ -127,23 +85,12 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@inventory-db:5432/inventory
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
+      - AWS_REGION=${AWS_REGION}
+      - S3_REPORTS_BUCKET=${S3_INVENTORY_REPORTS_BUCKET}
+      - SQS_REPORTS_QUEUE_URL=${SQS_REPORTS_QUEUE_URL}
     depends_on:
-      - inventory-db
-    networks:
-      - microservices
-    restart: unless-stopped
-
-  inventory-db:
-    image: postgres:15
-    ports:
-      - "5435:5432"
-    environment:
-      - POSTGRES_DB=inventory
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - inventory-db-data:/var/lib/postgresql/data
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
@@ -156,26 +103,12 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@order-db:5432/orderdb
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
       - AWS_REGION=${AWS_REGION}
-      - S3_REPORTS_BUCKET=${S3_REPORTS_BUCKET}
+      - S3_REPORTS_BUCKET=${S3_ORDER_REPORTS_BUCKET}
       - SQS_REPORTS_QUEUE_URL=${SQS_REPORTS_QUEUE_URL}
     depends_on:
-      - order-db
-    networks:
-      - microservices
-    restart: unless-stopped
-
-  order-db:
-    image: postgres:15
-    ports:
-      - "5436:5432"
-    environment:
-      - POSTGRES_DB=orderdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - order-db-data:/var/lib/postgresql/data
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
@@ -188,31 +121,26 @@ services:
       - .env.staging
       - ../common/.env.common
     environment:
-      - DATABASE_URL=postgresql://postgres:password@seller-db:5432/seller
+      - DATABASE_URL=postgresql://postgres:password@shared-db:5432/medisupply
     depends_on:
-      - seller-db
+      - shared-db
     networks:
       - microservices
     restart: unless-stopped
 
-  seller-db:
+  shared-db:
     image: postgres:15
     ports:
-      - "5437:5432"
+      - "5432:5432"
     environment:
-      - POSTGRES_DB=seller
+      - POSTGRES_DB=medisupply
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
     volumes:
-      - seller-db-data:/var/lib/postgresql/data
+      - shared-db-data:/var/lib/postgresql/data
     networks:
       - microservices
     restart: unless-stopped
 
 volumes:
-  catalog-db-data:
-  client-db-data:
-  delivery-db-data:
-  inventory-db-data:
-  order-db-data:
-  seller-db-data:
+  shared-db-data:
