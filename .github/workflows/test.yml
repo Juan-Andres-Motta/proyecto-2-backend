@@ -84,6 +84,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: bff-coverage-comment
           COMMENT_FILENAME: bff-coverage.txt
           SUBPROJECT_ID: bff
+          ANNOTATE_MISSING_LINES: false
 
   test-catalog:
     name: Test Catalog Service
@@ -127,6 +128,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: catalog-coverage-comment
           COMMENT_FILENAME: catalog-coverage.txt
           SUBPROJECT_ID: catalog
+          ANNOTATE_MISSING_LINES: false
 
   test-client:
     name: Test Client Service
@@ -170,6 +172,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: client-coverage-comment
           COMMENT_FILENAME: client-coverage.txt
           SUBPROJECT_ID: client
+          ANNOTATE_MISSING_LINES: false
 
   test-delivery:
     name: Test Delivery Service
@@ -213,6 +216,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: delivery-coverage-comment
           COMMENT_FILENAME: delivery-coverage.txt
           SUBPROJECT_ID: delivery
+          ANNOTATE_MISSING_LINES: false
 
   test-inventory:
     name: Test Inventory Service
@@ -256,6 +260,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: inventory-coverage-comment
           COMMENT_FILENAME: inventory-coverage.txt
           SUBPROJECT_ID: inventory
+          ANNOTATE_MISSING_LINES: false
 
   test-order:
     name: Test Order Service
@@ -299,6 +304,7 @@ jobs:
           COMMENT_ARTIFACT_NAME: order-coverage-comment
           COMMENT_FILENAME: order-coverage.txt
           SUBPROJECT_ID: order
+          ANNOTATE_MISSING_LINES: false
 
   test-seller:
     name: Test Seller Service
@@ -342,3 +348,4 @@ jobs:
           COMMENT_ARTIFACT_NAME: seller-coverage-comment
           COMMENT_FILENAME: seller-coverage.txt
           SUBPROJECT_ID: seller
+          ANNOTATE_MISSING_LINES: false
