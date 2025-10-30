@@ -41,15 +41,15 @@ locals {
       ORDER_URL     = "http://order.medisupply.local:8000"
       SELLER_URL    = "http://seller.medisupply.local:8000"
       # Cognito Authentication Configuration
-      AWS_COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
-      AWS_COGNITO_WEB_CLIENT_ID    = module.cognito.web_client_id
-      AWS_COGNITO_MOBILE_CLIENT_ID = module.cognito.mobile_client_id
-      AWS_COGNITO_REGION           = var.aws_region
-      JWT_ISSUER_URL               = module.cognito.jwt_issuer_url
-      JWT_JWKS_URL                 = module.cognito.jwks_url
+      AWS_COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+      AWS_COGNITO_REGION       = var.aws_region
+      JWT_ISSUER_URL           = module.cognito.jwt_issuer_url
+      JWT_JWKS_URL             = module.cognito.jwks_url
       # Real-time messaging configuration
-      REALTIME_PROVIDER   = "ably"
-      ABLY_ENVIRONMENT    = "prod"
+      REALTIME_PROVIDER = "ably"
+      ABLY_ENVIRONMENT  = "prod"
+      # Reports SQS Queue
+      SQS_REPORTS_QUEUE_URL = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
     }
     catalog = {
       DATABASE_URL = "postgresql://postgres:${local.db_password}@${module.rds_catalog.db_instance_address}:5432/catalogdb2"
