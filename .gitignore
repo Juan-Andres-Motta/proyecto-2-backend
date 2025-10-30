@@ -252,3 +252,6 @@ terraform.rc
 
 # Ignore .terraform.lock.hcl is NOT recommended - keep it for version locking
 # .terraform.lock.hcl
+.env.staging
+*.md
+!README.md

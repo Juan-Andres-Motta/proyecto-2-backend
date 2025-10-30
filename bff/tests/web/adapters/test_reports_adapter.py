@@ -58,8 +58,10 @@ class TestOrderReportsAdapterCreateReport:
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
-        assert "/reports" in call_args.args[0]
-        assert f"user_id={user_id}" in call_args.args[0]
+        assert call_args.args[0] == "/order/reports"
+        # user_id should be in JSON payload, not URL
+        payload = call_args.kwargs["json"]
+        assert payload["user_id"] == str(user_id)
 
     @pytest.mark.asyncio
     async def test_passes_correct_payload(
@@ -96,7 +98,7 @@ class TestOrderReportsAdapterListReports:
     async def test_calls_correct_endpoint(
         self, order_reports_adapter, mock_http_client
     ):
-        """Test that GET /reports is called."""
+        """Test that GET /order/reports is called."""
         user_id = uuid4()
 
         mock_http_client.get = AsyncMock(
@@ -114,7 +116,7 @@ class TestOrderReportsAdapterListReports:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/reports"
+        assert call_args.args[0] == "/order/reports"
 
     @pytest.mark.asyncio
     async def test_passes_query_parameters(
@@ -265,7 +267,7 @@ class TestInventoryReportsAdapterListReports:
     async def test_calls_correct_endpoint(
         self, inventory_reports_adapter, mock_http_client
     ):
-        """Test that GET /reports is called."""
+        """Test that GET /inventory/reports is called."""
         user_id = uuid4()
 
         mock_http_client.get = AsyncMock(
@@ -283,7 +285,7 @@ class TestInventoryReportsAdapterListReports:
 
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
-        assert call_args.args[0] == "/reports"
+        assert call_args.args[0] == "/inventory/reports"
 
 
 class TestInventoryReportsAdapterGetReport:

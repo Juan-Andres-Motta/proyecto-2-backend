@@ -32,7 +32,7 @@ class Report(Base):
     Actual report data is stored in S3 as JSON files.
     """
 
-    __tablename__ = "reports"
+    __tablename__ = "inventory_reports"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

@@ -56,19 +56,22 @@ class CognitoService:
         Raises:
             HTTPException: If authentication fails
         """
+        # Extract username from email (part before @) to match signup behavior
+        username = email.split("@")[0]
+
         headers = {
             "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
             "Content-Type": "application/x-amz-json-1.1",
         }
 
         auth_params = {
-            "USERNAME": email,
+            "USERNAME": username,
             "PASSWORD": password,
         }
 
         # Add SECRET_HASH if client secret exists
         if self.client_secret:
-            auth_params["SECRET_HASH"] = self._get_secret_hash(email)
+            auth_params["SECRET_HASH"] = self._get_secret_hash(username)
 
         body = {
             "AuthFlow": "USER_PASSWORD_AUTH",
@@ -188,20 +191,27 @@ class CognitoService:
                 detail="Authentication service temporarily unavailable",
             )
 
-    async def signup(self, email: str, password: str, user_type: str) -> Dict:
+    async def create_user(
+        self,
+        email: str,
+        password: str,
+        name: str,
+        user_type: str,
+    ) -> Dict:
         """
-        Register a new user.
+        Create a new user in Cognito.
 
         Args:
             email: User's email address
             password: User's password
-            user_type: Type of user ('web', 'seller', or 'client')
+            name: User's full name
+            user_type: Type of user (client, seller, web)
 
         Returns:
-            Dict containing user information
+            Dict containing user_id and username
 
         Raises:
-            HTTPException: If signup fails
+            HTTPException: If user creation fails
         """
         headers = {
             "X-Amz-Target": "AWSCognitoIdentityProviderService.SignUp",
@@ -210,19 +220,24 @@ class CognitoService:
 
         user_attributes = [
             {"Name": "email", "Value": email},
+            {"Name": "name", "Value": name},
             {"Name": "custom:user_type", "Value": user_type},
         ]
 
+        # Extract username from email (part before @) to avoid email format
+        # Cognito with email aliases requires non-email usernames
+        username = email.split("@")[0]
+
         body = {
             "ClientId": self.client_id,
-            "Username": email,
+            "Username": username,
             "Password": password,
             "UserAttributes": user_attributes,
         }
 
         # Add SECRET_HASH if client secret exists
         if self.client_secret:
-            body["SecretHash"] = self._get_secret_hash(email)
+            body["SecretHash"] = self._get_secret_hash(username)
 
         try:
             async with httpx.AsyncClient() as client:
@@ -256,13 +271,66 @@ class CognitoService:
                         )
 
                 result = response.json()
+                cognito_user_id = result.get("UserSub")
+                logger.info(f"Cognito user created: {cognito_user_id}, username: {username}")
+
                 return {
-                    "user_id": result.get("UserSub"),
+                    "user_id": cognito_user_id,
+                    "username": username,
                     "email": email,
                 }
 
         except httpx.HTTPError as e:
             logger.error(f"HTTP error during Cognito signup: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service temporarily unavailable",
+            )
+
+    async def delete_user(self, username: str) -> None:
+        """
+        Delete a user from Cognito (admin operation for saga rollback).
+
+        Args:
+            username: Username of the user to delete
+
+        Raises:
+            HTTPException: If user deletion fails
+        """
+        headers = {
+            "X-Amz-Target": "AWSCognitoIdentityProviderService.AdminDeleteUser",
+            "Content-Type": "application/x-amz-json-1.1",
+        }
+
+        body = {
+            "UserPoolId": self.user_pool_id,
+            "Username": username,
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.cognito_idp_url,
+                    json=body,
+                    headers=headers,
+                    timeout=10.0,
+                )
+
+                if response.status_code != 200:
+                    error_data = response.json()
+                    error_type = error_data.get("__type", "UnknownError")
+                    error_message = error_data.get("message", "User deletion failed")
+
+                    logger.error(f"Cognito delete user error: {error_type} - {error_message}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Failed to delete user: {error_message}",
+                    )
+
+                logger.info(f"Cognito user deleted: {username}")
+
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error during Cognito user deletion: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Authentication service temporarily unavailable",

@@ -20,9 +20,9 @@ resource "aws_db_instance" "main" {
   # Smallest instance class
   instance_class = "db.t3.micro"
 
-  # Minimal storage configuration
+  # Minimal storage configuration - Free tier eligible
   allocated_storage = 20
-  storage_type      = "gp3"
+  storage_type      = "gp2"  # gp2 is free tier eligible (gp3 is not)
   storage_encrypted = false  # Faster startup without encryption
 
   # Database configuration

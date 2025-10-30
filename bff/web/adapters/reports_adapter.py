@@ -34,6 +34,7 @@ class OrderReportsAdapter(ReportsPort):
         )
 
         payload = {
+            "user_id": str(user_id),
             "report_type": request.report_type.value,
             "start_date": request.start_date.isoformat(),
             "end_date": request.end_date.isoformat(),
@@ -41,7 +42,7 @@ class OrderReportsAdapter(ReportsPort):
         }
 
         response = await self.http_client.post(
-            f"/reports?user_id={user_id}", json=payload
+            "/order/reports", json=payload
         )
 
         return ReportCreateResponse(**response)
@@ -64,7 +65,7 @@ class OrderReportsAdapter(ReportsPort):
         if report_type:
             params["report_type"] = report_type.value
 
-        response = await self.http_client.get("/reports", params=params)
+        response = await self.http_client.get("/order/reports", params=params)
 
         return PaginatedReportsResponse(**response)
 
@@ -73,7 +74,7 @@ class OrderReportsAdapter(ReportsPort):
         logger.info(f"Getting report {report_id} from Order service")
 
         response = await self.http_client.get(
-            f"/reports/{report_id}", params={"user_id": str(user_id)}
+            f"/order/reports/{report_id}", params={"user_id": str(user_id)}
         )
 
         return ReportResponse(**response)
@@ -94,6 +95,7 @@ class InventoryReportsAdapter(ReportsPort):
         )
 
         payload = {
+            "user_id": str(user_id),  # Added user_id to body
             "report_type": request.report_type.value,
             "start_date": request.start_date.isoformat(),
             "end_date": request.end_date.isoformat(),
@@ -101,7 +103,7 @@ class InventoryReportsAdapter(ReportsPort):
         }
 
         response = await self.http_client.post(
-            f"/reports?user_id={user_id}", json=payload
+            "/inventory/reports", json=payload  # Changed to /inventory/reports without query param
         )
 
         return ReportCreateResponse(**response)
@@ -124,7 +126,7 @@ class InventoryReportsAdapter(ReportsPort):
         if report_type:
             params["report_type"] = report_type.value
 
-        response = await self.http_client.get("/reports", params=params)
+        response = await self.http_client.get("/inventory/reports", params=params)
 
         return PaginatedReportsResponse(**response)
 
@@ -133,7 +135,7 @@ class InventoryReportsAdapter(ReportsPort):
         logger.info(f"Getting report {report_id} from Inventory service")
 
         response = await self.http_client.get(
-            f"/reports/{report_id}", params={"user_id": str(user_id)}
+            f"/inventory/reports/{report_id}", params={"user_id": str(user_id)}
         )
 
         return ReportResponse(**response)

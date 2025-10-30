@@ -1,0 +1,97 @@
+services:
+  catalog:
+    build:
+      context: ./catalog
+      target: app
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env.staging
+    networks:
+      - medisupply
+
+  client:
+    build:
+      context: ./client
+      target: app
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env.staging
+    networks:
+      - medisupply
+
+  delivery:
+    build:
+      context: ./delivery
+      target: app
+    ports:
+      - "8003:8000"
+    env_file:
+      - .env.staging
+    networks:
+      - medisupply
+
+  inventory:
+    build:
+      context: ./inventory
+      target: app
+    ports:
+      - "8004:8000"
+    env_file:
+      - .env.staging
+    environment:
+      - S3_REPORTS_BUCKET=${S3_INVENTORY_REPORTS_BUCKET}
+    networks:
+      - medisupply
+
+  order:
+    build:
+      context: ./order
+      target: app
+    ports:
+      - "8005:8000"
+    env_file:
+      - .env.staging
+    environment:
+      - S3_REPORTS_BUCKET=${S3_ORDER_REPORTS_BUCKET}
+    networks:
+      - medisupply
+
+  seller:
+    build:
+      context: ./seller
+      target: app
+    ports:
+      - "8006:8000"
+    env_file:
+      - .env.staging
+    networks:
+      - medisupply
+
+  bff:
+    build: ./bff
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.staging
+    environment:
+      - CATALOG_URL=http://catalog:8000
+      - CLIENT_URL=http://client:8000
+      - DELIVERY_URL=http://delivery:8000
+      - INVENTORY_URL=http://inventory:8000
+      - ORDER_URL=http://order:8000
+      - SELLER_URL=http://seller:8000
+    networks:
+      - medisupply
+    depends_on:
+      - catalog
+      - client
+      - delivery
+      - inventory
+      - order
+      - seller
+
+networks:
+  medisupply:
+    driver: bridge

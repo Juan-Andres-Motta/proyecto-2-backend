@@ -17,11 +17,14 @@ resource "aws_ecs_service" "service" {
     assign_public_ip = true # Required for pulling from ECR without NAT Gateway
   }
 
-  # Load balancer configuration
-  load_balancer {
-    target_group_arn = var.target_group_arn
-    container_name   = var.service_name
-    container_port   = var.container_port
+  # Load balancer configuration (optional)
+  dynamic "load_balancer" {
+    for_each = var.target_group_arn != null ? [1] : []
+    content {
+      target_group_arn = var.target_group_arn
+      container_name   = var.service_name
+      container_port   = var.container_port
+    }
   }
 
   # Service Connect configuration for internal service-to-service communication
@@ -49,8 +52,8 @@ resource "aws_ecs_service" "service" {
     rollback = true
   }
 
-  # Health check grace period for ALB
-  health_check_grace_period_seconds = 60
+  # Health check grace period for ALB (only when using load balancer)
+  health_check_grace_period_seconds = var.target_group_arn != null ? 60 : null
 
   # Wait for steady state before considering deployment complete
   wait_for_steady_state = true  # Changed to true for safer deployments

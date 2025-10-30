@@ -33,7 +33,7 @@ class Report(Base):
     Actual report data is stored in S3 as JSON files.
     """
 
-    __tablename__ = "reports"
+    __tablename__ = "order_reports"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -66,8 +66,8 @@ class Report(Base):
     )
 
     __table_args__ = (
-        Index("idx_reports_user_id", "user_id"),
-        Index("idx_reports_status", "status"),
-        Index("idx_reports_created_at", "created_at"),
-        Index("idx_reports_user_status", "user_id", "status"),
+        Index("idx_order_reports_user_id", "user_id"),
+        Index("idx_order_reports_status", "status"),
+        Index("idx_order_reports_created_at", "created_at"),
+        Index("idx_order_reports_user_status", "user_id", "status"),
     )

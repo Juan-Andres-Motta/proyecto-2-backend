@@ -2,7 +2,7 @@
 Authentication schemas for Cognito login/signup.
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -39,11 +39,35 @@ class RefreshTokenResponse(BaseModel):
 
 
 class SignupRequest(BaseModel):
-    """Request model for user signup."""
+    """Request model for user signup - only clients can self-register."""
 
+    # Cognito fields
     email: EmailStr
     password: str = Field(..., min_length=8)
-    user_type: str = Field(..., description="Type of user: 'web', 'seller', or 'client'")
+    name: str = Field(..., min_length=1, description="Representative's full name")
+
+    # Client-specific fields (required for creating client in client microservice)
+    telefono: str = Field(..., min_length=1)
+    nombre_institucion: str = Field(..., min_length=1)
+    tipo_institucion: str = Field(
+        ...,
+        description="Tipo de institución: hospital, clinica, laboratorio, centro_diagnostico"
+    )
+    nit: str = Field(..., min_length=1)
+    direccion: str = Field(..., min_length=1)
+    ciudad: str = Field(..., min_length=1)
+    pais: str = Field(..., min_length=1)
+    representante: str = Field(..., min_length=1)
+
+    # user_type is fixed to "client" - only clients can self-register
+    user_type: str = Field(default="client", description="Must be 'client' - only clients can self-register")
+
+    @field_validator("user_type")
+    @classmethod
+    def validate_user_type(cls, v: str) -> str:
+        if v != "client":
+            raise ValueError("Only clients can self-register. user_type must be 'client'")
+        return v
 
 
 class SignupResponse(BaseModel):

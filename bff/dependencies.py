@@ -220,6 +220,32 @@ def get_seller_client_port():
     return ClientAdapter(client)
 
 
+def get_order_reports_adapter():
+    """
+    Factory for OrderReportsAdapter implementation.
+
+    Returns:
+        OrderReportsAdapter for order microservice reports
+    """
+    from web.adapters.reports_adapter import OrderReportsAdapter
+
+    client = get_order_http_client()
+    return OrderReportsAdapter(client)
+
+
+def get_inventory_reports_adapter():
+    """
+    Factory for InventoryReportsAdapter implementation.
+
+    Returns:
+        InventoryReportsAdapter for inventory microservice reports
+    """
+    from web.adapters.reports_adapter import InventoryReportsAdapter
+
+    client = get_inventory_http_client()
+    return InventoryReportsAdapter(client)
+
+
 def get_realtime_publisher() -> RealtimePublisher:
     """Factory for RealtimePublisher implementation."""
     return get_publisher()

@@ -1,6 +1,7 @@
 """Get report use case."""
 
 import logging
+from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID
 
@@ -10,6 +11,14 @@ from src.domain.services.s3_service import S3Service
 from src.domain.value_objects import ReportStatus
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GetReportOutput:
+    """Output data for retrieving a report."""
+
+    report: Report
+    download_url: Optional[str] = None
 
 
 class GetReportUseCase:
@@ -25,7 +34,7 @@ class GetReportUseCase:
 
     async def execute(
         self, report_id: UUID, user_id: UUID
-    ) -> tuple[Optional[Report], Optional[str]]:
+    ) -> Optional[GetReportOutput]:
         """
         Get a report by ID and generate download URL if completed.
 
@@ -34,27 +43,21 @@ class GetReportUseCase:
             user_id: User UUID (for authorization)
 
         Returns:
-            Tuple of (Report entity, presigned URL if completed)
+            GetReportOutput with report and optional download URL
+            None if report not found or user not authorized
 
-        Raises:
-            ValueError: If report not found or user not authorized
+        Note:
+            - Download URL is generated only for COMPLETED reports
+            - URL expires after 1 hour (3600 seconds)
         """
         logger.info(f"Getting report {report_id} for user {user_id}")
 
-        # Find report
-        report = await self.report_repository.find_by_id(report_id)
+        # Find report with user_id filtering (authorization at repository level)
+        report = await self.report_repository.find_by_id(report_id, user_id)
 
         if not report:
-            logger.warning(f"Report {report_id} not found")
-            return None, None
-
-        # Authorization: verify user owns the report
-        if report.user_id != user_id:
-            logger.warning(
-                f"User {user_id} attempted to access report {report_id} "
-                f"owned by {report.user_id}"
-            )
-            raise ValueError("Unauthorized: You do not own this report")
+            logger.warning(f"Report {report_id} not found or unauthorized for user {user_id}")
+            return None
 
         # Generate presigned URL if report is completed
         download_url = None
@@ -65,4 +68,4 @@ class GetReportUseCase:
             )
 
         logger.info(f"Retrieved report {report_id} (status={report.status})")
-        return report, download_url
+        return GetReportOutput(report=report, download_url=download_url)

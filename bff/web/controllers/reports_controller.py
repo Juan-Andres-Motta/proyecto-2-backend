@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from common.auth.dependencies import require_web_user
 from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
 from common.exceptions import MicroserviceError, ResourceNotFoundError
-from dependencies import get_inventory_http_client, get_order_http_client
+from dependencies import get_inventory_reports_adapter, get_order_reports_adapter
 
 from ..adapters.reports_adapter import InventoryReportsAdapter, OrderReportsAdapter
 from ..schemas.report_schemas import (
@@ -40,6 +40,8 @@ router = APIRouter()
 )
 async def create_report(
     request: ReportCreateRequest,
+    order_reports: OrderReportsAdapter = Depends(get_order_reports_adapter),
+    inventory_reports: InventoryReportsAdapter = Depends(get_inventory_reports_adapter),
     user: Dict = Depends(require_web_user),
 ):
     """
@@ -51,6 +53,8 @@ async def create_report(
 
     Args:
         request: Report creation request
+        order_reports: Order reports adapter (injected)
+        inventory_reports: Inventory reports adapter (injected)
         user: Authenticated user (from JWT)
 
     Returns:
@@ -66,12 +70,10 @@ async def create_report(
             ReportType.ORDERS_PER_STATUS,
         ]:
             # Order microservice
-            order_client = get_order_http_client()
-            adapter = OrderReportsAdapter(order_client)
+            adapter = order_reports
         elif request.report_type == ReportType.LOW_STOCK:
             # Inventory microservice
-            inventory_client = get_inventory_http_client()
-            adapter = InventoryReportsAdapter(inventory_client)
+            adapter = inventory_reports
         else:
             raise HTTPException(status_code=400, detail="Invalid report type")
 
@@ -103,6 +105,8 @@ async def list_reports(
     offset: int = Query(0, ge=0),
     status: Optional[str] = Query(None),
     report_type: Optional[str] = Query(None),
+    order_reports: OrderReportsAdapter = Depends(get_order_reports_adapter),
+    inventory_reports: InventoryReportsAdapter = Depends(get_inventory_reports_adapter),
     user: Dict = Depends(require_web_user),
 ):
     """
@@ -115,6 +119,8 @@ async def list_reports(
         offset: Number of reports to skip
         status: Optional status filter
         report_type: Optional report type filter
+        order_reports: Order reports adapter (injected)
+        inventory_reports: Inventory reports adapter (injected)
         user: Authenticated user (from JWT)
 
     Returns:
@@ -128,16 +134,10 @@ async def list_reports(
         status_filter = ReportStatus(status) if status else None
         type_filter = ReportType(report_type) if report_type else None
 
-        # Initialize adapters
-        order_client = get_order_http_client()
-        inventory_client = get_inventory_http_client()
-        order_adapter = OrderReportsAdapter(order_client)
-        inventory_adapter = InventoryReportsAdapter(inventory_client)
-
         # If type filter is specified, only query relevant microservice
         if type_filter in [ReportType.ORDERS_PER_SELLER, ReportType.ORDERS_PER_STATUS]:
             # Only Order microservice
-            response = await order_adapter.list_reports(
+            response = await order_reports.list_reports(
                 user_id=user_id,
                 limit=limit,
                 offset=offset,
@@ -148,7 +148,7 @@ async def list_reports(
 
         elif type_filter == ReportType.LOW_STOCK:
             # Only Inventory microservice
-            response = await inventory_adapter.list_reports(
+            response = await inventory_reports.list_reports(
                 user_id=user_id,
                 limit=limit,
                 offset=offset,
@@ -160,14 +160,14 @@ async def list_reports(
         else:
             # No type filter - aggregate from both microservices
             # Query both in parallel
-            order_task = order_adapter.list_reports(
+            order_task = order_reports.list_reports(
                 user_id=user_id,
                 limit=limit,
                 offset=offset,
                 status=status_filter,
                 report_type=None,
             )
-            inventory_task = inventory_adapter.list_reports(
+            inventory_task = inventory_reports.list_reports(
                 user_id=user_id,
                 limit=limit,
                 offset=offset,
@@ -232,6 +232,8 @@ async def list_reports(
 )
 async def get_report(
     report_id: UUID,
+    order_reports: OrderReportsAdapter = Depends(get_order_reports_adapter),
+    inventory_reports: InventoryReportsAdapter = Depends(get_inventory_reports_adapter),
     user: Dict = Depends(require_web_user),
 ):
     """
@@ -241,6 +243,8 @@ async def get_report(
 
     Args:
         report_id: Report UUID
+        order_reports: Order reports adapter (injected)
+        inventory_reports: Inventory reports adapter (injected)
         user: Authenticated user (from JWT)
 
     Returns:
@@ -250,15 +254,9 @@ async def get_report(
     logger.info(f"Getting report {report_id} for user {user_id}")
 
     try:
-        # Initialize adapters
-        order_client = get_order_http_client()
-        inventory_client = get_inventory_http_client()
-        order_adapter = OrderReportsAdapter(order_client)
-        inventory_adapter = InventoryReportsAdapter(inventory_client)
-
         # Try Order microservice first
         try:
-            response = await order_adapter.get_report(user_id=user_id, report_id=report_id)
+            response = await order_reports.get_report(user_id=user_id, report_id=report_id)
             return response
         except ResourceNotFoundError:
             # Not found in Order, try Inventory
@@ -266,7 +264,7 @@ async def get_report(
 
         # Try Inventory microservice
         try:
-            response = await inventory_adapter.get_report(
+            response = await inventory_reports.get_report(
                 user_id=user_id, report_id=report_id
             )
             return response

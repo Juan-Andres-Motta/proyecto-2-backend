@@ -11,12 +11,14 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import HTTPException
 
-from client_app.controllers.orders_controller import create_order
+from client_app.controllers.orders_controller import create_order, list_my_orders
 from client_app.ports.order_port import OrderPort
+from client_app.ports.client_port import ClientPort
 from client_app.schemas.order_schemas import (
     OrderCreateInput,
     OrderCreateResponse,
     OrderItemInput,
+    PaginatedOrdersResponse,
 )
 from common.exceptions import (
     MicroserviceConnectionError,
@@ -32,6 +34,12 @@ def mock_order_port():
 
 
 @pytest.fixture
+def mock_client_port():
+    """Create a mock client port."""
+    return Mock(spec=ClientPort)
+
+
+@pytest.fixture
 def sample_order_input():
     """Create sample order input data."""
     return OrderCreateInput(
@@ -41,6 +49,16 @@ def sample_order_input():
             OrderItemInput(producto_id=uuid4(), cantidad=3),
         ],
     )
+
+
+@pytest.fixture
+def mock_user():
+    """Create a mock authenticated user."""
+    return {
+        "sub": "cognito-user-123",
+        "email": "test@example.com",
+        "custom:user_type": "client",
+    }
 
 
 class TestClientAppOrdersController:
@@ -139,3 +157,153 @@ class TestClientAppOrdersController:
 
         assert exc_info.value.status_code == 500
         assert "Unexpected error creating order" in exc_info.value.detail
+
+
+class TestListMyOrdersController:
+    """Test list_my_orders controller for client app."""
+
+    @pytest.mark.asyncio
+    async def test_list_my_orders_success(
+        self, mock_client_port, mock_order_port, mock_user
+    ):
+        """Test successful orders listing."""
+        cliente_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": cliente_id}
+        )
+
+        expected_response = PaginatedOrdersResponse(
+            items=[],
+            total=0,
+            page=1,
+            size=10,
+            has_next=False,
+            has_previous=False,
+        )
+        mock_order_port.list_customer_orders = AsyncMock(
+            return_value=expected_response
+        )
+
+        result = await list_my_orders(
+            order_port=mock_order_port,
+            client_port=mock_client_port,
+            user=mock_user,
+            limit=10,
+            offset=0,
+        )
+
+        # Verify client lookup was called with cognito_user_id
+        mock_client_port.get_client_by_cognito_user_id.assert_called_once_with(
+            "cognito-user-123"
+        )
+
+        # Verify orders were fetched with cliente_id
+        mock_order_port.list_customer_orders.assert_called_once_with(
+            customer_id=cliente_id, limit=10, offset=0
+        )
+
+        assert result == expected_response
+
+    @pytest.mark.asyncio
+    async def test_list_my_orders_client_not_found(
+        self, mock_client_port, mock_order_port, mock_user
+    ):
+        """Test when client record is not found returns 404."""
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value=None
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await list_my_orders(
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
+                limit=10,
+                offset=0,
+            )
+
+        assert exc_info.value.status_code == 404
+        assert "No client found" in exc_info.value.detail
+        assert "cognito-user-123" in exc_info.value.detail
+
+        # Verify we never tried to list orders
+        mock_order_port.list_customer_orders.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_list_my_orders_handles_connection_error(
+        self, mock_client_port, mock_order_port, mock_user
+    ):
+        """Test connection error returns 503."""
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            side_effect=MicroserviceConnectionError(
+                service_name="client", original_error="Connection refused"
+            )
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await list_my_orders(
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
+                limit=10,
+                offset=0,
+            )
+
+        assert exc_info.value.status_code == 503
+        assert "Service unavailable" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_list_my_orders_handles_http_error(
+        self, mock_client_port, mock_order_port, mock_user
+    ):
+        """Test HTTP error from microservice is propagated."""
+        cliente_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": cliente_id}
+        )
+
+        mock_order_port.list_customer_orders = AsyncMock(
+            side_effect=MicroserviceHTTPError(
+                service_name="order",
+                status_code=500,
+                response_text="Internal server error",
+            )
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await list_my_orders(
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
+                limit=10,
+                offset=0,
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Service error" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_list_my_orders_handles_unexpected_error(
+        self, mock_client_port, mock_order_port, mock_user
+    ):
+        """Test unexpected error returns 500."""
+        cliente_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": cliente_id}
+        )
+
+        mock_order_port.list_customer_orders = AsyncMock(
+            side_effect=Exception("Unexpected database error")
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await list_my_orders(
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
+                limit=10,
+                offset=0,
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Unexpected error listing orders" in exc_info.value.detail

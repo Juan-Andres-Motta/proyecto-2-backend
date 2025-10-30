@@ -6,6 +6,7 @@ from src.adapters.input.controllers.common_controller import router as common_ro
 from src.adapters.input.controllers.inventory_controller import (
     router as inventory_router,
 )
+from src.adapters.input.controllers.reports_controller import router as reports_router
 from src.adapters.input.controllers.warehouse_controller import router as warehouse_router
 from src.infrastructure.api.exception_handlers import register_exception_handlers
 from src.infrastructure.config.logger import setup_logging
@@ -38,3 +39,4 @@ register_exception_handlers(app)
 app.include_router(common_router, prefix="/inventory")
 app.include_router(warehouse_router, prefix="/inventory")
 app.include_router(inventory_router, prefix="/inventory")
+app.include_router(reports_router, prefix="/inventory")

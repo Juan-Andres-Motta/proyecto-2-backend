@@ -265,6 +265,49 @@ class TestReportRepositoryFindById:
         assert result is None
         mock_session.execute.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_finds_report_with_user_id_filter(
+        self, report_repository, sample_report_model, mock_session
+    ):
+        """Test that find_by_id filters by user_id when provided."""
+        report_id = sample_report_model.id
+        user_id = sample_report_model.user_id
+
+        # Mock session execute to return the report
+        mock_result = AsyncMock()
+        mock_result.scalar_one_or_none = Mock(return_value=sample_report_model)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Call find_by_id with user_id
+        result = await report_repository.find_by_id(report_id, user_id)
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, ReportEntity)
+        assert result.id == report_id
+        assert result.user_id == user_id
+        mock_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_user_id_mismatch(
+        self, report_repository, sample_report_model, mock_session
+    ):
+        """Test that find_by_id returns None when user_id doesn't match."""
+        report_id = sample_report_model.id
+        wrong_user_id = uuid.uuid4()
+
+        # Mock session execute to return None (SQL filters out non-matching user_id)
+        mock_result = AsyncMock()
+        mock_result.scalar_one_or_none = Mock(return_value=None)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        # Call find_by_id with wrong user_id
+        result = await report_repository.find_by_id(report_id, wrong_user_id)
+
+        # Verify result is None (unauthorized)
+        assert result is None
+        mock_session.execute.assert_called_once()
+
 
 class TestReportRepositoryFindByUser:
     """Test find_by_user method."""
@@ -391,3 +434,23 @@ class TestReportRepositoryFindByUser:
 
         # Verify call was made
         assert mock_session.execute.call_count == 2
+
+
+class TestReportRepositoryUpdateStatus:
+    """Tests for ReportRepository.update_status method."""
+
+    @pytest.mark.asyncio
+    async def test_update_status_report_not_found(self, db_session: AsyncSession):
+        """Test update_status raises ValueError when report not found."""
+        from src.domain.value_objects import ReportStatus
+
+        repository = ReportRepository(db_session)
+
+        # Try to update non-existent report
+        non_existent_id = uuid.uuid4()
+
+        with pytest.raises(ValueError, match=f"Report {non_existent_id} not found"):
+            await repository.update_status(
+                report_id=non_existent_id,
+                status=ReportStatus.COMPLETED,
+            )

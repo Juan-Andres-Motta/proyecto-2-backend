@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 import pycountry
@@ -111,6 +111,51 @@ class InventoryResponse(BaseModel):
 
 class PaginatedInventoriesResponse(BaseModel):
     items: List[InventoryResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool
+
+
+# Report schemas
+class ReportCreateInput(BaseModel):
+    """Schema for creating a new report."""
+
+    user_id: UUID
+    report_type: str
+    start_date: datetime
+    end_date: datetime
+    filters: Optional[Dict[str, Any]] = None
+
+
+class ReportCreateResponse(BaseModel):
+    """Schema for report creation response."""
+
+    report_id: UUID
+    status: str
+    message: str
+
+
+class ReportResponse(BaseModel):
+    """Schema for report details response."""
+
+    id: UUID
+    report_type: str
+    status: str
+    start_date: datetime
+    end_date: datetime
+    filters: Dict[str, Any]
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    download_url: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class PaginatedReportsResponse(BaseModel):
+    """Schema for paginated list of reports."""
+
+    items: List[ReportResponse]
     total: int
     page: int
     size: int

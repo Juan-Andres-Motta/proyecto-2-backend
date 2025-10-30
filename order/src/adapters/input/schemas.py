@@ -150,6 +150,7 @@ class PaginatedOrdersResponse(BaseModel):
 class ReportCreateInput(BaseModel):
     """Input schema for creating a report."""
 
+    user_id: UUID  # User ID from authentication (in body, not query param)
     report_type: str  # orders_per_seller, orders_per_status
     start_date: datetime
     end_date: datetime
@@ -161,16 +162,18 @@ class ReportCreateResponse(BaseModel):
 
     report_id: UUID
     status: str  # pending
+    message: str  # Status message for user
 
 
 class ReportResponse(BaseModel):
     """Output schema for a report."""
 
-    report_id: UUID
+    id: UUID  # Changed from report_id to id for consistency
     report_type: str
     status: str
     start_date: datetime
     end_date: datetime
+    filters: Optional[dict] = None  # Added filters field
     created_at: datetime
     completed_at: Optional[datetime] = None
     download_url: Optional[str] = None

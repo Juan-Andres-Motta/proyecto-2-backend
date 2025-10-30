@@ -43,7 +43,7 @@ class SQSPublisher:
             Exception: If publishing fails
         """
         message = {
-            "event_type": "report_generated",
+            "event_type": "web_report_generated",
             "microservice": "order",
             "report_id": str(report_id),
             "user_id": str(user_id),
@@ -89,7 +89,7 @@ class SQSPublisher:
             Exception: If publishing fails
         """
         message = {
-            "event_type": "report_generated",
+            "event_type": "web_report_generated",
             "microservice": "order",
             "report_id": str(report_id),
             "user_id": str(user_id),

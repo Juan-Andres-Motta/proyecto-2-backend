@@ -314,3 +314,111 @@ async def test_generate_report_passes_filters_to_generator(mock_dependencies):
         # Verify filters were passed to generator
         call_args = mock_gen.generate.call_args
         assert call_args.kwargs["filters"] == filters
+
+@pytest.mark.asyncio
+async def test_generate_report_unknown_report_type(mock_dependencies):
+    """Test that unknown report type raises ValueError."""
+    report_id = uuid4()
+    report = Report(
+        id=report_id,
+        report_type="UNKNOWN_TYPE",  # Invalid type
+        status=ReportStatus.PENDING,
+        user_id=uuid4(),
+        start_date=datetime(2025, 1, 1),
+        end_date=datetime(2025, 1, 31),
+        filters={},
+        s3_bucket=None,
+        s3_key=None,
+        error_message=None,
+        created_at=datetime.now(),
+        completed_at=None,
+    )
+
+    mock_dependencies["report_repository"].find_by_id.return_value = report
+
+    use_case = GenerateReportUseCase(**mock_dependencies)
+
+    # Should not raise - error is caught and report marked as FAILED
+    await use_case.execute(report.id)
+
+    # Verify status was updated to FAILED
+    mock_dependencies["report_repository"].update_status.assert_called()
+    call_args = mock_dependencies["report_repository"].update_status.call_args
+    assert call_args[1]["status"] == ReportStatus.FAILED
+    assert "Unknown report type" in call_args[1]["error_message"]
+
+
+@pytest.mark.asyncio
+async def test_generate_report_handles_update_status_failure(mock_dependencies):
+    """Test that nested exception in update_status doesn't break flow."""
+    report_id = uuid4()
+    report = Report(
+        id=report_id,
+        report_type=ReportType.ORDERS_PER_SELLER,
+        status=ReportStatus.PENDING,
+        user_id=uuid4(),
+        start_date=datetime(2025, 1, 1),
+        end_date=datetime(2025, 1, 31),
+        filters={},
+        s3_bucket=None,
+        s3_key=None,
+        error_message=None,
+        created_at=datetime.now(),
+        completed_at=None,
+    )
+
+    mock_dependencies["report_repository"].find_by_id.return_value = report
+
+    # Make S3 upload fail
+    mock_dependencies["s3_service"].upload_report.side_effect = Exception("S3 failed")
+
+    # Make update_status fail on second call (when trying to mark FAILED)
+    mock_dependencies["report_repository"].update_status.side_effect = [
+        None,  # First call (mark PROCESSING) succeeds
+        Exception("DB failed"),  # Second call (mark FAILED) fails
+    ]
+
+    use_case = GenerateReportUseCase(**mock_dependencies)
+
+    # Should not raise - nested exception is logged but swallowed
+    await use_case.execute(report.id)
+
+    # Verify update_status was called twice
+    assert mock_dependencies["report_repository"].update_status.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_generate_report_handles_report_deleted_during_failure(mock_dependencies):
+    """Test that report being deleted during failure handling doesn't break flow."""
+    report_id = uuid4()
+    report = Report(
+        id=report_id,
+        report_type=ReportType.ORDERS_PER_SELLER,
+        status=ReportStatus.PENDING,
+        user_id=uuid4(),
+        start_date=datetime(2025, 1, 1),
+        end_date=datetime(2025, 1, 31),
+        filters={},
+        s3_bucket=None,
+        s3_key=None,
+        error_message=None,
+        created_at=datetime.now(),
+        completed_at=None,
+    )
+
+    # First call returns report, second call (after failure) returns None
+    mock_dependencies["report_repository"].find_by_id.side_effect = [report, None]
+
+    # Make S3 upload fail
+    mock_dependencies["s3_service"].upload_report.side_effect = Exception("S3 failed")
+
+    use_case = GenerateReportUseCase(**mock_dependencies)
+
+    # Should not raise - report being None is handled gracefully
+    await use_case.execute(report.id)
+
+    # Verify find_by_id was called twice
+    assert mock_dependencies["report_repository"].find_by_id.call_count == 2
+
+    # Verify publish_report_failed was NOT called (because report was None)
+    mock_dependencies["sqs_publisher"].publish_report_failed.assert_not_called()

@@ -1,7 +1,7 @@
 """Unit tests for reports controller."""
 
 from datetime import datetime
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
 import pytest
@@ -41,7 +41,7 @@ class TestCreateReport:
 
     @pytest.mark.asyncio
     async def test_create_orders_per_seller_report(
-        self, mock_user, mock_order_adapter
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test creating orders_per_seller report routes to Order service."""
         request_data = ReportCreateRequest(
@@ -55,22 +55,17 @@ class TestCreateReport:
             return_value=ReportCreateResponse(report_id=report_id, status="pending")
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ) as mock_get_order, patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
+        result = await create_report(
+            request_data, mock_order_adapter, mock_inventory_adapter, mock_user
+        )
 
-            result = await create_report(request_data, mock_user)
-
-            assert result.report_id == report_id
-            assert result.status == "pending"
-            mock_order_adapter.create_report.assert_called_once()
+        assert result.report_id == report_id
+        assert result.status == "pending"
+        mock_order_adapter.create_report.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_orders_per_status_report(
-        self, mock_user, mock_order_adapter
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test creating orders_per_status report routes to Order service."""
         request_data = ReportCreateRequest(
@@ -84,20 +79,17 @@ class TestCreateReport:
             return_value=ReportCreateResponse(report_id=report_id, status="pending")
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
+        result = await create_report(
+            request_data, mock_order_adapter, mock_inventory_adapter, mock_user
+        )
 
-            result = await create_report(request_data, mock_user)
-
-            assert result.report_id == report_id
-            mock_order_adapter.create_report.assert_called_once()
+        assert result.report_id == report_id
+        mock_order_adapter.create_report.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_low_stock_report(self, mock_user, mock_inventory_adapter):
+    async def test_create_low_stock_report(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
         """Test creating low_stock report routes to Inventory service."""
         request_data = ReportCreateRequest(
             report_type=ReportType.LOW_STOCK,
@@ -110,20 +102,17 @@ class TestCreateReport:
             return_value=ReportCreateResponse(report_id=report_id, status="pending")
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await create_report(
+            request_data, mock_order_adapter, mock_inventory_adapter, mock_user
+        )
 
-            result = await create_report(request_data, mock_user)
-
-            assert result.report_id == report_id
-            mock_inventory_adapter.create_report.assert_called_once()
+        assert result.report_id == report_id
+        mock_inventory_adapter.create_report.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_report_handles_microservice_error(self, mock_user):
+    async def test_create_report_handles_microservice_error(
+        self, mock_user, mock_inventory_adapter
+    ):
         """Test that microservice errors are handled correctly."""
         request_data = ReportCreateRequest(
             report_type=ReportType.ORDERS_PER_SELLER,
@@ -131,25 +120,22 @@ class TestCreateReport:
             end_date=datetime(2025, 1, 31),
         )
 
-        mock_adapter = Mock(spec=ReportsPort)
-        mock_adapter.create_report = AsyncMock(
+        mock_order_adapter = Mock(spec=ReportsPort)
+        mock_order_adapter.create_report = AsyncMock(
             side_effect=MicroserviceError("order", "Service unavailable", 503)
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_adapter
+        with pytest.raises(HTTPException) as exc_info:
+            await create_report(
+                request_data, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
 
-            with pytest.raises(HTTPException) as exc_info:
-                await create_report(request_data, mock_user)
-
-            assert exc_info.value.status_code == 503
+        assert exc_info.value.status_code == 503
 
     @pytest.mark.asyncio
-    async def test_create_report_handles_unexpected_error(self, mock_user):
+    async def test_create_report_handles_unexpected_error(
+        self, mock_user, mock_inventory_adapter
+    ):
         """Test that unexpected errors return 500."""
         request_data = ReportCreateRequest(
             report_type=ReportType.ORDERS_PER_SELLER,
@@ -157,20 +143,15 @@ class TestCreateReport:
             end_date=datetime(2025, 1, 31),
         )
 
-        mock_adapter = Mock(spec=ReportsPort)
-        mock_adapter.create_report = AsyncMock(side_effect=Exception("Unexpected"))
+        mock_order_adapter = Mock(spec=ReportsPort)
+        mock_order_adapter.create_report = AsyncMock(side_effect=Exception("Unexpected"))
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_adapter
+        with pytest.raises(HTTPException) as exc_info:
+            await create_report(
+                request_data, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
 
-            with pytest.raises(HTTPException) as exc_info:
-                await create_report(request_data, mock_user)
-
-            assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 500
 
 
 class TestListReports:
@@ -178,7 +159,7 @@ class TestListReports:
 
     @pytest.mark.asyncio
     async def test_list_reports_filters_by_order_type(
-        self, mock_user, mock_order_adapter
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test listing reports with order type filter."""
         mock_order_adapter.list_reports = AsyncMock(
@@ -192,27 +173,22 @@ class TestListReports:
             )
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type="orders_per_seller",
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
 
-            result = await list_reports(
-                limit=10,
-                offset=0,
-                status=None,
-                report_type="orders_per_seller",
-                user=mock_user,
-            )
-
-            assert result.total == 0
-            mock_order_adapter.list_reports.assert_called_once()
+        assert result.total == 0
+        mock_order_adapter.list_reports.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_list_reports_filters_by_inventory_type(
-        self, mock_user, mock_inventory_adapter
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test listing reports with inventory type filter."""
         mock_inventory_adapter.list_reports = AsyncMock(
@@ -226,23 +202,18 @@ class TestListReports:
             )
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type="low_stock",
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
 
-            result = await list_reports(
-                limit=10,
-                offset=0,
-                status=None,
-                report_type="low_stock",
-                user=mock_user,
-            )
-
-            assert result.total == 0
-            mock_inventory_adapter.list_reports.assert_called_once()
+        assert result.total == 0
+        mock_inventory_adapter.list_reports.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_list_reports_aggregates_from_both_services(
@@ -289,25 +260,19 @@ class TestListReports:
             )
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter, patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type=None,
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
 
-            result = await list_reports(
-                limit=10, offset=0, status=None, report_type=None, user=mock_user
-            )
-
-            # Should aggregate both reports
-            assert result.total == 2
-            assert len(result.items) == 2
+        # Should aggregate both reports
+        assert result.total == 2
+        assert len(result.items) == 2
 
     @pytest.mark.asyncio
     async def test_list_reports_sorts_by_created_at_desc(
@@ -334,42 +299,48 @@ class TestListReports:
 
         mock_order_adapter.list_reports = AsyncMock(
             return_value=PaginatedReportsResponse(
-                items=[older_report], total=1, page=1, size=1, has_next=False, has_previous=False
+                items=[older_report],
+                total=1,
+                page=1,
+                size=1,
+                has_next=False,
+                has_previous=False,
             )
         )
 
         mock_inventory_adapter.list_reports = AsyncMock(
             return_value=PaginatedReportsResponse(
-                items=[newer_report], total=1, page=1, size=1, has_next=False, has_previous=False
+                items=[newer_report],
+                total=1,
+                page=1,
+                size=1,
+                has_next=False,
+                has_previous=False,
             )
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter, patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type=None,
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
 
-            result = await list_reports(
-                limit=10, offset=0, status=None, report_type=None, user=mock_user
-            )
-
-            # Newer report should be first
-            assert result.items[0].created_at == datetime(2025, 1, 20)
-            assert result.items[1].created_at == datetime(2025, 1, 10)
+        # Newer report should be first
+        assert result.items[0].created_at == datetime(2025, 1, 20)
+        assert result.items[1].created_at == datetime(2025, 1, 10)
 
     @pytest.mark.asyncio
     async def test_list_reports_handles_service_errors_gracefully(
         self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test that service errors are logged but don't fail the request."""
-        mock_order_adapter.list_reports = AsyncMock(side_effect=Exception("Order service down"))
+        mock_order_adapter.list_reports = AsyncMock(
+            side_effect=Exception("Order service down")
+        )
 
         inventory_report = ReportResponse(
             id=uuid4(),
@@ -382,29 +353,28 @@ class TestListReports:
 
         mock_inventory_adapter.list_reports = AsyncMock(
             return_value=PaginatedReportsResponse(
-                items=[inventory_report], total=1, page=1, size=1, has_next=False, has_previous=False
+                items=[inventory_report],
+                total=1,
+                page=1,
+                size=1,
+                has_next=False,
+                has_previous=False,
             )
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter, patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type=None,
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
 
-            result = await list_reports(
-                limit=10, offset=0, status=None, report_type=None, user=mock_user
-            )
-
-            # Should return inventory reports even though order service failed
-            assert result.total == 1
-            assert len(result.items) == 1
+        # Should return inventory reports even though order service failed
+        assert result.total == 1
+        assert len(result.items) == 1
 
 
 class TestGetReport:
@@ -412,7 +382,7 @@ class TestGetReport:
 
     @pytest.mark.asyncio
     async def test_get_report_from_order_service(
-        self, mock_user, mock_order_adapter
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
     ):
         """Test getting a report from Order service."""
         report_id = uuid4()
@@ -428,17 +398,12 @@ class TestGetReport:
 
         mock_order_adapter.get_report = AsyncMock(return_value=mock_response)
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
+        result = await get_report(
+            report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+        )
 
-            result = await get_report(report_id, mock_user)
-
-            assert result.id == report_id
-            mock_order_adapter.get_report.assert_called_once()
+        assert result.id == report_id
+        mock_order_adapter.get_report.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_report_falls_back_to_inventory_service(
@@ -464,22 +429,12 @@ class TestGetReport:
         )
         mock_inventory_adapter.get_report = AsyncMock(return_value=mock_response)
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter, patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        result = await get_report(
+            report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+        )
 
-            result = await get_report(report_id, mock_user)
-
-            assert result.id == report_id
-            assert result.report_type == "low_stock"
+        assert result.id == report_id
+        assert result.report_type == "low_stock"
 
     @pytest.mark.asyncio
     async def test_get_report_not_found_in_any_service(
@@ -495,19 +450,9 @@ class TestGetReport:
             side_effect=ResourceNotFoundError("Not found")
         )
 
-        with patch(
-            "web.controllers.reports_controller.get_order_http_client"
-        ), patch(
-            "web.controllers.reports_controller.get_inventory_http_client"
-        ), patch(
-            "web.controllers.reports_controller.OrderReportsAdapter"
-        ) as MockOrderAdapter, patch(
-            "web.controllers.reports_controller.InventoryReportsAdapter"
-        ) as MockInventoryAdapter:
-            MockOrderAdapter.return_value = mock_order_adapter
-            MockInventoryAdapter.return_value = mock_inventory_adapter
+        with pytest.raises(HTTPException) as exc_info:
+            await get_report(
+                report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
 
-            with pytest.raises(HTTPException) as exc_info:
-                await get_report(report_id, mock_user)
-
-            assert exc_info.value.status_code == 404
+        assert exc_info.value.status_code == 404

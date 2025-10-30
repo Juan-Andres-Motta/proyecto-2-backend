@@ -1,0 +1,1579 @@
+{
+  "info": {
+    "_postman_id": "medisupply-bff-staging",
+    "name": "MediSupply BFF - Staging Tests",
+    "description": "Postman collection for tested BFF endpoints in staging environment",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{web_access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Check if token is about to expire and refresh if needed",
+          "const tokenExpiry = pm.collectionVariables.get('token_expiry');",
+          "const now = new Date().getTime();",
+          "",
+          "if (tokenExpiry && now >= tokenExpiry - 300000) {",
+          "    console.log('Token expiring soon, refreshing...');",
+          "    pm.collectionVariables.set('needs_refresh', 'true');",
+          "} else {",
+          "    pm.collectionVariables.set('needs_refresh', 'false');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "    pm.expect(jsonData.status).to.eql('healthy');",
+              "});",
+              "",
+              "pm.test('Response time is less than 500ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Health check endpoint - no authentication required"
+      },
+      "response": [
+        {
+          "name": "Successful Health Check",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"healthy\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Login - Web User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('access_token');",
+              "    pm.expect(jsonData).to.have.property('id_token');",
+              "    pm.expect(jsonData).to.have.property('refresh_token');",
+              "    pm.expect(jsonData).to.have.property('expires_in');",
+              "    pm.expect(jsonData).to.have.property('token_type');",
+              "});",
+              "",
+              "pm.test('Token type is Bearer', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token_type).to.eql('Bearer');",
+              "});",
+              "",
+              "// Save tokens to collection variables",
+              "var jsonData = pm.response.json();",
+              "pm.collectionVariables.set('web_access_token', jsonData.access_token);",
+              "pm.collectionVariables.set('web_id_token', jsonData.id_token);",
+              "pm.collectionVariables.set('web_refresh_token', jsonData.refresh_token);",
+              "",
+              "// Calculate token expiry time",
+              "const expiryTime = new Date().getTime() + (jsonData.expires_in * 1000);",
+              "pm.collectionVariables.set('token_expiry', expiryTime);",
+              "",
+              "console.log('Web tokens saved successfully');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"webtest@medisupply.com\",\n    \"password\": \"TestPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Login endpoint for web users"
+      },
+      "response": [
+        {
+          "name": "Successful Login",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test-web@medisupply.com\",\n    \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"access_token\": \"eyJraWQiOi...\",\n    \"id_token\": \"eyJraWQiOi...\",\n    \"refresh_token\": \"eyJjdHkiOi...\",\n    \"expires_in\": 3600,\n    \"token_type\": \"Bearer\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Login - Client User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('access_token');",
+              "    pm.expect(jsonData).to.have.property('id_token');",
+              "    pm.expect(jsonData).to.have.property('refresh_token');",
+              "});",
+              "",
+              "// Save tokens",
+              "var jsonData = pm.response.json();",
+              "pm.collectionVariables.set('client_access_token', jsonData.access_token);",
+              "pm.collectionVariables.set('client_id_token', jsonData.id_token);",
+              "pm.collectionVariables.set('client_refresh_token', jsonData.refresh_token);",
+              "",
+              "console.log('Client tokens saved successfully');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"test-client@medisupply.com\",\n    \"password\": \"TestPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Login endpoint for client users"
+      },
+      "response": []
+    },
+    {
+      "name": "Login - Seller User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('access_token');",
+              "    pm.expect(jsonData).to.have.property('id_token');",
+              "    pm.expect(jsonData).to.have.property('refresh_token');",
+              "});",
+              "",
+              "// Save tokens",
+              "var jsonData = pm.response.json();",
+              "pm.collectionVariables.set('seller_access_token', jsonData.access_token);",
+              "pm.collectionVariables.set('seller_id_token', jsonData.id_token);",
+              "pm.collectionVariables.set('seller_refresh_token', jsonData.refresh_token);",
+              "",
+              "console.log('Seller tokens saved successfully');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"test-seller@medisupply.com\",\n    \"password\": \"TestPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Login endpoint for seller users"
+      },
+      "response": []
+    },
+    {
+      "name": "Refresh Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains new tokens', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('access_token');",
+              "    pm.expect(jsonData).to.have.property('id_token');",
+              "    pm.expect(jsonData).to.have.property('expires_in');",
+              "    pm.expect(jsonData).to.have.property('token_type');",
+              "});",
+              "",
+              "// Update tokens with refreshed values",
+              "var jsonData = pm.response.json();",
+              "pm.collectionVariables.set('web_access_token', jsonData.access_token);",
+              "pm.collectionVariables.set('web_id_token', jsonData.id_token);",
+              "",
+              "// Update expiry time",
+              "const expiryTime = new Date().getTime() + (jsonData.expires_in * 1000);",
+              "pm.collectionVariables.set('token_expiry', expiryTime);",
+              "",
+              "console.log('Tokens refreshed successfully');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"refresh_token\": \"{{web_refresh_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/refresh",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        },
+        "description": "Refresh access and id tokens using refresh token"
+      },
+      "response": [
+        {
+          "name": "Successful Token Refresh",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh_token\": \"{{web_refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"access_token\": \"eyJraWQiOi...\",\n    \"id_token\": \"eyJraWQiOi...\",\n    \"expires_in\": 3600,\n    \"token_type\": \"Bearer\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Current User Info",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains user info', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('user_id');",
+              "    pm.expect(jsonData).to.have.property('name');",
+              "    pm.expect(jsonData).to.have.property('email');",
+              "    pm.expect(jsonData).to.have.property('groups');",
+              "    pm.expect(jsonData).to.have.property('user_type');",
+              "});",
+              "",
+              "pm.test('User name is present', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.name).to.be.a('string');",
+              "    pm.expect(jsonData.name.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('User email is correct', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.email).to.be.a('string');",
+              "    pm.expect(jsonData.email).to.include('@medisupply.com');",
+              "});",
+              "",
+              "pm.test('User has valid groups', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.groups).to.be.an('array');",
+              "    pm.expect(jsonData.groups.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_id_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auth/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "me"
+          ]
+        },
+        "description": "Get current authenticated user information - requires valid ID token (not access token) to retrieve user profile fields like name, email, and user_type"
+      },
+      "response": [
+        {
+          "name": "Successful User Info Retrieval",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{web_access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"sub\": \"243864d8-7011-70f8-ea38-345a7f36b634\",\n    \"cognito:groups\": [\"web_users\"],\n    \"email_verified\": true,\n    \"iss\": \"https://cognito-idp.us-east-1.amazonaws.com/us-east-1_mOYNcieqE\",\n    \"cognito:username\": \"test-web-user\",\n    \"origin_jti\": \"d9d49a6f-aea6-4660-8876-c2fbbc793066\",\n    \"aud\": \"3hkqfipgn5ukau1c84ddtijvrk\",\n    \"event_id\": \"e07045c5-596d-42d6-9af7-d576ea61bcd5\",\n    \"token_use\": \"id\",\n    \"auth_time\": 1761683433,\n    \"exp\": 1761687033,\n    \"custom:user_type\": \"web\",\n    \"iat\": 1761683433,\n    \"jti\": \"cec1f3fc-67b8-4660-ae71-9b760232657\",\n    \"email\": \"test-web@medisupply.com\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Create Provider",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has provider id', () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.collectionVariables.set('provider_id', json.id);",
+              "});",
+              "pm.test('Has success message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Provider\",\n  \"nit\": \"900123456\",\n  \"contact_name\": \"John Smith\",\n  \"email\": \"contact@provider.com\",\n  \"phone\": \"+573001234567\",\n  \"address\": \"Calle 123 #45-67\",\n  \"country\": \"Colombia\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/provider",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "provider"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Providers",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has items array', () => pm.expect(pm.response.json().items).to.be.an('array'));",
+              "pm.test('Has pagination', () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('total');",
+              "    pm.expect(json).to.have.property('page');",
+              "    pm.expect(json).to.have.property('size');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/providers?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "providers"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Product",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response has product_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.collectionVariables.set('product_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Product\",\n  \"sku\": \"TEST-SKU-001\",\n  \"description\": \"Test product description\",\n  \"base_price\": 99.99,\n  \"provider_id\": \"{{provider_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/products",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "products"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Products",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/products?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "products"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Warehouse",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response has warehouse_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.collectionVariables.set('warehouse_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Warehouse\",\n  \"location\": \"Test Location\",\n  \"capacity\": 1000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/warehouse",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "warehouse"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Warehouses",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/warehouses?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "warehouses"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Inventory",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response has inventory_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"warehouse_id\": \"{{warehouse_id}}\",\n  \"quantity\": 100,\n  \"min_stock_level\": 10\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/inventory",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "inventory"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Inventories",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/inventories?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "inventories"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Seller",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response has seller_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.collectionVariables.set('seller_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"Seller\",\n  \"email\": \"testseller@medisupply.com\",\n  \"phone\": \"+1234567890\",\n  \"commission_rate\": 10.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/sellers",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "sellers"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Sellers",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/sellers?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "sellers"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Sales Plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Response has sales_plan_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.collectionVariables.set('sales_plan_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"seller_id\": \"{{seller_id}}\",\n  \"sales_period\": \"Q1-2025\",\n  \"goal\": 50000.0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/sales-plans",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "sales-plans"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Sales Plans",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/sales-plans?limit=10&offset=0",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "sales-plans"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Report",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 202\", function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "",
+              "pm.test(\"Response has report_id\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('report_id');",
+              "    pm.collectionVariables.set('report_id', jsonData.report_id);",
+              "});",
+              "",
+              "pm.test(\"Response has status pending\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "    pm.expect(jsonData.status).to.eql('pending');",
+              "});",
+              "",
+              "pm.test(\"Response has success message\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"report_type\": \"orders_per_seller\",\n  \"start_date\": \"2025-01-01T00:00:00Z\",\n  \"end_date\": \"2025-01-31T23:59:59Z\",\n  \"filters\": {}\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/reports",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "reports"
+          ]
+        },
+        "description": "Create a new report request. The report will be generated asynchronously and status can be checked via List Reports endpoint."
+      },
+      "response": [
+        {
+          "name": "Successful Report Creation",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{web_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_type\": \"orders_per_seller\",\n  \"start_date\": \"2025-01-01T00:00:00Z\",\n  \"end_date\": \"2025-01-31T23:59:59Z\",\n  \"filters\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bff/web/reports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bff",
+                "web",
+                "reports"
+              ]
+            }
+          },
+          "status": "Accepted",
+          "code": 202,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"report_id\": \"04a6e256-7920-49de-a1dd-e94c5c33c0db\",\n    \"status\": \"pending\",\n    \"message\": \"Report generation started. You will be notified when ready.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Reports",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('items');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('page');",
+              "    pm.expect(jsonData).to.have.property('size');",
+              "    pm.expect(jsonData).to.have.property('has_next');",
+              "    pm.expect(jsonData).to.have.property('has_previous');",
+              "});",
+              "",
+              "pm.test(\"Items have required fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    if (jsonData.items.length > 0) {",
+              "        var firstItem = jsonData.items[0];",
+              "        pm.expect(firstItem).to.have.property('id');",
+              "        pm.expect(firstItem).to.have.property('report_type');",
+              "        pm.expect(firstItem).to.have.property('status');",
+              "        pm.expect(firstItem).to.have.property('created_at');",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/reports?page=1&page_size=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "reports"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "List all reports for the authenticated user with pagination support"
+      },
+      "response": [
+        {
+          "name": "Successful Report List",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{web_access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bff/web/reports?page=1&page_size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bff",
+                "web",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"items\": [\n        {\n            \"id\": \"04a6e256-7920-49de-a1dd-e94c5c33c0db\",\n            \"report_type\": \"orders_per_seller\",\n            \"status\": \"completed\",\n            \"start_date\": \"2025-01-01T00:00:00Z\",\n            \"end_date\": \"2025-01-31T23:59:59Z\",\n            \"created_at\": \"2025-10-30T06:26:44.351202Z\",\n            \"completed_at\": \"2025-10-30T06:26:48.683407Z\",\n            \"download_url\": null,\n            \"error_message\": null\n        }\n    ],\n    \"total\": 1,\n    \"page\": 1,\n    \"size\": 1,\n    \"has_next\": false,\n    \"has_previous\": false\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "web_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "web_id_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "web_refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_id_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_id_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_expiry",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "needs_refresh",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "provider_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "warehouse_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sales_plan_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "report_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

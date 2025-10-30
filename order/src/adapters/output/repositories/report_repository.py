@@ -26,6 +26,35 @@ class ReportRepository(ReportRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def create(self, report_data: dict) -> ReportEntity:
+        """
+        Create a report from dict data and return domain entity.
+
+        This is a convenience method for tests and simple creation scenarios.
+
+        Args:
+            report_data: Dictionary with report data
+
+        Returns:
+            Created report entity
+        """
+        logger.debug(
+            f"Creating report with data: report_type={report_data.get('report_type')}, "
+            f"user_id={report_data.get('user_id')}"
+        )
+
+        # Create ORM model directly from dict
+        report_model = ReportModel(**report_data)
+        self.session.add(report_model)
+        await self.session.flush()
+        await self.session.refresh(report_model)
+
+        # Convert to domain entity
+        entity = self._model_to_entity(report_model)
+
+        logger.info(f"Report {entity.id} created successfully")
+        return entity
+
     async def save(self, report: ReportEntity) -> ReportEntity:
         """
         Save a report entity (converts to ORM model).
@@ -60,24 +89,29 @@ class ReportRepository(ReportRepositoryPort):
         logger.info(f"Report {report.id} saved successfully")
         return report
 
-    async def find_by_id(self, report_id: UUID) -> Optional[ReportEntity]:
+    async def find_by_id(self, report_id: UUID, user_id: Optional[UUID] = None) -> Optional[ReportEntity]:
         """
-        Find a report by ID.
+        Find a report by ID with optional user_id filtering.
 
         Args:
             report_id: The report UUID
+            user_id: Optional user UUID for authorization filtering
 
         Returns:
             The report entity if found, None otherwise
         """
-        logger.debug(f"Finding report {report_id}")
+        logger.debug(f"Finding report {report_id} for user {user_id}")
 
-        stmt = select(ReportModel).where(ReportModel.id == report_id)
+        filters = [ReportModel.id == report_id]
+        if user_id:
+            filters.append(ReportModel.user_id == user_id)
+
+        stmt = select(ReportModel).where(and_(*filters))
         result = await self.session.execute(stmt)
         report_model = result.scalar_one_or_none()
 
         if not report_model:
-            logger.debug(f"Report {report_id} not found")
+            logger.debug(f"Report {report_id} not found or unauthorized")
             return None
 
         return self._model_to_entity(report_model)

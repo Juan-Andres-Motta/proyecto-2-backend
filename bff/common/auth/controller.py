@@ -8,9 +8,12 @@ from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from config import settings
+from dependencies import get_auth_client_port
 
+from .auth_service import AuthService
 from .cognito_service import CognitoService
 from .dependencies import get_current_user
+from .ports import ClientPort
 from .schemas import (
     ErrorResponse,
     LoginRequest,
@@ -30,10 +33,17 @@ def get_cognito_service() -> CognitoService:
     """Dependency to get Cognito service instance."""
     return CognitoService(
         user_pool_id=settings.aws_cognito_user_pool_id,
-        client_id=settings.aws_cognito_mobile_client_id,
-        client_secret=None,  # Mobile apps typically don't use client secret
+        client_id=settings.aws_cognito_web_client_id,
+        client_secret=None,
         region=settings.aws_cognito_region,
     )
+
+
+def get_auth_service(
+    cognito_service: CognitoService = Depends(get_cognito_service),
+) -> AuthService:
+    """Dependency to get Auth service instance."""
+    return AuthService(cognito_service=cognito_service)
 
 
 @router.post(
@@ -48,7 +58,7 @@ def get_cognito_service() -> CognitoService:
 )
 async def login(
     request: LoginRequest,
-    cognito: CognitoService = Depends(get_cognito_service),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """
     Authenticate user with email and password.
@@ -58,25 +68,16 @@ async def login(
 
     Args:
         request: Login credentials (email and password)
-        cognito: Cognito service instance
+        auth_service: Auth service instance
 
     Returns:
         LoginResponse with access_token, id_token, and refresh_token
     """
-    logger.info(f"Login attempt for email: {request.email}")
+    logger.info(f"Login request for email: {request.email}")
 
-    tokens = await cognito.login(request.email, request.password)
+    result = await auth_service.login(request)
 
-    # Extract user groups from id_token (would need to decode JWT to get groups)
-    # For now, return empty list - groups are validated on protected endpoints
-    return LoginResponse(
-        access_token=tokens["access_token"],
-        id_token=tokens["id_token"],
-        refresh_token=tokens["refresh_token"],
-        token_type="Bearer",
-        expires_in=tokens["expires_in"],
-        user_groups=[],  # Client can decode id_token to get groups
-    )
+    return LoginResponse(**result)
 
 
 @router.post(
@@ -90,28 +91,25 @@ async def login(
 )
 async def refresh(
     request: RefreshTokenRequest,
-    cognito: CognitoService = Depends(get_cognito_service),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """
     Refresh access token using refresh token.
 
     Args:
         request: Refresh token request
-        cognito: Cognito service instance
+        auth_service: Auth service instance
 
     Returns:
         RefreshTokenResponse with new access_token and id_token
     """
     logger.info("Token refresh request")
 
-    tokens = await cognito.refresh_token(request.refresh_token)
+    result = await auth_service.refresh_token(request.refresh_token)
 
-    return RefreshTokenResponse(
-        access_token=tokens["access_token"],
-        id_token=tokens["id_token"],
-        token_type="Bearer",
-        expires_in=tokens["expires_in"],
-    )
+    return RefreshTokenResponse(**result)
+
+
 
 
 @router.post(
@@ -120,39 +118,37 @@ async def refresh(
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "User created successfully"},
-        400: {"description": "Invalid password", "model": ErrorResponse},
+        400: {"description": "Invalid password or user_type", "model": ErrorResponse},
+        404: {"description": "Failed to complete registration (rolled back)", "model": ErrorResponse},
         409: {"description": "User already exists", "model": ErrorResponse},
         503: {"description": "Authentication service unavailable", "model": ErrorResponse},
     },
 )
 async def signup(
     request: SignupRequest,
-    cognito: CognitoService = Depends(get_cognito_service),
+    auth_service: AuthService = Depends(get_auth_service),
+    client_port: ClientPort = Depends(get_auth_client_port),
 ):
     """
-    Register a new user.
+    Register a new client user with saga pattern.
 
-    The user will receive a verification email and must verify their email
-    before they can login.
+    Only clients can self-register through this endpoint.
+    Uses a distributed transaction pattern:
+    1. Create user in Cognito
+    2. Create client record in client microservice
+    3. If step 2 fails, automatically rollback step 1
 
     Args:
-        request: Signup data (email, password, user_type)
-        cognito: Cognito service instance
+        request: Signup data with all client fields
+        auth_service: Auth service instance
+        client_port: Client port instance
 
     Returns:
         SignupResponse with user_id and confirmation message
     """
-    logger.info(f"Signup attempt for email: {request.email}, user_type: {request.user_type}")
+    logger.info(f"Signup request for email: {request.email}, user_type: {request.user_type}")
 
-    # Validate user_type
-    valid_types = ["web", "seller", "client"]
-    if request.user_type not in valid_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid user_type. Must be one of: {', '.join(valid_types)}",
-        )
-
-    user_info = await cognito.signup(request.email, request.password, request.user_type)
+    user_info = await auth_service.signup_client(request, client_port)
 
     return SignupResponse(
         user_id=user_info["user_id"],
@@ -173,7 +169,8 @@ async def get_me(user: Dict = Depends(get_current_user)):
     """
     Get current authenticated user information.
 
-    Requires valid JWT token in Authorization header.
+    Requires valid JWT ID token in Authorization header (not access token).
+    The ID token contains user profile information like email, name, and custom attributes.
 
     Args:
         user: Current user from JWT token
@@ -183,6 +180,7 @@ async def get_me(user: Dict = Depends(get_current_user)):
     """
     return {
         "user_id": user.get("sub"),
+        "name": user.get("name"),
         "email": user.get("email"),
         "groups": user.get("cognito:groups", []),
         "user_type": user.get("custom:user_type"),
