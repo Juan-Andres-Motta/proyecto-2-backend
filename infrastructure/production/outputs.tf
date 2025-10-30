@@ -140,4 +140,3 @@ output "cognito_user_groups" {
     client_users = module.cognito.client_users_group_name
   }
 }
-

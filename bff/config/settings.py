@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra='ignore')
 
     # Application metadata
     app_name: str = Field(default="BFF Service")
@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     sqs_region: str = Field(default="us-east-1")
     sqs_max_messages: int = Field(default=10)
     sqs_wait_time_seconds: int = Field(default=20)
+
+    # SQS Reports Queue
+    sqs_reports_queue_url: str = Field(default="")
 
 
 settings = Settings()

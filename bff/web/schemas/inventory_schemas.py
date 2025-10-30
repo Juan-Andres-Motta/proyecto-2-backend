@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -83,6 +83,46 @@ class InventoryResponse(BaseModel):
 
 class PaginatedInventoriesResponse(BaseModel):
     items: List[InventoryResponse]
+    total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool
+
+
+# Report schemas
+class ReportCreateRequest(BaseModel):
+    """Client request schema for creating a report"""
+    report_type: str
+    start_date: datetime
+    end_date: datetime
+    filters: Optional[Dict[str, Any]] = None
+
+
+class ReportCreateResponse(BaseModel):
+    """Response schema for report creation"""
+    report_id: UUID
+    status: str
+    message: str
+
+
+class ReportResponse(BaseModel):
+    """Response schema for report details"""
+    id: UUID
+    report_type: str
+    status: str
+    start_date: datetime
+    end_date: datetime
+    filters: Dict[str, Any]
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    download_url: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class PaginatedReportsResponse(BaseModel):
+    """Response schema for paginated list of reports"""
+    items: List[ReportResponse]
     total: int
     page: int
     size: int

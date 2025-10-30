@@ -77,3 +77,20 @@ class EventHandlers:
             event_name="order.created",
             data={"order_id": order_id} if order_id else None,
         )
+
+    async def handle_report_generated(self, event_data: Dict[str, Any]) -> None:
+        """Handle report_generated event from microservices."""
+        user_id = event_data.get("user_id")
+
+        if not user_id:
+            logger.warning("report_generated missing user_id")
+            return
+
+        # Channel includes user_id and 'report' keyword
+        # No data sent - client refetches GET /bff/web/reports
+        channel = f"web:users:{user_id}:report"
+        self.publisher.publish(
+            channel=channel,
+            event_name="report.generated",
+            data=None,
+        )

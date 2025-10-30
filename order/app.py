@@ -1,9 +1,11 @@
+
 import logging
 
 from fastapi import FastAPI
 
 from src.adapters.input.controllers.common_controller import router as common_router
 from src.adapters.input.controllers.order_controller import router as order_router
+from src.adapters.input.controllers.reports_controller import router as reports_router
 from src.infrastructure.api.exception_handlers import register_exception_handlers
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
@@ -34,3 +36,4 @@ register_exception_handlers(app)
 
 app.include_router(common_router, prefix="/order")
 app.include_router(order_router, prefix="/order")
+app.include_router(reports_router, prefix="/order")

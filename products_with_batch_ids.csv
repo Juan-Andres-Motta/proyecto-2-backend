@@ -1,0 +1,26 @@
+SKU,Product_Name,Batch_ID
+EQUIP-NEBU-ULT,Nebulizador Ultrasónico,BATCH_Nebulizador_Ultrasónico
+EQUIP-OXI-PUL,Oxímetro de Pulso,BATCH_Oxímetro_de_Pulso
+EQUIP-TENS-AUT,Tensiómetro Digital Automático,BATCH_Tensiómetro_Digital_Automático
+EQUIP-TERM-DIG,Termómetro Digital,BATCH_Termómetro_Digital
+FEN-001,Fentanilo 500Mg,BATCH_Fentanilo_500Mg
+INS-BIST-DES,Bisturí Desechable Estéril,BATCH_Bisturí_Desechable_Estéril
+INS-CAT-22G,Catéter Intravenoso 22G,BATCH_Catéter_Intravenoso_22G
+INS-GUAN-EST,Guantes Quirúrgicos Estériles,BATCH_Guantes_Quirúrgicos_Estériles
+INS-MASK-N95,Mascarillas N95,BATCH_Mascarillas_N95
+MED-AMOX-500,Amoxicilina 500Mg,BATCH_Amoxicilina_500Mg
+MED-IBU-400,Ibuprofeno 400mg,BATCH_Ibuprofeno_400mg
+MED-LOSA-50,Losartán 50Mg,BATCH_Losartán_50Mg
+MED-PARA-123,Paracetamol 501Mg,BATCH_Paracetamol_501Mg
+MED-PARA-500,Paracetamol 500mg,BATCH_Paracetamol_500mg
+MED-PARACO-1,Super Paracetamol,BATCH_Super_Paracetamol
+MED-PARACO-2,Paracetamol A 500Mg,BATCH_Paracetamol_A_500Mg
+OTRO-ALC-70,Alcohol Antiséptico 70%,BATCH_Alcohol_Antiséptico_70%
+OTRO-GASA-10,Gasas Estériles 10x10cm,BATCH_Gasas_Estériles_10x10cm
+OTRO-SAL-500,Solución Salina 0.9% 500Ml,BATCH_Solución_Salina_0.9%_500Ml
+OTRO-VEND-10,Vendaje Elástico 10Cm X 4.5M,BATCH_Vendaje_Elástico_10Cm_X_4.5M
+REAC-COVID-19,Kit de Prueba COVID-19,BATCH_Kit_de_Prueba_COVID-19
+REAC-GLUC-RAP,Prueba Rápida de Glucosa,BATCH_Prueba_Rápida_de_Glucosa
+REAC-HBA1C,Reactivo Hemoglobina Glucosilada,BATCH_Reactivo_Hemoglobina_Glucosilada
+REAC-URIN-KIT,Kit Análisis De Orina,BATCH_Kit_Análisis_De_Orina
+SKU-213123123123,Clorohidrato De Cannabis,BATCH_Clorohidrato_De_Cannabis

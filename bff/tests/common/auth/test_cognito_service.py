@@ -269,11 +269,11 @@ class TestCognitoServiceRefreshToken:
             assert "temporarily unavailable" in exc_info.value.detail
 
 
-class TestCognitoServiceSignup:
-    """Tests for CognitoService.signup() method."""
+class TestCognitoServiceCreateUser:
+    """Tests for CognitoService.create_user() method."""
 
     @pytest.mark.asyncio
-    async def test_signup_success(self, cognito_service):
+    async def test_create_user_success(self, cognito_service):
         """Test successful user registration."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -287,16 +287,20 @@ class TestCognitoServiceSignup:
                 return_value=mock_response
             )
 
-            result = await cognito_service.signup(
-                "newuser@test.com", "Password123", "seller"
+            result = await cognito_service.create_user(
+                email="newuser@test.com",
+                password="Password123",
+                name="New User",
+                user_type="client"
             )
 
             assert result["user_id"] == "test-user-id-12345"
+            assert result["username"] == "newuser"
             assert result["email"] == "newuser@test.com"
 
     @pytest.mark.asyncio
-    async def test_signup_with_secret_hash(self, cognito_service_with_secret):
-        """Test signup includes SECRET_HASH when client_secret is provided."""
+    async def test_create_user_with_secret_hash(self, cognito_service_with_secret):
+        """Test create_user includes SECRET_HASH when client_secret is provided."""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -308,8 +312,11 @@ class TestCognitoServiceSignup:
             mock_post = AsyncMock(return_value=mock_response)
             mock_client.return_value.__aenter__.return_value.post = mock_post
 
-            await cognito_service_with_secret.signup(
-                "newuser@test.com", "Password123", "web"
+            await cognito_service_with_secret.create_user(
+                email="newuser@test.com",
+                password="Password123",
+                name="New User",
+                user_type="web"
             )
 
             # Verify SECRET_HASH was included in the request
@@ -318,8 +325,8 @@ class TestCognitoServiceSignup:
             assert "SecretHash" in body
 
     @pytest.mark.asyncio
-    async def test_signup_user_already_exists(self, cognito_service):
-        """Test signup with existing email returns 409."""
+    async def test_create_user_already_exists(self, cognito_service):
+        """Test create_user with existing email returns 409."""
         mock_response = Mock()
         mock_response.status_code = 400
         mock_response.json.return_value = {
@@ -333,16 +340,19 @@ class TestCognitoServiceSignup:
             )
 
             with pytest.raises(HTTPException) as exc_info:
-                await cognito_service.signup(
-                    "existing@test.com", "Password123", "client"
+                await cognito_service.create_user(
+                    email="existing@test.com",
+                    password="Password123",
+                    name="Existing User",
+                    user_type="client"
                 )
 
             assert exc_info.value.status_code == 409
             assert "already exists" in exc_info.value.detail
 
     @pytest.mark.asyncio
-    async def test_signup_invalid_password(self, cognito_service):
-        """Test signup with weak password returns 400."""
+    async def test_create_user_invalid_password(self, cognito_service):
+        """Test create_user with weak password returns 400."""
         mock_response = Mock()
         mock_response.status_code = 400
         mock_response.json.return_value = {
@@ -356,27 +366,37 @@ class TestCognitoServiceSignup:
             )
 
             with pytest.raises(HTTPException) as exc_info:
-                await cognito_service.signup("user@test.com", "weak", "web")
+                await cognito_service.create_user(
+                    email="user@test.com",
+                    password="weak",
+                    name="User",
+                    user_type="web"
+                )
 
             assert exc_info.value.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_signup_cognito_service_unavailable(self, cognito_service):
-        """Test signup when Cognito service is down returns 503."""
+    async def test_create_user_cognito_service_unavailable(self, cognito_service):
+        """Test create_user when Cognito service is down returns 503."""
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.post = AsyncMock(
                 side_effect=httpx.NetworkError("Network error")
             )
 
             with pytest.raises(HTTPException) as exc_info:
-                await cognito_service.signup("user@test.com", "Password123", "seller")
+                await cognito_service.create_user(
+                    email="user@test.com",
+                    password="Password123",
+                    name="User",
+                    user_type="seller"
+                )
 
             assert exc_info.value.status_code == 503
             assert "temporarily unavailable" in exc_info.value.detail
 
     @pytest.mark.asyncio
-    async def test_signup_unknown_cognito_error(self, cognito_service):
-        """Test signup handles unexpected Cognito errors."""
+    async def test_create_user_unknown_cognito_error(self, cognito_service):
+        """Test create_user handles unexpected Cognito errors."""
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.json.return_value = {
@@ -390,10 +410,102 @@ class TestCognitoServiceSignup:
             )
 
             with pytest.raises(HTTPException) as exc_info:
-                await cognito_service.signup("user@test.com", "Password123", "web")
+                await cognito_service.create_user(
+                    email="user@test.com",
+                    password="Password123",
+                    name="User",
+                    user_type="web"
+                )
 
             assert exc_info.value.status_code == 500
             assert "Signup error" in exc_info.value.detail
+
+
+class TestCognitoServiceDeleteUser:
+    """Tests for CognitoService.delete_user() method."""
+
+    @pytest.mark.asyncio
+    async def test_delete_user_success(self, cognito_service):
+        """Test successful user deletion."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {}
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value.post = mock_post
+
+            # Should not raise exception
+            await cognito_service.delete_user("testuser")
+
+            # Verify HTTP call was made correctly
+            mock_post.assert_called_once()
+            call_args = mock_post.call_args
+
+            # Verify headers
+            headers = call_args.kwargs["headers"]
+            assert headers["X-Amz-Target"] == "AWSCognitoIdentityProviderService.AdminDeleteUser"
+
+            # Verify body
+            body = call_args.kwargs["json"]
+            assert body["UserPoolId"] == "us-east-1_TestPool"
+            assert body["Username"] == "testuser"
+
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(self, cognito_service):
+        """Test delete_user with non-existent user returns 500."""
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.json.return_value = {
+            "__type": "UserNotFoundException",
+            "message": "User not found",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                return_value=mock_response
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.delete_user("nonexistent")
+
+            assert exc_info.value.status_code == 500
+            assert "Failed to delete user" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_delete_user_cognito_service_unavailable(self, cognito_service):
+        """Test delete_user when Cognito service is down returns 503."""
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                side_effect=httpx.ConnectError("Connection failed")
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.delete_user("testuser")
+
+            assert exc_info.value.status_code == 503
+            assert "temporarily unavailable" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_delete_user_unknown_error(self, cognito_service):
+        """Test delete_user handles unexpected errors."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {
+            "__type": "InternalError",
+            "message": "Something went wrong",
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
+                return_value=mock_response
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.delete_user("testuser")
+
+            assert exc_info.value.status_code == 500
+            assert "Failed to delete user" in exc_info.value.detail
 
 
 class TestCognitoServiceHelpers:

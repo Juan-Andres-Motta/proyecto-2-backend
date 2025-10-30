@@ -15,7 +15,11 @@ from ..schemas.inventory_schemas import (
     InventoryCreate,
     InventoryCreateResponse,
     PaginatedInventoriesResponse,
+    PaginatedReportsResponse,
     PaginatedWarehousesResponse,
+    ReportCreateRequest,
+    ReportCreateResponse,
+    ReportResponse,
     WarehouseCreate,
     WarehouseCreateResponse,
 )
@@ -93,3 +97,53 @@ class InventoryAdapter(InventoryPort):
             params=params,
         )
         return PaginatedInventoriesResponse(**response_data)
+
+    async def create_report(
+        self, user_id: UUID, report_data: ReportCreateRequest
+    ) -> ReportCreateResponse:
+        """Create a new inventory report."""
+        logger.info(f"Creating report: user_id={user_id}, report_type={report_data.report_type}")
+        # Prepare payload with user_id
+        payload = report_data.model_dump(mode="json")
+        payload["user_id"] = str(user_id)
+
+        response_data = await self.client.post(
+            "/inventory/reports",
+            json=payload,
+        )
+        return ReportCreateResponse(**response_data)
+
+    async def get_reports(
+        self,
+        user_id: UUID,
+        limit: int = 10,
+        offset: int = 0,
+        status: Optional[str] = None,
+        report_type: Optional[str] = None,
+    ) -> PaginatedReportsResponse:
+        """Retrieve a paginated list of reports for a user."""
+        logger.info(f"Getting reports: user_id={user_id}, limit={limit}, offset={offset}, status={status}, report_type={report_type}")
+        params = {
+            "user_id": str(user_id),
+            "limit": limit,
+            "offset": offset,
+        }
+        if status:
+            params["status"] = status
+        if report_type:
+            params["report_type"] = report_type
+
+        response_data = await self.client.get(
+            "/inventory/reports",
+            params=params,
+        )
+        return PaginatedReportsResponse(**response_data)
+
+    async def get_report(self, user_id: UUID, report_id: UUID) -> ReportResponse:
+        """Get a single report by ID with download URL."""
+        logger.info(f"Getting report: user_id={user_id}, report_id={report_id}")
+        response_data = await self.client.get(
+            f"/inventory/reports/{report_id}",
+            params={"user_id": str(user_id)},
+        )
+        return ReportResponse(**response_data)

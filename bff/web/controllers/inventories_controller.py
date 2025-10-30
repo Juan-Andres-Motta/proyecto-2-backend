@@ -43,6 +43,7 @@ async def create_inventory(
     request_data: InventoryCreateRequest,
     catalog: CatalogPort = Depends(get_catalog_port),
     inventory: InventoryPort = Depends(get_inventory_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Create a new inventory entry.
@@ -111,6 +112,7 @@ async def get_inventories(
     sku: Optional[str] = Query(None),
     warehouse_id: Optional[UUID] = Query(None),
     inventory: InventoryPort = Depends(get_inventory_port),
+    user: Dict = Depends(require_web_user),
 ):
     """
     Retrieve inventories from the inventory microservice with optional filters.

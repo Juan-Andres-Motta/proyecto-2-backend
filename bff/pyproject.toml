@@ -59,6 +59,7 @@ omit = [
   "app.py", "main.py",  # Entry points - hard to unit test
   "*/router.py",  # Router registration - just imports
   "dependencies.py",  # Dependency injection - integration concern
+  "*/ports/*",  # Abstract interfaces/ports - no business logic to test
 ]
 relative_files = true
 concurrency = ["thread", "greenlet"]

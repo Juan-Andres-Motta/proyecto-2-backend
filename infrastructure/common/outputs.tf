@@ -38,3 +38,25 @@ output "ecr_repository_arns" {
     for service in var.services : service => module.ecr[service].repository_arn
   }
 }
+
+# S3 Reports Buckets Outputs
+output "s3_order_reports_bucket_name" {
+  description = "S3 bucket name for order reports"
+  value       = module.s3_order_reports.bucket_name
+}
+
+output "s3_inventory_reports_bucket_name" {
+  description = "S3 bucket name for inventory reports"
+  value       = module.s3_inventory_reports.bucket_name
+}
+
+# SQS Reports Queue Outputs
+output "sqs_reports_queue_url" {
+  description = "SQS queue URL for reports"
+  value       = module.sqs_reports_queue.queue_url
+}
+
+output "sqs_reports_queue_arn" {
+  description = "SQS queue ARN for reports"
+  value       = module.sqs_reports_queue.queue_arn
+}
