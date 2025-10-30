@@ -152,9 +152,11 @@ async def test_generate_report_s3_upload_failure(
     assert updated_report.completed_at is not None
 
     # Verify failure notification was sent
-    mock_sqs_publisher.publish_report_generated.assert_called_once()
-    call_args = mock_sqs_publisher.publish_report_generated.call_args[1]
-    assert call_args["status"] == ReportStatus.FAILED.value
+    mock_sqs_publisher.publish_report_failed.assert_called_once()
+    call_args = mock_sqs_publisher.publish_report_failed.call_args[1]
+    assert call_args["report_id"] == report.id
+    assert call_args["user_id"] == user_id
+    assert call_args["report_type"] == ReportType.LOW_STOCK.value
     assert call_args["error_message"] == "S3 upload failed"
 
 

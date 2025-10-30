@@ -50,7 +50,7 @@ async def test_publish_report_generated_success(sqs_publisher):
 
         # Verify message body
         message_body = json.loads(call_args["MessageBody"])
-        assert message_body["event_type"] == "report_generated"
+        assert message_body["event_type"] == "web_report_generated"
         assert message_body["microservice"] == "inventory"
         assert message_body["report_id"] == str(report_id)
         assert message_body["user_id"] == str(user_id)
@@ -111,7 +111,7 @@ async def test_publish_report_failed_success(sqs_publisher):
 
         # Verify message body
         message_body = json.loads(call_args["MessageBody"])
-        assert message_body["event_type"] == "report_generated"
+        assert message_body["event_type"] == "web_report_generated"
         assert message_body["microservice"] == "inventory"
         assert message_body["report_id"] == str(report_id)
         assert message_body["user_id"] == str(user_id)
