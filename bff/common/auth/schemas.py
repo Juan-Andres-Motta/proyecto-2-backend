@@ -2,19 +2,14 @@
 Authentication schemas for Cognito login/signup.
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
-    """Request model for user login.
-
-    Web users can only login with client_type='web'.
-    Seller and client users can only login with client_type='mobile'.
-    """
+    """Request model for user login."""
 
     email: EmailStr
-    password: str
-    client_type: str = Field(..., description="Client type: 'web' or 'mobile'")
+    password: str = Field(..., min_length=8)
 
 
 class LoginResponse(BaseModel):
@@ -44,24 +39,35 @@ class RefreshTokenResponse(BaseModel):
 
 
 class SignupRequest(BaseModel):
-    """Request model for user signup. Only 'client' user type is allowed."""
+    """Request model for user signup - only clients can self-register."""
 
+    # Cognito fields
     email: EmailStr
     password: str = Field(..., min_length=8)
-    user_type: str = Field(..., description="Type of user: must be 'client'. Web and seller users are created by administrators.")
+    name: str = Field(..., min_length=1, description="Representative's full name")
 
-    # Client-specific required fields
-    telefono: str = Field(..., description="Phone number with country code (e.g., +1234567890)")
-    nombre_institucion: str = Field(..., description="Institution name")
+    # Client-specific fields (required for creating client in client microservice)
+    telefono: str = Field(..., min_length=1)
+    nombre_institucion: str = Field(..., min_length=1)
     tipo_institucion: str = Field(
         ...,
-        description="Institution type: hospital, clinica, laboratorio, centro_diagnostico"
+        description="Tipo de institución: hospital, clinica, laboratorio, centro_diagnostico"
     )
-    nit: str = Field(..., description="Tax identification number (NIT)")
-    direccion: str = Field(..., description="Institution address")
-    ciudad: str = Field(..., description="City")
-    pais: str = Field(..., description="Country")
-    representante: str = Field(..., description="Legal representative name")
+    nit: str = Field(..., min_length=1)
+    direccion: str = Field(..., min_length=1)
+    ciudad: str = Field(..., min_length=1)
+    pais: str = Field(..., min_length=1)
+    representante: str = Field(..., min_length=1)
+
+    # user_type is fixed to "client" - only clients can self-register
+    user_type: str = Field(default="client", description="Must be 'client' - only clients can self-register")
+
+    @field_validator("user_type")
+    @classmethod
+    def validate_user_type(cls, v: str) -> str:
+        if v != "client":
+            raise ValueError("Only clients can self-register. user_type must be 'client'")
+        return v
 
 
 class SignupResponse(BaseModel):
@@ -69,8 +75,6 @@ class SignupResponse(BaseModel):
 
     user_id: str
     email: str
-    cliente_id: str
-    nombre_institucion: str
     message: str = "User created successfully. Please check your email for verification."
 
 

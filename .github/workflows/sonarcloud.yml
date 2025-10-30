@@ -82,9 +82,9 @@ jobs:
           cd inventory
           poetry install --no-interaction --no-ansi
           poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
-          # Fix paths in coverage.xml for SonarCloud
+          # Fix paths in coverage.xml for SonarCloud - add inventory/src/ prefix
           sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-          sed -i 's|filename="\([^"]*\)"|filename="inventory/\1"|g' coverage.xml
+          sed -i 's|filename="|filename="inventory/src/|g' coverage.xml
         continue-on-error: false
 
       - name: Test Order

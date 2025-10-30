@@ -27,3 +27,9 @@ variable "volume_size" {
   type        = number
   default     = 30
 }
+
+variable "db_password" {
+  description = "Database password for RDS"
+  type        = string
+  sensitive   = true
+}

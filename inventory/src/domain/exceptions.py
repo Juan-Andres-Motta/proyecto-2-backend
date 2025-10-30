@@ -98,3 +98,15 @@ class ExpiredInventoryException(ValidationException):
             message=f"Cannot create inventory with expired date: {expiration_date.isoformat()}",
             error_code="EXPIRED_INVENTORY",
         )
+
+
+# Report exceptions
+class ReportNotFoundException(NotFoundException):
+    """Report with given ID does not exist."""
+
+    def __init__(self, report_id: UUID):
+        self.report_id = report_id
+        super().__init__(
+            message=f"Report {report_id} not found",
+            error_code="REPORT_NOT_FOUND",
+        )

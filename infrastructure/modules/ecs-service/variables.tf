@@ -35,8 +35,9 @@ variable "security_group_id" {
 }
 
 variable "target_group_arn" {
-  description = "ARN of the ALB target group"
+  description = "ARN of the ALB target group (optional)"
   type        = string
+  default     = null
 }
 
 variable "container_port" {
