@@ -74,7 +74,7 @@ jobs:
           # Note: delivery stores code at root level, not in src/ subdirectory
           if [ -f coverage.xml ]; then
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-            sed -i 's|filename="\([^"]*\)"|filename="delivery/\1"|g' coverage.xml
+            sed -i 's|filename="\([^"]*\)"|filename="delivery/src/\1"|g' coverage.xml
           fi
         continue-on-error: true
 
