@@ -221,6 +221,8 @@ __marimo__/
 
 # Secrets
 secrets.md
+*CREDENTIALS*.md
+infrastructure/CICD-CREDENTIALS.md
 
 .idea
 
