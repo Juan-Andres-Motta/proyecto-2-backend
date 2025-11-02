@@ -14,9 +14,14 @@ class TestCreateVisitRequestValidation:
         """Test CreateVisitRequest with timezone-aware datetime is valid."""
         future_date = datetime.now(timezone.utc) + timedelta(days=2)
         request = CreateVisitRequest(
+            seller_id=uuid4(),
             client_id=uuid4(),
             fecha_visita=future_date,
             notas_visita="Test visit",
+            client_nombre_institucion="Hospital",
+            client_direccion="Address",
+            client_ciudad="City",
+            client_pais="Country",
         )
 
         assert request.fecha_visita == future_date
@@ -30,9 +35,14 @@ class TestCreateVisitRequestValidation:
         future_date_offset = future_date.replace(tzinfo=tz(timedelta(hours=-5)))
 
         request = CreateVisitRequest(
+            seller_id=uuid4(),
             client_id=uuid4(),
             fecha_visita=future_date_offset,
             notas_visita="Test visit",
+            client_nombre_institucion="Hospital",
+            client_direccion="Address",
+            client_ciudad="City",
+            client_pais="Country",
         )
 
         assert request.fecha_visita.tzinfo is not None
@@ -44,9 +54,14 @@ class TestCreateVisitRequestValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             CreateVisitRequest(
+                seller_id=uuid4(),
                 client_id=uuid4(),
                 fecha_visita=future_date,
                 notas_visita="Test visit",
+                client_nombre_institucion="Hospital",
+                client_direccion="Address",
+                client_ciudad="City",
+                client_pais="Country",
             )
 
         # Check that the error is about timezone-aware requirement
@@ -60,9 +75,14 @@ class TestCreateVisitRequestValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             CreateVisitRequest(
+                seller_id=uuid4(),
                 client_id=uuid4(),
                 fecha_visita=future_date,
                 notas_visita="Test visit",
+                client_nombre_institucion="Hospital",
+                client_direccion="Address",
+                client_ciudad="City",
+                client_pais="Country",
             )
 
         errors = exc_info.value.errors()
@@ -73,9 +93,14 @@ class TestCreateVisitRequestValidation:
         """Test CreateVisitRequest with optional notes field."""
         future_date = datetime.now(timezone.utc) + timedelta(days=2)
         request = CreateVisitRequest(
+            seller_id=uuid4(),
             client_id=uuid4(),
             fecha_visita=future_date,
             notas_visita=None,
+            client_nombre_institucion="Hospital",
+            client_direccion="Address",
+            client_ciudad="City",
+            client_pais="Country",
         )
 
         assert request.notas_visita is None
@@ -84,9 +109,14 @@ class TestCreateVisitRequestValidation:
         """Test CreateVisitRequest with empty string notes."""
         future_date = datetime.now(timezone.utc) + timedelta(days=2)
         request = CreateVisitRequest(
+            seller_id=uuid4(),
             client_id=uuid4(),
             fecha_visita=future_date,
             notas_visita="",
+            client_nombre_institucion="Hospital",
+            client_direccion="Address",
+            client_ciudad="City",
+            client_pais="Country",
         )
 
         assert request.notas_visita == ""
@@ -97,9 +127,14 @@ class TestCreateVisitRequestValidation:
         long_notes = "x" * 500  # Max length is 500
 
         request = CreateVisitRequest(
+            seller_id=uuid4(),
             client_id=uuid4(),
             fecha_visita=future_date,
             notas_visita=long_notes,
+            client_nombre_institucion="Hospital",
+            client_direccion="Address",
+            client_ciudad="City",
+            client_pais="Country",
         )
 
         assert request.notas_visita == long_notes
@@ -112,9 +147,14 @@ class TestCreateVisitRequestValidation:
 
         with pytest.raises(ValidationError) as exc_info:
             CreateVisitRequest(
+                seller_id=uuid4(),
                 client_id=uuid4(),
                 fecha_visita=future_date,
                 notas_visita=long_notes,
+                client_nombre_institucion="Hospital",
+                client_direccion="Address",
+                client_ciudad="City",
+                client_pais="Country",
             )
 
         errors = exc_info.value.errors()
