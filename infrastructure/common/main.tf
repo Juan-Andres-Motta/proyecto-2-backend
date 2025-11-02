@@ -56,3 +56,14 @@ module "sqs_reports_queue" {
   queue_name = "${local.name_prefix}-reports-queue"
   tags       = local.common_tags
 }
+
+# IAM resources including CI/CD user for ECR push
+module "iam" {
+  source = "../modules/iam"
+
+  name_prefix = local.name_prefix
+  tags        = local.common_tags
+
+  # Pass all ECR repository ARNs for CI/CD push access
+  ecr_repository_arns = [for repo in module.ecr : repo.repository_arn]
+}

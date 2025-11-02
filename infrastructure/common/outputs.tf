@@ -71,3 +71,14 @@ output "sqs_reports_queue_arn" {
   description = "SQS queue ARN for reports"
   value       = module.sqs_reports_queue.queue_arn
 }
+
+# IAM CI/CD User Outputs
+output "cicd_user_name" {
+  description = "IAM user name for CI/CD ECR push operations"
+  value       = module.iam.cicd_user_name
+}
+
+output "cicd_user_arn" {
+  description = "IAM user ARN for CI/CD ECR push operations"
+  value       = module.iam.cicd_user_arn
+}
