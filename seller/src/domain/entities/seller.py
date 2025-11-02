@@ -9,6 +9,7 @@ class Seller:
     """Domain entity for Seller."""
 
     id: UUID
+    cognito_user_id: str
     name: str
     email: str
     phone: str

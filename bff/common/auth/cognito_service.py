@@ -8,7 +8,9 @@ import hmac
 import logging
 from typing import Dict, Optional
 
+import aioboto3
 import httpx
+from botocore.exceptions import ClientError
 from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
@@ -297,40 +299,61 @@ class CognitoService:
         Raises:
             HTTPException: If user deletion fails
         """
-        headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.AdminDeleteUser",
-            "Content-Type": "application/x-amz-json-1.1",
-        }
-
-        body = {
-            "UserPoolId": self.user_pool_id,
-            "Username": username,
-        }
-
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.cognito_idp_url,
-                    json=body,
-                    headers=headers,
-                    timeout=10.0,
+            session = aioboto3.Session()
+            async with session.client("cognito-idp", region_name=self.region) as client:
+                await client.admin_delete_user(
+                    UserPoolId=self.user_pool_id,
+                    Username=username,
                 )
-
-                if response.status_code != 200:
-                    error_data = response.json()
-                    error_type = error_data.get("__type", "UnknownError")
-                    error_message = error_data.get("message", "User deletion failed")
-
-                    logger.error(f"Cognito delete user error: {error_type} - {error_message}")
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail=f"Failed to delete user: {error_message}",
-                    )
-
                 logger.info(f"Cognito user deleted: {username}")
 
-        except httpx.HTTPError as e:
-            logger.error(f"HTTP error during Cognito user deletion: {str(e)}")
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"]["Message"]
+            logger.error(f"Cognito delete user error: {error_code} - {error_message}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete user: {error_message}",
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error during Cognito user deletion: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service temporarily unavailable",
+            )
+
+    async def add_user_to_group(self, username: str, group_name: str) -> None:
+        """
+        Add a user to a Cognito group (admin operation).
+
+        Args:
+            username: Username of the user
+            group_name: Name of the group (e.g., 'seller_users', 'client_users', 'web_users')
+
+        Raises:
+            HTTPException: If adding user to group fails
+        """
+        try:
+            session = aioboto3.Session()
+            async with session.client("cognito-idp", region_name=self.region) as client:
+                await client.admin_add_user_to_group(
+                    UserPoolId=self.user_pool_id,
+                    Username=username,
+                    GroupName=group_name,
+                )
+                logger.info(f"Cognito user {username} added to group {group_name}")
+
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"]["Message"]
+            logger.error(f"Cognito add user to group error: {error_code} - {error_message}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to add user to group: {error_message}",
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error during Cognito add user to group: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Authentication service temporarily unavailable",

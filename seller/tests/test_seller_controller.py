@@ -6,6 +6,7 @@ from src.adapters.output.repositories.seller_repository import SellerRepository
 @pytest.mark.asyncio
 async def test_create_seller(async_client):
     seller_data = {
+        "cognito_user_id": "test-cognito-id-create",
         "name": "Test Seller",
         "email": "seller@test.com",
         "phone": "+1234567890",
@@ -42,6 +43,7 @@ async def test_list_sellers_with_data(async_client, db_session):
     for i in range(5):
         await repo.create(
             {
+                "cognito_user_id": f"test-cognito-id-list-{i}",
                 "name": f"Seller {i}",
                 "email": f"seller{i}@test.com",
                 "phone": f"+123456789{i}",
@@ -69,6 +71,7 @@ async def test_list_seller_sales_plans_empty(async_client, db_session):
     repo = SellerRepository(db_session)
     seller = await repo.create(
         {
+            "cognito_user_id": "test-cognito-id-empty-plans",
             "name": "test seller",
             "email": "seller@test.com",
             "phone": "+1234567890",
@@ -104,6 +107,7 @@ async def test_list_seller_sales_plans_with_data(async_client, db_session):
     seller_repo = SellerRepository(db_session)
     orm_seller1 = await seller_repo.create(
         {
+            "cognito_user_id": "test-cognito-id-seller1",
             "name": "seller 1",
             "email": "seller1@test.com",
             "phone": "+1234567890",
@@ -113,6 +117,7 @@ async def test_list_seller_sales_plans_with_data(async_client, db_session):
     )
     orm_seller2 = await seller_repo.create(
         {
+            "cognito_user_id": "test-cognito-id-seller2",
             "name": "seller 2",
             "email": "seller2@test.com",
             "phone": "+0987654321",
@@ -124,6 +129,7 @@ async def test_list_seller_sales_plans_with_data(async_client, db_session):
     # Convert ORM sellers to domain entities
     domain_seller1 = DomainSeller(
         id=orm_seller1.id,
+        cognito_user_id=orm_seller1.cognito_user_id,
         name=orm_seller1.name,
         email=orm_seller1.email,
         phone=orm_seller1.phone,
@@ -134,6 +140,7 @@ async def test_list_seller_sales_plans_with_data(async_client, db_session):
     )
     domain_seller2 = DomainSeller(
         id=orm_seller2.id,
+        cognito_user_id=orm_seller2.cognito_user_id,
         name=orm_seller2.name,
         email=orm_seller2.email,
         phone=orm_seller2.phone,
@@ -195,6 +202,7 @@ async def test_list_seller_sales_plans_pagination(async_client, db_session):
     seller_repo = SellerRepository(db_session)
     orm_seller = await seller_repo.create(
         {
+            "cognito_user_id": "test-cognito-id-pagination",
             "name": "test seller",
             "email": "seller@test.com",
             "phone": "+1234567890",
@@ -206,6 +214,7 @@ async def test_list_seller_sales_plans_pagination(async_client, db_session):
     # Convert to domain entity
     domain_seller = DomainSeller(
         id=orm_seller.id,
+        cognito_user_id=orm_seller.cognito_user_id,
         name=orm_seller.name,
         email=orm_seller.email,
         phone=orm_seller.phone,
@@ -250,3 +259,41 @@ async def test_list_seller_sales_plans_pagination(async_client, db_session):
     assert data["size"] == 2
     assert data["has_next"]
     assert data["has_previous"]
+
+
+@pytest.mark.asyncio
+async def test_get_seller_by_cognito_user_id_success(async_client, db_session):
+    """Test getting seller by Cognito User ID when seller exists (line 100)."""
+    # Create a seller
+    repo = SellerRepository(db_session)
+    cognito_id = "test-cognito-id-by-cognito"
+    seller = await repo.create(
+        {
+            "cognito_user_id": cognito_id,
+            "name": "test seller",
+            "email": "seller@test.com",
+            "phone": "+1234567890",
+            "city": "test city",
+            "country": "US",
+        }
+    )
+
+    # Get seller by cognito user ID
+    response = await async_client.get(f"/sellers/by-cognito/{cognito_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(seller.id)
+    assert data["cognito_user_id"] == cognito_id
+    assert data["name"] == "test seller"
+
+
+@pytest.mark.asyncio
+async def test_get_seller_by_cognito_user_id_not_found(async_client):
+    """Test getting seller by Cognito User ID when seller not found (line 102-104)."""
+    # Get seller by non-existent cognito user ID
+    response = await async_client.get(f"/sellers/by-cognito/non-existent-cognito-id")
+
+    assert response.status_code == 404
+    data = response.json()
+    assert data["detail"] == "Seller not found"

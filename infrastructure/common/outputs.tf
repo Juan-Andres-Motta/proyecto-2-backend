@@ -50,6 +50,17 @@ output "s3_inventory_reports_bucket_name" {
   value       = module.s3_inventory_reports.bucket_name
 }
 
+# S3 Evidence Bucket Outputs
+output "s3_evidence_bucket_name" {
+  description = "S3 bucket name for visit evidence"
+  value       = module.s3_evidence.bucket_name
+}
+
+output "s3_evidence_bucket_arn" {
+  description = "S3 bucket ARN for visit evidence"
+  value       = module.s3_evidence.bucket_arn
+}
+
 # SQS Reports Queue Outputs
 output "sqs_reports_queue_url" {
   description = "SQS queue URL for reports"

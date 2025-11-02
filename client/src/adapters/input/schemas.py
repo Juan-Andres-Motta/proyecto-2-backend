@@ -61,3 +61,29 @@ class ClientResponse(BaseModel):
 class ClientListResponse(BaseModel):
     clients: list[ClientResponse]
     total: int
+
+
+class AssignSellerRequest(BaseModel):
+    """Request body for assigning a seller to a client."""
+    vendedor_asignado_id: UUID = Field(
+        ...,
+        description="UUID of the seller to assign to the client"
+    )
+
+
+class AssignSellerResponse(BaseModel):
+    """Response after assigning a seller to a client."""
+    cliente_id: UUID
+    vendedor_asignado_id: UUID
+    nombre_institucion: str
+    updated_at: datetime
+
+    @classmethod
+    def from_domain(cls, client) -> "AssignSellerResponse":
+        """Map domain entity to DTO."""
+        return cls(
+            cliente_id=client.cliente_id,
+            vendedor_asignado_id=client.vendedor_asignado_id,
+            nombre_institucion=client.nombre_institucion,
+            updated_at=client.updated_at
+        )

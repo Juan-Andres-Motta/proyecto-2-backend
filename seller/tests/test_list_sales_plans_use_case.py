@@ -22,6 +22,7 @@ def sample_seller():
     """Create sample seller entity."""
     return Seller(
         id=uuid.uuid4(),
+        cognito_user_id="test-cognito-id-list-plans",
         name="Test Seller",
         email="test@example.com",
         phone="+1-555-0123",

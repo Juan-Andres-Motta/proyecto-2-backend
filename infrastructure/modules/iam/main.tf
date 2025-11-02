@@ -122,7 +122,9 @@ resource "aws_iam_role_policy" "ecs_task" {
         ]
         Resource = [
           "arn:aws:s3:::medisupply-*-reports",
-          "arn:aws:s3:::medisupply-*-reports/*"
+          "arn:aws:s3:::medisupply-*-reports/*",
+          "arn:aws:s3:::medisupply-evidence",
+          "arn:aws:s3:::medisupply-evidence/*"
         ]
       }
     ]

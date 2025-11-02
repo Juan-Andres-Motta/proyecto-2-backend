@@ -26,5 +26,21 @@ class Settings(BaseSettings):
     )
     debug_sql: bool = Field(default=False)
 
+    # External Services
+    client_url: str = Field(
+        ...,
+        description="Base URL for the Client Service API"
+    )
+
+    # AWS Configuration
+    s3_evidence_bucket: str = Field(
+        ...,
+        description="S3 bucket name for storing visit evidence files"
+    )
+    aws_region: str = Field(
+        default="us-east-1",
+        description="AWS region for S3 and other AWS services"
+    )
+
 
 settings = Settings()

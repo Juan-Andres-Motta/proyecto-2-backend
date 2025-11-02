@@ -7,6 +7,7 @@ from sellers_app.ports.client_port import ClientPort
 from sellers_app.schemas.client_schemas import (
     ClientCreateInput,
     ClientListResponse,
+    ClientResponse,
 )
 from web.adapters.http_client import HttpClient
 
@@ -76,3 +77,46 @@ class ClientAdapter(ClientPort):
         response_data = await self.client.get("/client/clients", params=params)
 
         return ClientListResponse(**response_data)
+
+    async def get_client_by_id(self, client_id: UUID) -> ClientResponse:
+        """
+        Get a client by ID.
+
+        Args:
+            client_id: Client ID
+
+        Returns:
+            Client details
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect to client service
+            MicroserviceHTTPError: If client not found (404) or other error
+        """
+        logger.info(f"Getting client by ID (sellers app): client_id={client_id}")
+
+        response_data = await self.client.get(f"/client/clients/{client_id}")
+
+        return ClientResponse(**response_data)
+
+    async def assign_seller(self, client_id: UUID, seller_id: UUID) -> None:
+        """
+        Assign a seller to a client.
+
+        Args:
+            client_id: Client ID
+            seller_id: Seller ID to assign
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect to client service
+            MicroserviceHTTPError: If client not found (404) or already assigned (409)
+        """
+        logger.info(f"Assigning seller to client (sellers app): client_id={client_id}, seller_id={seller_id}")
+
+        payload = {"vendedor_asignado_id": str(seller_id)}
+
+        await self.client.patch(
+            f"/client/clients/{client_id}/assign-seller",
+            json=payload
+        )
+
+        logger.info(f"Successfully assigned seller {seller_id} to client {client_id}")

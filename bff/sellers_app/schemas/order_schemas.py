@@ -26,12 +26,11 @@ class OrderCreateInput(BaseModel):
 
     Business rules:
     - metodo_creacion is automatically set to 'app_vendedor'
-    - seller_id is REQUIRED (seller creating the order)
+    - seller_id is automatically fetched from authenticated user's JWT
     - visit_id is OPTIONAL (can be associated with a visit or not)
     """
 
     customer_id: UUID
-    seller_id: UUID  # Required for sellers app
     items: List[OrderItemInput]
     visit_id: Optional[UUID] = None  # Optional - can be linked to a visit
 

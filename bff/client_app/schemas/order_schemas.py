@@ -27,10 +27,10 @@ class OrderCreateInput(BaseModel):
 
     Business rules:
     - metodo_creacion is automatically set to 'app_cliente'
+    - customer_id is automatically fetched from authenticated user's JWT
     - No seller_id or visit_id required (client app orders)
     """
 
-    customer_id: UUID
     items: List[OrderItemInput]
 
     @field_validator("items")

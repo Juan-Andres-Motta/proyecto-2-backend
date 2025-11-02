@@ -26,7 +26,6 @@ def order_adapter(mock_http_client):
 def sample_order_input():
     """Create sample order input."""
     return OrderCreateInput(
-        customer_id=uuid4(),
         items=[
             OrderItemInput(producto_id=uuid4(), cantidad=5),
             OrderItemInput(producto_id=uuid4(), cantidad=3),
@@ -42,11 +41,12 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter transforms client app schema to Order Service API format."""
+        customer_id = uuid4()
         mock_http_client.post = AsyncMock(
             return_value={"id": str(uuid4()), "message": "Order created"}
         )
 
-        await order_adapter.create_order(sample_order_input)
+        await order_adapter.create_order(sample_order_input, customer_id)
 
         # Verify HTTP client was called
         mock_http_client.post.assert_called_once()
@@ -57,7 +57,7 @@ class TestOrderAdapter:
 
         # Check payload structure
         payload = call_args[1]["json"]
-        assert payload["customer_id"] == str(sample_order_input.customer_id)
+        assert payload["customer_id"] == str(customer_id)
         assert payload["metodo_creacion"] == "app_cliente"  # Hardcoded for client app
         assert "seller_id" not in payload  # Should not be present
         assert "visit_id" not in payload  # Should not be present
@@ -68,12 +68,13 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter returns OrderCreateResponse."""
+        customer_id = uuid4()
         order_id = uuid4()
         mock_http_client.post = AsyncMock(
             return_value={"id": str(order_id), "message": "Success"}
         )
 
-        response = await order_adapter.create_order(sample_order_input)
+        response = await order_adapter.create_order(sample_order_input, customer_id)
 
         assert response.id == order_id
         assert response.message == "Success"
@@ -83,8 +84,9 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter uses default message when not provided."""
+        customer_id = uuid4()
         mock_http_client.post = AsyncMock(return_value={"id": str(uuid4())})
 
-        response = await order_adapter.create_order(sample_order_input)
+        response = await order_adapter.create_order(sample_order_input, customer_id)
 
         assert response.message == "Order created successfully"

@@ -41,6 +41,14 @@ module "s3_inventory_reports" {
   tags        = local.common_tags
 }
 
+# S3 Bucket for Visit Evidence (shared across environments)
+module "s3_evidence" {
+  source = "../modules/s3-evidence-bucket"
+
+  bucket_name = "${local.name_prefix}-evidence"
+  tags        = local.common_tags
+}
+
 # SQS Queue for Report Events (shared across environments)
 module "sqs_reports_queue" {
   source = "../modules/sqs-queue"

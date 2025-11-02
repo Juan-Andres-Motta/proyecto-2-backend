@@ -90,6 +90,22 @@ async def list_sellers(
     )
 
 
+@router.get("/sellers/by-cognito/{cognito_user_id}", response_model=SellerResponse)
+async def get_seller_by_cognito_user_id(
+    cognito_user_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get seller by Cognito User ID."""
+    repository = SellerRepository(db)
+    seller = await repository.find_by_cognito_user_id(cognito_user_id)
+
+    if not seller:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Seller not found")
+
+    return SellerResponse.model_validate(seller, from_attributes=True)
+
+
 @router.get(
     "/sellers/{seller_id}/sales-plans",
     response_model=PaginatedSalesPlansResponse,
