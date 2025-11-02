@@ -69,11 +69,12 @@ jobs:
         run: |
           cd delivery
           poetry install --no-interaction --no-ansi
-          poetry run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term || true
+          poetry run pytest --cov --cov-report=xml:coverage.xml --cov-report=term || true
           # Fix paths in coverage.xml for SonarCloud
+          # Note: delivery stores code at root level, not in src/ subdirectory
           if [ -f coverage.xml ]; then
             sed -i 's|<source>.*</source>|<source>.</source>|g' coverage.xml
-            sed -i 's|filename="\([^"]*\)"|filename="delivery/src/\1"|g' coverage.xml
+            sed -i 's|filename="\([^"]*\)"|filename="delivery/\1"|g' coverage.xml
           fi
         continue-on-error: true
 
