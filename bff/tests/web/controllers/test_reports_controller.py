@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from common.exceptions import MicroserviceError, ResourceNotFoundError
+from common.exceptions import MicroserviceError, MicroserviceHTTPError, ResourceNotFoundError
 from web.controllers.reports_controller import create_report, get_report, list_reports
 from web.ports.reports_port import ReportsPort
 from web.schemas.report_schemas import (
@@ -412,9 +412,9 @@ class TestGetReport:
         """Test falling back to Inventory service when not found in Order."""
         report_id = uuid4()
 
-        # Order service doesn't have it
+        # Order service doesn't have it (returns 404)
         mock_order_adapter.get_report = AsyncMock(
-            side_effect=ResourceNotFoundError("Not found")
+            side_effect=MicroserviceHTTPError("order", 404, "Not found")
         )
 
         # Inventory service has it
@@ -443,11 +443,12 @@ class TestGetReport:
         """Test that 404 is returned when report not found in any service."""
         report_id = uuid4()
 
+        # Both services return 404
         mock_order_adapter.get_report = AsyncMock(
-            side_effect=ResourceNotFoundError("Not found")
+            side_effect=MicroserviceHTTPError("order", 404, "Not found")
         )
         mock_inventory_adapter.get_report = AsyncMock(
-            side_effect=ResourceNotFoundError("Not found")
+            side_effect=MicroserviceHTTPError("inventory", 404, "Not found")
         )
 
         with pytest.raises(HTTPException) as exc_info:

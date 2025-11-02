@@ -201,7 +201,7 @@ class CognitoService:
         user_type: str,
     ) -> Dict:
         """
-        Create a new user in Cognito.
+        Create a new user in Cognito using AdminCreateUser.
 
         Args:
             email: User's email address
@@ -210,70 +210,57 @@ class CognitoService:
             user_type: Type of user (client, seller, web)
 
         Returns:
-            Dict containing user_id and username
+            Dict containing user_id, username, and email
 
         Raises:
             HTTPException: If user creation fails
         """
-        headers = {
-            "X-Amz-Target": "AWSCognitoIdentityProviderService.SignUp",
-            "Content-Type": "application/x-amz-json-1.1",
-        }
+        # Extract username from email (part before @) to avoid email format
+        # Cognito with email aliases requires non-email usernames
+        username = email.split("@")[0]
 
         user_attributes = [
             {"Name": "email", "Value": email},
             {"Name": "name", "Value": name},
             {"Name": "custom:user_type", "Value": user_type},
+            {"Name": "email_verified", "Value": "true"},
         ]
 
-        # Extract username from email (part before @) to avoid email format
-        # Cognito with email aliases requires non-email usernames
-        username = email.split("@")[0]
-
-        body = {
-            "ClientId": self.client_id,
-            "Username": username,
-            "Password": password,
-            "UserAttributes": user_attributes,
-        }
-
-        # Add SECRET_HASH if client secret exists
-        if self.client_secret:
-            body["SecretHash"] = self._get_secret_hash(username)
-
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.cognito_idp_url,
-                    json=body,
-                    headers=headers,
-                    timeout=10.0,
+            session = aioboto3.Session()
+            async with session.client("cognito-idp", region_name=self.region) as client:
+                # Create user with SUPPRESS to skip email verification
+                response = await client.admin_create_user(
+                    UserPoolId=self.user_pool_id,
+                    Username=username,
+                    UserAttributes=user_attributes,
+                    MessageAction="SUPPRESS",
+                    DesiredDeliveryMediums=[],
                 )
 
-                if response.status_code != 200:
-                    error_data = response.json()
-                    error_type = error_data.get("__type", "UnknownError")
-                    error_message = error_data.get("message", "Signup failed")
+                # Set permanent password
+                await client.admin_set_user_password(
+                    UserPoolId=self.user_pool_id,
+                    Username=username,
+                    Password=password,
+                    Permanent=True,
+                )
 
-                    if "UsernameExistsException" in error_type:
-                        raise HTTPException(
-                            status_code=status.HTTP_409_CONFLICT,
-                            detail="User with this email already exists",
-                        )
-                    elif "InvalidPasswordException" in error_type:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=error_message,
-                        )
-                    else:
-                        logger.error(f"Cognito signup error: {error_type} - {error_message}")
-                        raise HTTPException(
-                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail=f"Signup error: {error_message}",
-                        )
+                # Extract user_id (sub) from response attributes
+                user = response.get("User", {})
+                attributes = user.get("Attributes", [])
+                cognito_user_id = next(
+                    (attr["Value"] for attr in attributes if attr["Name"] == "sub"),
+                    None
+                )
 
-                result = response.json()
-                cognito_user_id = result.get("UserSub")
+                if not cognito_user_id:
+                    logger.error(f"Failed to extract user_id from Cognito response for username: {username}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to extract user_id from Cognito response",
+                    )
+
                 logger.info(f"Cognito user created: {cognito_user_id}, username: {username}")
 
                 return {
@@ -282,8 +269,29 @@ class CognitoService:
                     "email": email,
                 }
 
-        except httpx.HTTPError as e:
-            logger.error(f"HTTP error during Cognito signup: {str(e)}")
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"]["Message"]
+            logger.error(f"Cognito create user error: {error_code} - {error_message}")
+
+            if error_code == "UsernameExistsException":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="User with this email already exists",
+                )
+            elif error_code == "InvalidPasswordException":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_message,
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to create user: {error_message}",
+                )
+
+        except Exception as e:
+            logger.error(f"Unexpected error during Cognito user creation: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Authentication service temporarily unavailable",
