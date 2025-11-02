@@ -76,22 +76,18 @@ class TestCreateVisitController:
     async def test_create_visit_success(self, mock_session, seller_id, visit_entity):
         """Test successful visit creation."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita="Test",
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.return_value = visit_entity
+        mock_saga = AsyncMock()
+        mock_saga.execute.return_value = visit_entity
 
         response = await create_visit(
             request=request,
-            use_case=mock_use_case,
+            seller_id=seller_id,
+            saga=mock_saga,
             session=mock_session,
         )
 
@@ -103,18 +99,13 @@ class TestCreateVisitController:
     async def test_create_visit_invalid_date(self, mock_session, seller_id):
         """Test creating visit with invalid date raises 400."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(hours=12),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = InvalidVisitDateError(
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = InvalidVisitDateError(
             fecha_visita=request.fecha_visita,
             earliest_allowed_date=datetime.now(timezone.utc) + timedelta(days=1),
         )
@@ -122,7 +113,8 @@ class TestCreateVisitController:
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -133,18 +125,13 @@ class TestCreateVisitController:
     async def test_create_visit_time_conflict(self, mock_session, seller_id, visit_entity):
         """Test creating visit with time conflict raises 409."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = VisitTimeConflictError(
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = VisitTimeConflictError(
             requested_time=request.fecha_visita,
             conflicting_visit=visit_entity,
         )
@@ -152,7 +139,8 @@ class TestCreateVisitController:
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -162,18 +150,13 @@ class TestCreateVisitController:
     async def test_create_visit_client_assigned_to_other_seller(self, mock_session, seller_id):
         """Test creating visit for client assigned to other seller raises 403."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = ClientAssignedToOtherSellerError(
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = ClientAssignedToOtherSellerError(
             client_id=request.client_id,
             client_nombre="Hospital",
             assigned_seller_id=uuid4(),
@@ -182,7 +165,8 @@ class TestCreateVisitController:
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -192,23 +176,19 @@ class TestCreateVisitController:
     async def test_create_visit_client_not_found(self, mock_session, seller_id):
         """Test creating visit for non-existent client raises 404."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = VisitNotFoundError(request.client_id)
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = VisitNotFoundError(request.client_id)
 
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -218,23 +198,19 @@ class TestCreateVisitController:
     async def test_create_visit_client_service_unavailable(self, mock_session, seller_id):
         """Test creating visit when Client Service is unavailable raises 503."""
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = ClientServiceConnectionError("Timeout")
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = ClientServiceConnectionError("Timeout")
 
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -262,6 +238,7 @@ class TestUpdateVisitStatusController:
         response = await update_visit_status(
             visit_id=visit_id,
             request=request,
+            seller_id=seller_id,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -283,6 +260,7 @@ class TestUpdateVisitStatusController:
             await update_visit_status(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -302,6 +280,7 @@ class TestUpdateVisitStatusController:
             await update_visit_status(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -321,6 +300,7 @@ class TestUpdateVisitStatusController:
             await update_visit_status(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -391,6 +371,7 @@ class TestGenerateEvidenceUploadURLController:
         response = await generate_evidence_upload_url(
             visit_id=visit_id,
             request=request,
+            seller_id=seller_id,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -414,6 +395,7 @@ class TestGenerateEvidenceUploadURLController:
             await generate_evidence_upload_url(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -440,6 +422,7 @@ class TestConfirmEvidenceUploadController:
         response = await confirm_evidence_upload(
             visit_id=visit_id,
             request=request,
+            seller_id=seller_id,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -462,6 +445,7 @@ class TestConfirmEvidenceUploadController:
             await confirm_evidence_upload(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -483,6 +467,7 @@ class TestConfirmEvidenceUploadController:
             await confirm_evidence_upload(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -509,6 +494,7 @@ class TestGenerateEvidenceUploadURLControllerAdditional:
             await generate_evidence_upload_url(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -531,6 +517,7 @@ class TestGenerateEvidenceUploadURLControllerAdditional:
             await generate_evidence_upload_url(
                 visit_id=visit_id,
                 request=request,
+                seller_id=seller_id,
                 use_case=mock_use_case,
                 session=mock_session,
             )
@@ -549,23 +536,19 @@ class TestCreateVisitControllerAdditional:
         )
 
         request = CreateVisitRequest(
-            seller_id=seller_id,
             client_id=uuid4(),
             fecha_visita=datetime.now(timezone.utc) + timedelta(days=2),
             notas_visita=None,
-            client_nombre_institucion="Hospital",
-            client_direccion="Address",
-            client_ciudad="City",
-            client_pais="Country",
         )
 
-        mock_use_case = AsyncMock()
-        mock_use_case.execute.side_effect = ClientAssignmentFailedError("Assignment failed")
+        mock_saga = AsyncMock()
+        mock_saga.execute.side_effect = ClientAssignmentFailedError("Assignment failed")
 
         with pytest.raises(HTTPException) as exc_info:
             await create_visit(
                 request=request,
-                use_case=mock_use_case,
+                seller_id=seller_id,
+                saga=mock_saga,
                 session=mock_session,
             )
 
@@ -594,6 +577,7 @@ class TestUpdateVisitStatusControllerEdgeCases:
         response = await update_visit_status(
             visit_id=visit_id,
             request=request,
+            seller_id=seller_id,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -618,6 +602,7 @@ class TestUpdateVisitStatusControllerEdgeCases:
         response = await update_visit_status(
             visit_id=visit_id,
             request=request,
+            seller_id=seller_id,
             use_case=mock_use_case,
             session=mock_session,
         )

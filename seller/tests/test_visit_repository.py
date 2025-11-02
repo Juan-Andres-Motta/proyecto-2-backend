@@ -9,20 +9,14 @@ from src.domain.entities.visit import Visit, VisitStatus
 from src.infrastructure.database.models import Visit as ORMVisit
 
 
-@pytest.fixture
-def mock_session():
-    """Mock AsyncSession."""
-    return AsyncMock()
-
-
 class TestVisitRepositoryCreate:
     """Test visit creation."""
 
     @pytest.mark.asyncio
-    async def test_create_visit_returns_domain_entity(self, mock_session):
+    async def test_create_visit_returns_domain_entity(self):
         """Test that create returns a Visit domain entity."""
-        repo = VisitRepository(session=mock_session)
-        session = mock_session
+        repo = VisitRepository()
+        session = AsyncMock()
 
         visit = Visit(
             id=uuid4(),
@@ -54,10 +48,10 @@ class TestVisitRepositoryFindById:
     """Test finding visits by ID."""
 
     @pytest.mark.asyncio
-    async def test_find_by_id_when_not_exists(self, mock_session):
+    async def test_find_by_id_when_not_exists(self):
         """Test finding a visit that doesn't exist returns None."""
-        repo = VisitRepository(session=mock_session)
-        session = mock_session
+        repo = VisitRepository()
+        session = AsyncMock()
 
         # Mock query result: no visit found
         mock_result = MagicMock()
@@ -74,10 +68,10 @@ class TestVisitRepositoryGetVisitsByDate:
     """Test retrieving visits by date."""
 
     @pytest.mark.asyncio
-    async def test_get_visits_by_date_returns_empty_list_when_no_visits(self, mock_session):
+    async def test_get_visits_by_date_returns_empty_list_when_no_visits(self):
         """Test that get_visits_by_date returns empty list when no visits exist."""
-        repo = VisitRepository(session=mock_session)
-        session = mock_session
+        repo = VisitRepository()
+        session = AsyncMock()
         seller_id = uuid4()
         test_date = datetime(2025, 11, 16, tzinfo=timezone.utc)
 
@@ -96,10 +90,10 @@ class TestVisitRepositoryConflictDetection:
     """Test 180-minute conflict detection."""
 
     @pytest.mark.asyncio
-    async def test_has_conflicting_visit_when_no_conflict(self, mock_session):
+    async def test_has_conflicting_visit_when_no_conflict(self):
         """Test returns None when no conflicting visit exists."""
-        repo = VisitRepository(session=mock_session)
-        session = mock_session
+        repo = VisitRepository()
+        session = AsyncMock()
         seller_id = uuid4()
 
         # Mock query result: no conflict found
@@ -115,10 +109,10 @@ class TestVisitRepositoryConflictDetection:
         session.execute.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_has_conflicting_visit_excludes_cancelled_visits(self, mock_session):
+    async def test_has_conflicting_visit_excludes_cancelled_visits(self):
         """Test that query excludes cancelled visits from conflict detection."""
-        repo = VisitRepository(session=mock_session)
-        session = mock_session
+        repo = VisitRepository()
+        session = AsyncMock()
         seller_id = uuid4()
 
         # Mock query result: no conflict (cancelled visits excluded)

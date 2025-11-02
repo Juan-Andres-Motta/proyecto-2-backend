@@ -11,15 +11,15 @@ from src.infrastructure.database.models import Visit as ORMVisit
 
 
 @pytest.fixture
-def mock_session():
-    """Mock AsyncSession."""
-    return AsyncMock(spec=AsyncSession)
+def repository():
+    """VisitRepository instance."""
+    return VisitRepository()
 
 
 @pytest.fixture
-def repository(mock_session):
-    """VisitRepository instance."""
-    return VisitRepository(session=mock_session)
+def mock_session():
+    """Mock AsyncSession."""
+    return AsyncMock(spec=AsyncSession)
 
 
 @pytest.fixture
@@ -368,8 +368,10 @@ class TestVisitRepositoryHasConflictingVisit:
 class TestVisitRepositoryMappingMethods:
     """Test ORM to domain entity mapping methods."""
 
-    def test_to_domain_converts_orm_to_domain(self, repository, orm_visit_entity):
+    def test_to_domain_converts_orm_to_domain(self, orm_visit_entity):
         """Test _to_domain correctly converts ORM entity to domain entity."""
+        repository = VisitRepository()
+
         domain_visit = repository._to_domain(orm_visit_entity)
 
         assert domain_visit.id == orm_visit_entity.id
@@ -380,8 +382,10 @@ class TestVisitRepositoryMappingMethods:
         assert domain_visit.notas_visita == orm_visit_entity.notas_visita
         assert domain_visit.client_nombre_institucion == orm_visit_entity.client_nombre_institucion
 
-    def test_to_orm_converts_domain_to_orm(self, repository, visit_domain_entity):
+    def test_to_orm_converts_domain_to_orm(self, visit_domain_entity):
         """Test _to_orm correctly converts domain entity to ORM entity."""
+        repository = VisitRepository()
+
         orm_visit = repository._to_orm(visit_domain_entity)
 
         assert orm_visit.id == visit_domain_entity.id
@@ -391,24 +395,28 @@ class TestVisitRepositoryMappingMethods:
         assert orm_visit.status == visit_domain_entity.status.value
         assert orm_visit.notas_visita == visit_domain_entity.notas_visita
 
-    def test_to_domain_completada_status(self, repository, orm_visit_entity):
+    def test_to_domain_completada_status(self, orm_visit_entity):
         """Test mapping COMPLETADA status."""
         orm_visit_entity.status = "completada"
+        repository = VisitRepository()
 
         domain_visit = repository._to_domain(orm_visit_entity)
 
         assert domain_visit.status == VisitStatus.COMPLETADA
 
-    def test_to_domain_cancelada_status(self, repository, orm_visit_entity):
+    def test_to_domain_cancelada_status(self, orm_visit_entity):
         """Test mapping CANCELADA status."""
         orm_visit_entity.status = "cancelada"
+        repository = VisitRepository()
 
         domain_visit = repository._to_domain(orm_visit_entity)
 
         assert domain_visit.status == VisitStatus.CANCELADA
 
-    def test_to_orm_preserves_all_fields(self, repository, visit_domain_entity):
+    def test_to_orm_preserves_all_fields(self, visit_domain_entity):
         """Test _to_orm preserves all fields from domain entity."""
+        repository = VisitRepository()
+
         orm_visit = repository._to_orm(visit_domain_entity)
 
         assert orm_visit.recomendaciones == visit_domain_entity.recomendaciones

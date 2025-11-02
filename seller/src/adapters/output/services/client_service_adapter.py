@@ -60,7 +60,7 @@ class ClientServiceAdapter(ClientServicePort):
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/clients/{client_id}")
+                response = await client.get(f"{self.base_url}/client/clients/{client_id}")
 
                 if response.status_code == 404:
                     logger.debug(f"Client not found: client_id={client_id}")
@@ -72,7 +72,7 @@ class ClientServiceAdapter(ClientServicePort):
                 logger.debug(f"Successfully fetched client: client_id={client_id}")
 
                 return ClientDTO(
-                    id=UUID(data["id"]),
+                    id=UUID(data["cliente_id"]),
                     vendedor_asignado_id=(
                         UUID(data["vendedor_asignado_id"])
                         if data.get("vendedor_asignado_id")
@@ -147,7 +147,7 @@ class ClientServiceAdapter(ClientServicePort):
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.patch(
-                    f"{self.base_url}/clients/{client_id}/assign-seller",
+                    f"{self.base_url}/client/clients/{client_id}/assign-seller",
                     json={"vendedor_asignado_id": str(seller_id)},
                 )
 
