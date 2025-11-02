@@ -427,29 +427,21 @@ class TestCognitoServiceDeleteUser:
     @pytest.mark.asyncio
     async def test_delete_user_success(self, cognito_service):
         """Test successful user deletion."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {}
+        mock_client = AsyncMock()
+        mock_admin_delete_user = AsyncMock()
+        mock_client.admin_delete_user = mock_admin_delete_user
 
-        with patch("httpx.AsyncClient") as mock_client:
-            mock_post = AsyncMock(return_value=mock_response)
-            mock_client.return_value.__aenter__.return_value.post = mock_post
+        with patch("aioboto3.Session") as mock_session:
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
 
             # Should not raise exception
             await cognito_service.delete_user("testuser")
 
-            # Verify HTTP call was made correctly
-            mock_post.assert_called_once()
-            call_args = mock_post.call_args
-
-            # Verify headers
-            headers = call_args.kwargs["headers"]
-            assert headers["X-Amz-Target"] == "AWSCognitoIdentityProviderService.AdminDeleteUser"
-
-            # Verify body
-            body = call_args.kwargs["json"]
-            assert body["UserPoolId"] == "us-east-1_TestPool"
-            assert body["Username"] == "testuser"
+            # Verify admin_delete_user was called correctly
+            mock_admin_delete_user.assert_called_once_with(
+                UserPoolId="us-east-1_TestPool",
+                Username="testuser"
+            )
 
     @pytest.mark.asyncio
     async def test_delete_user_not_found(self, cognito_service):
@@ -475,10 +467,12 @@ class TestCognitoServiceDeleteUser:
     @pytest.mark.asyncio
     async def test_delete_user_cognito_service_unavailable(self, cognito_service):
         """Test delete_user when Cognito service is down returns 503."""
-        with patch("httpx.AsyncClient") as mock_client:
-            mock_client.return_value.__aenter__.return_value.post = AsyncMock(
-                side_effect=httpx.ConnectError("Connection failed")
+        with patch("aioboto3.Session") as mock_session:
+            mock_client = AsyncMock()
+            mock_client.admin_delete_user = AsyncMock(
+                side_effect=Exception("Connection failed")
             )
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
 
             with pytest.raises(HTTPException) as exc_info:
                 await cognito_service.delete_user("testuser")

@@ -29,8 +29,14 @@ from src.domain.exceptions import (
     InvalidVisitDateError,
     VisitTimeConflictError,
     InvalidStatusTransitionError,
+    ClientAssignedToOtherSellerError,
+    UnauthorizedVisitAccessError,
 )
 from src.adapters.output.services.s3_service_adapter import InvalidContentTypeError
+from src.adapters.output.services.client_service_adapter import (
+    ClientServiceConnectionError,
+    ClientAssignmentFailedError,
+)
 from src.infrastructure.dependencies import (
     get_create_visit_use_case,
     get_update_visit_status_use_case,
@@ -106,6 +112,44 @@ async def create_visit(
                 },
             },
         )
+    except ClientAssignedToOtherSellerError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ClientAssignedToOtherSeller",
+                "message": str(e),
+                "details": {
+                    "client_id": str(e.client_id),
+                    "client_nombre": e.client_nombre,
+                    "assigned_seller_id": str(e.assigned_seller_id),
+                },
+            },
+        )
+    except VisitNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "VisitNotFound",
+                "message": str(e),
+                "details": {"visit_id": str(e.visit_id)},
+            },
+        )
+    except ClientServiceConnectionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "ClientServiceUnavailable",
+                "message": str(e),
+            },
+        )
+    except ClientAssignmentFailedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "error": "ClientAssignmentFailed",
+                "message": str(e),
+            },
+        )
 
 
 @router.patch(
@@ -154,6 +198,18 @@ async def update_visit_status(
                 "details": {
                     "current_status": e.current_status,
                     "requested_status": e.requested_status,
+                },
+            },
+        )
+    except UnauthorizedVisitAccessError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "UnauthorizedVisitAccess",
+                "message": str(e),
+                "details": {
+                    "visit_id": str(e.visit_id),
+                    "seller_id": str(e.seller_id),
                 },
             },
         )
@@ -236,6 +292,18 @@ async def generate_evidence_upload_url(
                 "details": {"content_type": request.content_type},
             },
         )
+    except UnauthorizedVisitAccessError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "UnauthorizedVisitAccess",
+                "message": str(e),
+                "details": {
+                    "visit_id": str(e.visit_id),
+                    "seller_id": str(e.seller_id),
+                },
+            },
+        )
 
 
 @router.post(
@@ -273,5 +341,17 @@ async def confirm_evidence_upload(
                 "error": "VisitNotFound",
                 "message": str(e),
                 "details": {"visit_id": str(e.visit_id)},
+            },
+        )
+    except UnauthorizedVisitAccessError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "UnauthorizedVisitAccess",
+                "message": str(e),
+                "details": {
+                    "visit_id": str(e.visit_id),
+                    "seller_id": str(e.seller_id),
+                },
             },
         )

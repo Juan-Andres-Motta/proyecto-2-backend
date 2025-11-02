@@ -206,6 +206,32 @@ class TestHttpClientErrorMapping:
             )
 
     @pytest.mark.asyncio
+    async def test_maps_other_4xx_client_error_to_http_error(self, http_client):
+        """Test that other 4xx status codes are mapped to MicroserviceHTTPError on POST."""
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_response = Mock()
+            mock_response.status_code = 403
+            mock_response.text = "Forbidden"
+
+            def raise_http_error():
+                raise httpx.HTTPStatusError(
+                    "Forbidden", request=Mock(), response=mock_response
+                )
+
+            mock_response.raise_for_status = raise_http_error
+
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.post = AsyncMock(
+                return_value=mock_response
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceHTTPError) as exc_info:
+                await http_client.post("/endpoint", json={})
+
+            assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
     async def test_error_includes_service_name(self, http_client):
         """Test that all mapped errors include the service name."""
         with patch("httpx.AsyncClient") as MockClient:
@@ -278,6 +304,92 @@ class TestHttpClientSuccessCases:
             result = await http_client.patch("/endpoint/123", json={"status": "updated"})
 
             assert result == {"id": "123", "status": "updated"}
+
+
+class TestHttpClientGetErrorHandling:
+    """Test GET method error handling."""
+
+    @pytest.mark.asyncio
+    async def test_get_maps_timeout_to_microservice_timeout_error(self, http_client):
+        """Test that httpx.TimeoutException is mapped to MicroserviceTimeoutError on GET."""
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Request timed out")
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceTimeoutError) as exc_info:
+                await http_client.get("/endpoint", params={})
+
+            assert exc_info.value.service_name == "test-service"
+
+    @pytest.mark.asyncio
+    async def test_get_maps_connect_error_to_connection_error(self, http_client):
+        """Test that httpx.ConnectError is mapped to MicroserviceConnectionError on GET."""
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.ConnectError("Connection refused")
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceConnectionError) as exc_info:
+                await http_client.get("/endpoint", params={})
+
+            assert exc_info.value.service_name == "test-service"
+
+    @pytest.mark.asyncio
+    async def test_get_maps_404_to_http_error(self, http_client):
+        """Test that 404 status is mapped to MicroserviceHTTPError on GET."""
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_response = Mock()
+            mock_response.status_code = 404
+            mock_response.text = "Not found"
+
+            def raise_http_error():
+                raise httpx.HTTPStatusError(
+                    "Not found", request=Mock(), response=mock_response
+                )
+
+            mock_response.raise_for_status = raise_http_error
+
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceHTTPError) as exc_info:
+                await http_client.get("/endpoint", params={})
+
+            assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_maps_500_to_http_error(self, http_client):
+        """Test that 500 status is mapped to MicroserviceHTTPError on GET."""
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_response = Mock()
+            mock_response.status_code = 500
+            mock_response.text = "Internal server error"
+
+            def raise_http_error():
+                raise httpx.HTTPStatusError(
+                    "Internal error", request=Mock(), response=mock_response
+                )
+
+            mock_response.raise_for_status = raise_http_error
+
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.get = AsyncMock(
+                return_value=mock_response
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceHTTPError) as exc_info:
+                await http_client.get("/endpoint", params={})
+
+            assert exc_info.value.status_code == 500
 
 
 class TestHttpClientPatchErrorHandling:
@@ -482,3 +594,34 @@ class TestHttpClientPatchErrorHandling:
 
             assert exc_info.value.service_name == "test-service"
             assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_patch_maps_other_client_error_to_http_error(self):
+        """Test that other 4xx status codes are mapped to MicroserviceHTTPError on PATCH."""
+        http_client = HttpClient(
+            base_url="http://test-service:8000",
+            timeout=10.0,
+            service_name="test-service",
+        )
+        with patch("httpx.AsyncClient") as MockClient:
+            mock_response = Mock()
+            mock_response.status_code = 403
+            mock_response.text = "Forbidden"
+
+            def raise_http_error():
+                raise httpx.HTTPStatusError(
+                    "Forbidden", request=Mock(), response=mock_response
+                )
+
+            mock_response.raise_for_status = raise_http_error
+
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__.return_value.patch = AsyncMock(
+                return_value=mock_response
+            )
+            MockClient.return_value = mock_instance
+
+            with pytest.raises(MicroserviceHTTPError) as exc_info:
+                await http_client.patch("/endpoint", json={})
+
+            assert exc_info.value.status_code == 403
