@@ -28,13 +28,13 @@ class Settings(BaseSettings):
 
     # External Services
     client_url: str = Field(
-        ...,
+        default="http://localhost:8000",
         description="Base URL for the Client Service API"
     )
 
     # AWS Configuration
     s3_evidence_bucket: str = Field(
-        ...,
+        default="test-evidence-bucket",
         description="S3 bucket name for storing visit evidence files"
     )
     aws_region: str = Field(
