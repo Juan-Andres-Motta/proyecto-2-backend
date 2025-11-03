@@ -6,6 +6,7 @@ without specifying how the communication is implemented.
 """
 
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from sellers_app.schemas.order_schemas import OrderCreateInput, OrderCreateResponse
 
@@ -19,7 +20,7 @@ class OrderPort(ABC):
     """
 
     @abstractmethod
-    async def create_order(self, order_data: OrderCreateInput) -> OrderCreateResponse:
+    async def create_order(self, order_data: OrderCreateInput, seller_id: UUID) -> OrderCreateResponse:
         """
         Create a new order via sellers app.
 
@@ -27,7 +28,8 @@ class OrderPort(ABC):
         and requires seller_id. visit_id is optional.
 
         Args:
-            order_data: The order information (customer_id, seller_id, items, visit_id?)
+            order_data: The order information (customer_id, items, visit_id?)
+            seller_id: The seller UUID (fetched from authenticated user)
 
         Returns:
             OrderCreateResponse with the created order ID

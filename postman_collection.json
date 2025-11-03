@@ -1571,6 +1571,218 @@
           "body": "{\n    \"items\": [\n        {\n            \"id\": \"04a6e256-7920-49de-a1dd-e94c5c33c0db\",\n            \"report_type\": \"orders_per_seller\",\n            \"status\": \"completed\",\n            \"start_date\": \"2025-01-01T00:00:00Z\",\n            \"end_date\": \"2025-01-31T23:59:59Z\",\n            \"created_at\": \"2025-10-30T06:26:44.351202Z\",\n            \"completed_at\": \"2025-10-30T06:26:48.683407Z\",\n            \"download_url\": null,\n            \"error_message\": null\n        }\n    ],\n    \"total\": 1,\n    \"page\": 1,\n    \"size\": 1,\n    \"has_next\": false,\n    \"has_previous\": false\n}"
         }
       ]
+    },
+    {
+      "name": "Client App - Create Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has order ID', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.collectionVariables.set('order_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test('Response time is less than 2000ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_id_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    {\n      \"producto_id\": \"{{product_id}}\",\n      \"cantidad\": 5\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/client-app/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "client-app",
+            "orders"
+          ]
+        },
+        "description": "Create order via client app - customer_id automatically fetched from authenticated user's JWT token"
+      },
+      "response": [
+        {
+          "name": "Successful Order Creation",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{client_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"producto_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n      \"cantidad\": 5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bff/client-app/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bff",
+                "client-app",
+                "orders"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d\",\n  \"message\": \"Order created successfully\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Seller App - Create Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has order ID', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.collectionVariables.set('order_id', jsonData.id);",
+              "});",
+              "",
+              "pm.test('Response time is less than 2000ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{seller_id_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"items\": [\n    {\n      \"producto_id\": \"{{product_id}}\",\n      \"cantidad\": 3\n    }\n  ],\n  \"visit_id\": null\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/sellers-app/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "sellers-app",
+            "orders"
+          ]
+        },
+        "description": "Create order via seller app - seller_id automatically fetched from authenticated user's JWT token"
+      },
+      "response": [
+        {
+          "name": "Successful Order Creation",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{seller_id_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"items\": [\n    {\n      \"producto_id\": \"123e4567-e89b-12d3-a456-426614174000\",\n      \"cantidad\": 3\n    }\n  ],\n  \"visit_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bff/sellers-app/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bff",
+                "sellers-app",
+                "orders"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e\",\n  \"message\": \"Order created successfully\"\n}"
+        }
+      ]
     }
   ],
   "variable": [
@@ -1661,6 +1873,16 @@
     },
     {
       "key": "report_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
       "value": "",
       "type": "string"
     }

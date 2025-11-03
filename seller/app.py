@@ -7,6 +7,7 @@ from src.adapters.input.controllers.sales_plan_controller import (
     router as sales_plan_router,
 )
 from src.adapters.input.controllers.seller_controller import router as seller_router
+from src.adapters.input.controllers.visit_controller import router as visit_router
 from src.infrastructure.api.exception_handlers import register_exception_handlers
 from src.infrastructure.config.logger import setup_logging
 from src.infrastructure.config.settings import settings
@@ -38,3 +39,4 @@ logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 app.include_router(common_router, prefix="/seller")
 app.include_router(seller_router, prefix="/seller")
 app.include_router(sales_plan_router, prefix="/seller")
+app.include_router(visit_router, prefix="/seller")

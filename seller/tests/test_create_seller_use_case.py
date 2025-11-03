@@ -12,6 +12,7 @@ async def test_create_seller_use_case():
     mock_repo = AsyncMock()
     mock_seller = Seller(
         id="550e8400-e29b-41d4-a716-446655440000",
+        cognito_user_id="test-cognito-id-usecase",
         name="test seller",
         email="seller@test.com",
         phone="+1234567890",
@@ -22,6 +23,7 @@ async def test_create_seller_use_case():
 
     use_case = CreateSellerUseCase(mock_repo)
     seller_data = {
+        "cognito_user_id": "test-cognito-id-usecase",
         "name": "Test Seller",
         "email": "seller@test.com",
         "phone": "+1234567890",

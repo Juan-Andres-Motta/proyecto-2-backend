@@ -35,35 +35,60 @@ router = APIRouter()
         400: {"description": "Invalid order data"},
         401: {"description": "Unauthorized - Invalid or missing token"},
         403: {"description": "Forbidden - Requires client_users group"},
+        404: {"description": "Client not found for authenticated user"},
         503: {"description": "Order service unavailable"},
     },
 )
 async def create_order(
     order_input: OrderCreateInput,
     order_port: OrderPort = Depends(get_client_order_port),
+    client_port: ClientPort = Depends(get_client_app_client_port),
     user: Dict = Depends(require_client_user),
 ):
     """
     Create a new order via client app.
 
     This endpoint:
-    1. Accepts customer_id and items (producto_id, cantidad)
-    2. Forwards request to Order Service with metodo_creacion='app_cliente'
-    3. No seller_id or visit_id required (client app orders)
+    1. Gets the Cognito User ID from the authenticated user (JWT sub claim)
+    2. Looks up the client record using cognito_user_id to get customer_id
+    3. Validates that the client exists (404 if not found)
+    4. Accepts items (producto_id, cantidad)
+    5. Forwards request to Order Service with metodo_creacion='app_cliente'
+    6. No seller_id or visit_id required (client app orders)
 
     Args:
-        order_input: Order creation input
+        order_input: Order creation input (items only)
         order_port: Order port for service communication
+        client_port: Client port for service communication
+        user: Authenticated client user
 
     Returns:
         OrderCreateResponse with order ID and message
 
     Raises:
-        HTTPException: If order creation fails
+        HTTPException: If client not found or order creation fails
     """
-    logger.info(f"Request: POST /orders (client app): customer_id={order_input.customer_id}, items_count={len(order_input.items)}")
+    cognito_user_id = user.get("sub")
+    logger.info(f"Request: POST /orders (client app): cognito_user_id={cognito_user_id}, items_count={len(order_input.items)}")
+
     try:
-        return await order_port.create_order(order_input)
+        # Get client record by cognito_user_id
+        client_data = await client_port.get_client_by_cognito_user_id(cognito_user_id)
+
+        if not client_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No client found for authenticated user with cognito_user_id={cognito_user_id}",
+            )
+
+        customer_id = client_data["cliente_id"]
+        logger.info(f"Found client: customer_id={customer_id}")
+
+        # Create order with auto-fetched customer_id
+        return await order_port.create_order(order_input, customer_id)
+
+    except HTTPException:
+        raise
 
     except MicroserviceValidationError as e:
         raise HTTPException(
@@ -84,6 +109,7 @@ async def create_order(
         )
 
     except Exception as e:
+        logger.error(f"Unexpected error creating order: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error creating order: {str(e)}",

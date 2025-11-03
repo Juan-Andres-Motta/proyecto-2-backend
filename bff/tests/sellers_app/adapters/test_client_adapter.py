@@ -102,3 +102,53 @@ async def test_list_clients_with_seller_filter():
         "/client/clients",
         params={"vendedor_asignado_id": str(seller_id)}
     )
+
+
+@pytest.mark.asyncio
+async def test_get_client_by_id_success():
+    """Test getting client by ID successfully."""
+    from datetime import datetime
+    mock_http_client = AsyncMock()
+    client_id = uuid4()
+    mock_http_client.get = AsyncMock(return_value={
+        "cliente_id": str(client_id),
+        "cognito_user_id": "cognito-123",
+        "email": "test@hospital.com",
+        "telefono": "+1234567890",
+        "nombre_institucion": "Test Hospital",
+        "tipo_institucion": "Hospital",
+        "nit": "123456789",
+        "direccion": "123 Test St",
+        "ciudad": "Test City",
+        "pais": "US",
+        "representante": "John Doe",
+        "vendedor_asignado_id": None,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
+    })
+
+    adapter = ClientAdapter(mock_http_client)
+
+    result = await adapter.get_client_by_id(client_id)
+
+    assert result.cliente_id == client_id
+    assert result.nombre_institucion == "Test Hospital"
+    mock_http_client.get.assert_called_once_with(f"/client/clients/{client_id}")
+
+
+@pytest.mark.asyncio
+async def test_assign_seller_success():
+    """Test assigning seller to client successfully."""
+    mock_http_client = AsyncMock()
+    client_id = uuid4()
+    seller_id = uuid4()
+    mock_http_client.patch = AsyncMock()
+
+    adapter = ClientAdapter(mock_http_client)
+
+    await adapter.assign_seller(client_id, seller_id)
+
+    mock_http_client.patch.assert_called_once_with(
+        f"/client/clients/{client_id}/assign-seller",
+        json={"vendedor_asignado_id": str(seller_id)}
+    )

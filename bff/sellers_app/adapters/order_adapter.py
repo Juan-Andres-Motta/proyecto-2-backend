@@ -6,6 +6,7 @@ with the Order microservice.
 """
 
 import logging
+from uuid import UUID
 
 from sellers_app.ports.order_port import OrderPort
 from sellers_app.schemas.order_schemas import (
@@ -34,7 +35,7 @@ class OrderAdapter(OrderPort):
         """
         self.client = http_client
 
-    async def create_order(self, order_data: OrderCreateInput) -> OrderCreateResponse:
+    async def create_order(self, order_data: OrderCreateInput, seller_id: UUID) -> OrderCreateResponse:
         """
         Create a new order via sellers app.
 
@@ -44,7 +45,8 @@ class OrderAdapter(OrderPort):
         - Includes visit_id if provided (optional)
 
         Args:
-            order_data: Sellers app order input
+            order_data: Sellers app order input (customer_id, items, visit_id?)
+            seller_id: The seller UUID (fetched from authenticated user)
 
         Returns:
             OrderCreateResponse with order ID
@@ -54,11 +56,11 @@ class OrderAdapter(OrderPort):
             MicroserviceConnectionError: If unable to connect to order service
             MicroserviceHTTPError: If order service returns an error
         """
-        logger.info(f"Creating order (sellers app): customer_id={order_data.customer_id}, seller_id={order_data.seller_id}, items_count={len(order_data.items)}, visit_id={order_data.visit_id}, metodo_creacion='app_vendedor'")
+        logger.info(f"Creating order (sellers app): customer_id={order_data.customer_id}, seller_id={seller_id}, items_count={len(order_data.items)}, visit_id={order_data.visit_id}, metodo_creacion='app_vendedor'")
         # Transform sellers app schema to Order Service API schema
         payload = {
             "customer_id": str(order_data.customer_id),
-            "seller_id": str(order_data.seller_id),  # Required
+            "seller_id": str(seller_id),  # Required
             "metodo_creacion": "app_vendedor",  # Hardcoded for sellers app
             "items": [
                 {"producto_id": str(item.producto_id), "cantidad": item.cantidad}
