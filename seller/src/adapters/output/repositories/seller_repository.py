@@ -37,6 +37,25 @@ class SellerRepository(SellerRepositoryPort):
             logger.error(f"DB: Find seller by ID failed: seller_id={seller_id}, error={e}")
             raise
 
+    async def find_by_cognito_user_id(self, cognito_user_id: str) -> Optional[DomainSeller]:
+        """Find a seller by Cognito User ID and return domain entity."""
+        logger.debug(f"DB: Finding seller by cognito_user_id={cognito_user_id}")
+
+        try:
+            stmt = select(ORMSeller).where(ORMSeller.cognito_user_id == cognito_user_id)
+            result = await self.session.execute(stmt)
+            orm_seller = result.scalars().first()
+
+            if orm_seller is None:
+                logger.debug(f"DB: Seller not found: cognito_user_id={cognito_user_id}")
+                return None
+
+            logger.debug(f"DB: Successfully found seller: cognito_user_id={cognito_user_id}, id={orm_seller.id}")
+            return self._to_domain(orm_seller)
+        except Exception as e:
+            logger.error(f"DB: Find seller by cognito_user_id failed: cognito_user_id={cognito_user_id}, error={e}")
+            raise
+
     async def create(self, seller_data: dict) -> ORMSeller:
         """Create a seller (returns ORM model for backward compatibility)."""
         logger.debug(f"DB: Creating seller with data: name={seller_data.get('name')}, email={seller_data.get('email')}")
@@ -82,6 +101,7 @@ class SellerRepository(SellerRepositoryPort):
         """Map ORM model to domain entity."""
         return DomainSeller(
             id=orm_seller.id,
+            cognito_user_id=orm_seller.cognito_user_id,
             name=orm_seller.name,
             email=orm_seller.email,
             phone=orm_seller.phone,

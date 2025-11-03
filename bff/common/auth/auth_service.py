@@ -90,7 +90,8 @@ class AuthService:
         This implements a distributed transaction:
         1. Create user in Cognito
         2. Create client record in client microservice
-        3. If step 2 fails, rollback step 1 by deleting Cognito user
+        3. Add user to client_users group
+        4. If step 2 or 3 fails, rollback step 1 by deleting Cognito user
 
         Args:
             request: Signup data with all client fields
@@ -138,10 +139,15 @@ class AuthService:
             await client_port.create_client(client_data)
             logger.info(f"Saga Step 2 SUCCESS: Client record created for {request.email}")
 
+            # Step 3: Add user to client_users group
+            logger.info("Saga Step 3: Adding user to client_users group")
+            await self.cognito_service.add_user_to_group(username, "client_users")
+            logger.info(f"Saga Step 3 SUCCESS: User {username} added to client_users group")
+
         except Exception as client_error:
             # Saga compensation: rollback Cognito user creation
             logger.error(
-                f"Saga Step 2 FAILED: Client creation failed. "
+                f"Saga Step 2/3 FAILED: Client creation or group assignment failed. "
                 f"Error: {str(client_error)}. Initiating rollback for Cognito user {username}"
             )
 

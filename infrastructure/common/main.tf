@@ -41,10 +41,29 @@ module "s3_inventory_reports" {
   tags        = local.common_tags
 }
 
+# S3 Bucket for Visit Evidence (shared across environments)
+module "s3_evidence" {
+  source = "../modules/s3-evidence-bucket"
+
+  bucket_name = "${local.name_prefix}-evidence"
+  tags        = local.common_tags
+}
+
 # SQS Queue for Report Events (shared across environments)
 module "sqs_reports_queue" {
   source = "../modules/sqs-queue"
 
   queue_name = "${local.name_prefix}-reports-queue"
   tags       = local.common_tags
+}
+
+# IAM resources including CI/CD user for ECR push
+module "iam" {
+  source = "../modules/iam"
+
+  name_prefix = local.name_prefix
+  tags        = local.common_tags
+
+  # Pass all ECR repository ARNs for CI/CD push access
+  ecr_repository_arns = [for repo in module.ecr : repo.repository_arn]
 }

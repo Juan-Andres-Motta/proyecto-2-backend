@@ -58,3 +58,15 @@ class DuplicateCognitoUserException(BusinessRuleException):
             message=f"Client with Cognito User ID {cognito_user_id} already exists",
             error_code="DUPLICATE_COGNITO_USER"
         )
+
+
+class ClientAlreadyAssignedException(BusinessRuleException):
+    """Client is already assigned to a seller."""
+
+    def __init__(self, cliente_id: UUID, vendedor_asignado_id: UUID):
+        self.cliente_id = cliente_id
+        self.vendedor_asignado_id = vendedor_asignado_id
+        super().__init__(
+            message=f"Client {cliente_id} is already assigned to seller {vendedor_asignado_id}",
+            error_code="CLIENT_ALREADY_ASSIGNED"
+        )

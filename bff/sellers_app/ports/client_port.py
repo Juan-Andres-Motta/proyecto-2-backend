@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sellers_app.schemas.client_schemas import ClientCreateInput, ClientListResponse
+from sellers_app.schemas.client_schemas import ClientCreateInput, ClientListResponse, ClientResponse
 
 
 class ClientPort(ABC):
@@ -37,5 +37,35 @@ class ClientPort(ABC):
 
         Returns:
             List of clients
+        """
+        pass
+
+    @abstractmethod
+    async def get_client_by_id(self, client_id: UUID) -> ClientResponse:
+        """
+        Get a client by ID.
+
+        Args:
+            client_id: Client ID
+
+        Returns:
+            Client details
+
+        Raises:
+            MicroserviceHTTPError: If client not found (404) or other error
+        """
+        pass
+
+    @abstractmethod
+    async def assign_seller(self, client_id: UUID, seller_id: UUID) -> None:
+        """
+        Assign a seller to a client.
+
+        Args:
+            client_id: Client ID
+            seller_id: Seller ID to assign
+
+        Raises:
+            MicroserviceHTTPError: If client not found (404) or already assigned (409)
         """
         pass

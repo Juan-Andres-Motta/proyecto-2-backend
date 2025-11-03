@@ -18,6 +18,7 @@ async def test_create_sales_plan(db_session):
     seller_repo = SellerRepository(db_session)
     seller = await seller_repo.create(
         {
+            "cognito_user_id": "test-cognito-id-create-plan",
             "name": "john doe",
             "email": "john@example.com",
             "phone": "1234567890",
@@ -90,6 +91,7 @@ async def test_list_sales_plans_with_pagination(db_session):
     plan_repo = SalesPlanRepository(db_session)
 
     orm_seller = await seller_repo.create({
+        "cognito_user_id": "test-cognito-id-pagination-controller",
         "name": "pagination seller",
         "email": "pagination@example.com",
         "phone": "1111111111",
@@ -99,6 +101,7 @@ async def test_list_sales_plans_with_pagination(db_session):
 
     domain_seller = DomainSeller(
         id=orm_seller.id,
+        cognito_user_id=orm_seller.cognito_user_id,
         name=orm_seller.name,
         email=orm_seller.email,
         phone=orm_seller.phone,

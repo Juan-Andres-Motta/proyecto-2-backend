@@ -43,7 +43,6 @@ def mock_client_port():
 def sample_order_input():
     """Create sample order input data."""
     return OrderCreateInput(
-        customer_id=uuid4(),
         items=[
             OrderItemInput(producto_id=uuid4(), cantidad=5),
             OrderItemInput(producto_id=uuid4(), cantidad=3),
@@ -66,9 +65,14 @@ class TestClientAppOrdersController:
 
     @pytest.mark.asyncio
     async def test_create_order_calls_port_and_returns_response(
-        self, mock_order_port, sample_order_input
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
     ):
         """Test that create_order calls port and returns response."""
+        customer_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": customer_id}
+        )
+
         order_id = uuid4()
         expected_response = OrderCreateResponse(
             id=order_id, message="Order created successfully"
@@ -76,19 +80,59 @@ class TestClientAppOrdersController:
         mock_order_port.create_order = AsyncMock(return_value=expected_response)
 
         result = await create_order(
-            order_input=sample_order_input, order_port=mock_order_port
+            order_input=sample_order_input,
+            order_port=mock_order_port,
+            client_port=mock_client_port,
+            user=mock_user,
         )
 
-        mock_order_port.create_order.assert_called_once_with(sample_order_input)
+        # Verify client lookup was called with cognito_user_id
+        mock_client_port.get_client_by_cognito_user_id.assert_called_once_with(
+            "cognito-user-123"
+        )
+
+        # Verify order creation with auto-fetched customer_id
+        mock_order_port.create_order.assert_called_once_with(
+            sample_order_input, customer_id
+        )
         assert result == expected_response
         assert result.id == order_id
         assert result.message == "Order created successfully"
 
     @pytest.mark.asyncio
+    async def test_create_order_client_not_found(
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
+    ):
+        """Test that 404 is returned when client is not found."""
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value=None
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await create_order(
+                order_input=sample_order_input,
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
+            )
+
+        assert exc_info.value.status_code == 404
+        assert "No client found" in exc_info.value.detail
+        assert "cognito-user-123" in exc_info.value.detail
+
+        # Verify order creation was never called
+        mock_order_port.create_order.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_create_order_handles_validation_error(
-        self, mock_order_port, sample_order_input
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
     ):
         """Test that validation errors are properly handled."""
+        customer_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": customer_id}
+        )
+
         mock_order_port.create_order = AsyncMock(
             side_effect=MicroserviceValidationError(
                 service_name="order", message="Invalid customer_id"
@@ -97,7 +141,10 @@ class TestClientAppOrdersController:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_order(
-                order_input=sample_order_input, order_port=mock_order_port
+                order_input=sample_order_input,
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
             )
 
         assert exc_info.value.status_code == 400
@@ -105,9 +152,14 @@ class TestClientAppOrdersController:
 
     @pytest.mark.asyncio
     async def test_create_order_handles_connection_error(
-        self, mock_order_port, sample_order_input
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
     ):
         """Test that connection errors are properly handled."""
+        customer_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": customer_id}
+        )
+
         mock_order_port.create_order = AsyncMock(
             side_effect=MicroserviceConnectionError(
                 service_name="order", original_error="Connection refused"
@@ -116,7 +168,10 @@ class TestClientAppOrdersController:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_order(
-                order_input=sample_order_input, order_port=mock_order_port
+                order_input=sample_order_input,
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
             )
 
         assert exc_info.value.status_code == 503
@@ -124,9 +179,14 @@ class TestClientAppOrdersController:
 
     @pytest.mark.asyncio
     async def test_create_order_handles_http_error(
-        self, mock_order_port, sample_order_input
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
     ):
         """Test that HTTP errors are properly handled."""
+        customer_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": customer_id}
+        )
+
         mock_order_port.create_order = AsyncMock(
             side_effect=MicroserviceHTTPError(
                 service_name="order", status_code=500, response_text="Internal server error"
@@ -135,7 +195,10 @@ class TestClientAppOrdersController:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_order(
-                order_input=sample_order_input, order_port=mock_order_port
+                order_input=sample_order_input,
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
             )
 
         assert exc_info.value.status_code == 500
@@ -143,16 +206,24 @@ class TestClientAppOrdersController:
 
     @pytest.mark.asyncio
     async def test_create_order_handles_unexpected_error(
-        self, mock_order_port, sample_order_input
+        self, mock_order_port, mock_client_port, sample_order_input, mock_user
     ):
         """Test that unexpected errors are properly handled."""
+        customer_id = uuid4()
+        mock_client_port.get_client_by_cognito_user_id = AsyncMock(
+            return_value={"cliente_id": customer_id}
+        )
+
         mock_order_port.create_order = AsyncMock(
             side_effect=Exception("Unexpected error")
         )
 
         with pytest.raises(HTTPException) as exc_info:
             await create_order(
-                order_input=sample_order_input, order_port=mock_order_port
+                order_input=sample_order_input,
+                order_port=mock_order_port,
+                client_port=mock_client_port,
+                user=mock_user,
             )
 
         assert exc_info.value.status_code == 500

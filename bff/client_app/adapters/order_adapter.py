@@ -38,7 +38,7 @@ class OrderAdapter(OrderPort):
         """
         self.client = http_client
 
-    async def create_order(self, order_data: OrderCreateInput) -> OrderCreateResponse:
+    async def create_order(self, order_data: OrderCreateInput, customer_id: UUID) -> OrderCreateResponse:
         """
         Create a new order via client app.
 
@@ -47,7 +47,8 @@ class OrderAdapter(OrderPort):
         - Ensures seller_id and visit_id are not included
 
         Args:
-            order_data: Client app order input
+            order_data: Client app order input (items only)
+            customer_id: The customer UUID (fetched from authenticated user)
 
         Returns:
             OrderCreateResponse with order ID
@@ -57,10 +58,10 @@ class OrderAdapter(OrderPort):
             MicroserviceConnectionError: If unable to connect to order service
             MicroserviceHTTPError: If order service returns an error
         """
-        logger.info(f"Creating order (client app): customer_id={order_data.customer_id}, items_count={len(order_data.items)}, metodo_creacion='app_cliente'")
+        logger.info(f"Creating order (client app): customer_id={customer_id}, items_count={len(order_data.items)}, metodo_creacion='app_cliente'")
         # Transform client app schema to Order Service API schema
         payload = {
-            "customer_id": str(order_data.customer_id),
+            "customer_id": str(customer_id),
             "metodo_creacion": "app_cliente",  # Hardcoded for client app
             "items": [
                 {"producto_id": str(item.producto_id), "cantidad": item.cantidad}

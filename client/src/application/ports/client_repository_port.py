@@ -81,3 +81,15 @@ class ClientRepositoryPort(ABC):
             List of all client domain entities
         """
         ...  # pragma: no cover
+
+    @abstractmethod
+    async def update(self, client: Client) -> Client:
+        """Update an existing client.
+
+        Args:
+            client: Client domain entity with updated values
+
+        Returns:
+            Updated client domain entity
+        """
+        ...  # pragma: no cover

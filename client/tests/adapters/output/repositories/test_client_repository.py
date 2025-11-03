@@ -259,3 +259,440 @@ async def test_list_all_clients_empty(db_session):
     assert all_clients == []
 
 
+@pytest.mark.asyncio
+async def test_update_client(db_session):
+    """Test updating an existing client."""
+    repo = ClientRepository(db_session)
+
+    # Create a client first
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-update-test",
+        email="update@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Update Hospital",
+        tipo_institucion="hospital",
+        nit="555666777",
+        direccion="Update St",
+        ciudad="Update City",
+        pais="Update Country",
+        representante="Update Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    created = await repo.create(client)
+
+    # Update the client
+    updated_client = DomainClient(
+        cliente_id=created.cliente_id,
+        cognito_user_id="cognito-update-test",
+        email="updated@example.com",  # Changed
+        telefono="+9876543210",  # Changed
+        nombre_institucion="Updated Hospital",  # Changed
+        tipo_institucion="hospital",
+        nit="555666777",
+        direccion="Updated St",  # Changed
+        ciudad="Update City",
+        pais="Update Country",
+        representante="Update Rep",
+        vendedor_asignado_id=uuid4(),  # Changed
+        created_at=created.created_at,
+        updated_at=datetime.now()
+    )
+
+    result = await repo.update(updated_client)
+
+    assert result.email == "updated@example.com"
+    assert result.telefono == "+9876543210"
+    assert result.nombre_institucion == "Updated Hospital"
+    assert result.direccion == "Updated St"
+    assert result.vendedor_asignado_id is not None
+
+
+@pytest.mark.asyncio
+async def test_create_client_with_logging(db_session):
+    """Test create client logging on success."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-logging",
+        email="logging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Logging Hospital",
+        tipo_institucion="hospital",
+        nit="888999000",
+        direccion="Logging St",
+        ciudad="Logging City",
+        pais="Logging Country",
+        representante="Logging Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    created = await repo.create(client)
+    assert created.cliente_id == client.cliente_id
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_with_logging(db_session):
+    """Test find_by_id logging."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-id-logging",
+        email="idlogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="ID Logging Hospital",
+        tipo_institucion="hospital",
+        nit="777888999",
+        direccion="ID Logging St",
+        ciudad="ID City",
+        pais="ID Country",
+        representante="ID Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    created = await repo.create(client)
+    found = await repo.find_by_id(created.cliente_id)
+    assert found is not None
+
+
+@pytest.mark.asyncio
+async def test_find_by_cognito_with_logging(db_session):
+    """Test find_by_cognito_user_id logging."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-cog-logging",
+        email="coglogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Cog Logging Hospital",
+        tipo_institucion="hospital",
+        nit="666777888",
+        direccion="Cog Logging St",
+        ciudad="Cog City",
+        pais="Cog Country",
+        representante="Cog Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client)
+    found = await repo.find_by_cognito_user_id("cognito-cog-logging")
+    assert found is not None
+
+
+@pytest.mark.asyncio
+async def test_find_by_nit_with_logging(db_session):
+    """Test find_by_nit logging."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-nit-logging",
+        email="nitlogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="NIT Logging Hospital",
+        tipo_institucion="hospital",
+        nit="555666777",
+        direccion="NIT Logging St",
+        ciudad="NIT Logging City",
+        pais="NIT Country",
+        representante="NIT Logging Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client)
+    found = await repo.find_by_nit("555666777")
+    assert found is not None
+
+
+@pytest.mark.asyncio
+async def test_list_by_seller_with_logging(db_session):
+    """Test list_by_seller logging."""
+    repo = ClientRepository(db_session)
+    seller_id = uuid4()
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-seller-logging",
+        email="sellerlogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Seller Logging Hospital",
+        tipo_institucion="hospital",
+        nit="444555666",
+        direccion="Seller Logging St",
+        ciudad="Seller Logging City",
+        pais="Seller Country",
+        representante="Seller Logging Rep",
+        vendedor_asignado_id=seller_id,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client)
+    found = await repo.list_by_seller(seller_id)
+    assert len(found) == 1
+
+
+@pytest.mark.asyncio
+async def test_list_all_with_logging(db_session):
+    """Test list_all logging."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-all-logging",
+        email="alllogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="All Logging Hospital",
+        tipo_institucion="hospital",
+        nit="333444555",
+        direccion="All Logging St",
+        ciudad="All Logging City",
+        pais="All Country",
+        representante="All Logging Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client)
+    all_clients = await repo.list_all()
+    assert len(all_clients) >= 1
+
+
+@pytest.mark.asyncio
+async def test_update_with_logging(db_session):
+    """Test update logging."""
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-update-logging",
+        email="updatelogging@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Update Logging Hospital",
+        tipo_institucion="hospital",
+        nit="222333444",
+        direccion="Update Logging St",
+        ciudad="Update Logging City",
+        pais="Update Country",
+        representante="Update Logging Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    created = await repo.create(client)
+
+    # Update with new data
+    updated = DomainClient(
+        cliente_id=created.cliente_id,
+        cognito_user_id="cognito-update-logging",
+        email="updatelogging-new@example.com",
+        telefono="+9999999999",
+        nombre_institucion="Update Logging Hospital Updated",
+        tipo_institucion="hospital",
+        nit="222333444",
+        direccion="Update Logging St Updated",
+        ciudad="Update Logging City",
+        pais="Update Country",
+        representante="Update Logging Rep",
+        vendedor_asignado_id=None,
+        created_at=created.created_at,
+        updated_at=datetime.now()
+    )
+
+    result = await repo.update(updated)
+    assert result.email == "updatelogging-new@example.com"
+
+
+@pytest.mark.asyncio
+async def test_create_exception_path(db_session):
+    """Test create client exception handling path."""
+    from unittest.mock import patch
+    from sqlalchemy.exc import IntegrityError
+
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-exception-path",
+        email="exceptionpath@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Exception Path Hospital",
+        tipo_institucion="hospital",
+        nit="111222333",
+        direccion="Exception Path St",
+        ciudad="Exception City",
+        pais="Exception Country",
+        representante="Exception Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    # Mock the session.add to raise an exception
+    original_add = db_session.add
+
+    def mock_add(*args, **kwargs):
+        raise RuntimeError("Test exception")
+
+    db_session.add = mock_add
+
+    try:
+        await repo.create(client)
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.add = original_add
+
+
+@pytest.mark.asyncio
+async def test_find_by_id_exception_path(db_session):
+    """Test find_by_id exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.find_by_id(uuid4())
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_find_by_cognito_exception_path(db_session):
+    """Test find_by_cognito_user_id exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.find_by_cognito_user_id("cognito-error")
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_find_by_nit_exception_path(db_session):
+    """Test find_by_nit exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.find_by_nit("999000111")
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_list_by_seller_exception_path(db_session):
+    """Test list_by_seller exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.list_by_seller(uuid4())
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_list_all_exception_path(db_session):
+    """Test list_all exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.list_all()
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_update_exception_path(db_session):
+    """Test update exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    client = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-update-error",
+        email="updateerror@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Update Error Hospital",
+        tipo_institucion="hospital",
+        nit="999888777",
+        direccion="Update Error St",
+        ciudad="Update Error City",
+        pais="Update Country",
+        representante="Update Error Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.update(client)
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
