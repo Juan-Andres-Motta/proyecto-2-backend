@@ -104,6 +104,12 @@ class Order:
                     "visit_id must be None when metodo_creacion is app_cliente"
                 )
 
+        else:
+            raise ValueError(
+                f"Invalid metodo_creacion: {self.metodo_creacion}. "
+                f"Must be one of: {', '.join([m.value for m in CreationMethod])}"
+            )
+
         # Rule: Customer data must be present
         if not self.customer_name:
             raise ValueError("customer_name is required")
