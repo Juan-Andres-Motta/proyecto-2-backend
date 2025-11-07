@@ -35,7 +35,7 @@ jobs:
       - name: Start services with docker-compose.ci.yml
         run: |
           echo "🏗️  Building and starting services..."
-          docker-compose -f docker-compose.ci.yml up -d --build
+          docker compose -f docker-compose.ci.yml up -d --build
 
       - name: Wait for LocalStack to be ready
         run: |
@@ -44,7 +44,7 @@ jobs:
           RETRY_COUNT=0
 
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if docker-compose -f docker-compose.ci.yml ps localstack | grep -q "healthy"; then
+            if docker compose -f docker-compose.ci.yml ps localstack | grep -q "healthy"; then
               echo "✅ LocalStack is ready!"
               break
             fi
@@ -56,7 +56,7 @@ jobs:
 
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
             echo "❌ LocalStack failed to become healthy"
-            docker-compose -f docker-compose.ci.yml logs localstack
+            docker compose -f docker-compose.ci.yml logs localstack
             exit 1
           fi
 
@@ -68,7 +68,7 @@ jobs:
       - name: Check service status
         run: |
           echo "📊 Service Status:"
-          docker-compose -f docker-compose.ci.yml ps
+          docker compose -f docker-compose.ci.yml ps
 
       - name: Verify LocalStack resources
         run: |
@@ -105,7 +105,7 @@ jobs:
           # Run migrations for each service
           for service in catalog client inventory order seller; do
             echo "Running migrations for $service..."
-            docker-compose -f docker-compose.ci.yml exec -T $service poetry run alembic upgrade head || true
+            docker compose -f docker-compose.ci.yml exec -T $service poetry run alembic upgrade head || true
           done
 
           echo "✅ Migrations completed"
@@ -161,22 +161,22 @@ jobs:
           echo "📋 Displaying service logs..."
           echo ""
           echo "=== BFF Logs ==="
-          docker-compose -f docker-compose.ci.yml logs --tail=100 bff || true
+          docker compose -f docker-compose.ci.yml logs --tail=100 bff || true
           echo ""
           echo "=== Catalog Logs ==="
-          docker-compose -f docker-compose.ci.yml logs --tail=100 catalog || true
+          docker compose -f docker-compose.ci.yml logs --tail=100 catalog || true
           echo ""
           echo "=== Order Logs ==="
-          docker-compose -f docker-compose.ci.yml logs --tail=100 order || true
+          docker compose -f docker-compose.ci.yml logs --tail=100 order || true
           echo ""
           echo "=== LocalStack Logs ==="
-          docker-compose -f docker-compose.ci.yml logs --tail=100 localstack || true
+          docker compose -f docker-compose.ci.yml logs --tail=100 localstack || true
 
       - name: Cleanup
         if: always()
         run: |
           echo "🧹 Cleaning up..."
-          docker-compose -f docker-compose.ci.yml down -v
+          docker compose -f docker-compose.ci.yml down -v
 
       - name: Check for test failures
         if: env.TEST_FAILED == 'true'

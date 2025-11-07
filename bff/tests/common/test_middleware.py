@@ -162,3 +162,73 @@ class TestExceptionHandlerMiddlewareMapsValidationErrors:
         assert body["error_code"] == "VALIDATION_ERROR"
         assert body["type"] == "validation_error"
         assert "message" in body
+
+    @pytest.mark.asyncio
+    async def test_request_validation_error_without_field_name(self, middleware, mock_request):
+        """Test handling RequestValidationError without field location."""
+        async def call_next(request):
+            raise RequestValidationError(errors=[
+                {
+                    "loc": ("body",),
+                    "msg": "Invalid request",
+                    "type": "invalid"
+                }
+            ])
+
+        response = await middleware.dispatch(mock_request, call_next)
+
+        assert response.status_code == 422
+        body = json.loads(response.body.decode())
+        assert body["error_code"] == "VALIDATION_ERROR"
+
+    @pytest.mark.asyncio
+    async def test_request_validation_error_with_empty_errors(self, middleware, mock_request):
+        """Test handling RequestValidationError with empty errors list."""
+        async def call_next(request):
+            raise RequestValidationError(errors=[])
+
+        response = await middleware.dispatch(mock_request, call_next)
+
+        assert response.status_code == 422
+        body = json.loads(response.body.decode())
+        assert body["error_code"] == "VALIDATION_ERROR"
+        assert body["message"] == "Validation error"
+
+    @pytest.mark.asyncio
+    async def test_bff_exception_with_details(self, middleware, mock_request):
+        """Test that BFF exception details are included in response."""
+        details = {"field": "email", "reason": "Invalid format"}
+        async def call_next(request):
+            raise BFFException("Validation failed", status_code=400, details=details)
+
+        response = await middleware.dispatch(mock_request, call_next)
+
+        assert response.status_code == 400
+        body = json.loads(response.body.decode())
+        assert body["error"]["details"] == details
+
+    @pytest.mark.asyncio
+    async def test_microservice_error_includes_service_name(self, middleware, mock_request):
+        """Test that microservice errors include service name in response."""
+        async def call_next(request):
+            raise MicroserviceHTTPError("order-service", 503, "Service unavailable")
+
+        response = await middleware.dispatch(mock_request, call_next)
+
+        assert response.status_code == 503
+        body = json.loads(response.body.decode())
+        assert body["error"]["service"] == "order-service"
+
+    @pytest.mark.asyncio
+    async def test_successful_request_passes_through(self, middleware, mock_request):
+        """Test that successful requests pass through middleware unchanged."""
+        expected_response = Mock()
+        expected_response.status_code = 200
+
+        async def call_next(request):
+            return expected_response
+
+        response = await middleware.dispatch(mock_request, call_next)
+
+        assert response is expected_response
+        assert response.status_code == 200

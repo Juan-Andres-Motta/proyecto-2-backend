@@ -572,3 +572,170 @@ class TestCognitoServiceHelpers:
             cognito_service._get_secret_hash("user@test.com")
 
         assert "Client secret is required" in str(exc_info.value)
+
+
+class TestCognitoServiceAddUserToGroup:
+    """Tests for add_user_to_group method."""
+
+    @pytest.fixture
+    def cognito_service(self):
+        """Fixture providing CognitoService instance."""
+        return CognitoService(
+            user_pool_id="us-east-1_TestPool",
+            client_id="test-client-id",
+            client_secret=None,
+            region="us-east-1",
+        )
+
+    @pytest.mark.asyncio
+    async def test_add_user_to_group_success(self, cognito_service):
+        """Test adding user to group successfully."""
+        with patch("aioboto3.Session") as mock_session:
+            mock_client = AsyncMock()
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
+            mock_client.admin_add_user_to_group = AsyncMock()
+
+            await cognito_service.add_user_to_group("testuser", "seller_users")
+
+            mock_client.admin_add_user_to_group.assert_called_once_with(
+                UserPoolId="us-east-1_TestPool",
+                Username="testuser",
+                GroupName="seller_users",
+            )
+
+    @pytest.mark.asyncio
+    async def test_add_user_to_group_test_mode(self, cognito_service):
+        """Test add_user_to_group is skipped in TEST_MODE."""
+        import os
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            # Should not raise any errors and should not call AWS
+            await cognito_service.add_user_to_group("testuser", "seller_users")
+
+    @pytest.mark.asyncio
+    async def test_add_user_to_group_not_found(self, cognito_service):
+        """Test adding non-existent user to group."""
+        with patch("aioboto3.Session") as mock_session:
+            mock_client = AsyncMock()
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
+
+            error_response = {"Error": {"Code": "UserNotFoundException", "Message": "User not found"}}
+            mock_client.admin_add_user_to_group = AsyncMock(
+                side_effect=ClientError(error_response, "AdminAddUserToGroup")
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.add_user_to_group("nonexistent", "seller_users")
+
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_add_user_to_group_cognito_error(self, cognito_service):
+        """Test add_user_to_group handles Cognito errors."""
+        with patch("aioboto3.Session") as mock_session:
+            mock_client = AsyncMock()
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
+
+            error_response = {"Error": {"Code": "InternalErrorException", "Message": "Internal error"}}
+            mock_client.admin_add_user_to_group = AsyncMock(
+                side_effect=ClientError(error_response, "AdminAddUserToGroup")
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.add_user_to_group("testuser", "seller_users")
+
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_add_user_to_group_unexpected_error(self, cognito_service):
+        """Test add_user_to_group handles unexpected errors."""
+        with patch("aioboto3.Session") as mock_session:
+            mock_client = AsyncMock()
+            mock_session.return_value.client.return_value.__aenter__.return_value = mock_client
+            mock_client.admin_add_user_to_group = AsyncMock(
+                side_effect=Exception("Unexpected error")
+            )
+
+            with pytest.raises(HTTPException) as exc_info:
+                await cognito_service.add_user_to_group("testuser", "seller_users")
+
+            assert exc_info.value.status_code == 503
+
+
+class TestCognitoServiceTestMode:
+    """Tests for TEST_MODE functionality."""
+
+    @pytest.fixture
+    def cognito_service(self):
+        """Fixture providing CognitoService instance."""
+        return CognitoService(
+            user_pool_id="us-east-1_TestPool",
+            client_id="test-client-id",
+            client_secret=None,
+            region="us-east-1",
+        )
+
+    @pytest.mark.asyncio
+    async def test_login_test_mode_returns_mock_tokens(self, cognito_service):
+        """Test login returns mock tokens in TEST_MODE."""
+        import os
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            result = await cognito_service.login("seller@test.com", "anypassword")
+
+            assert "access_token" in result
+            assert "id_token" in result
+            assert "refresh_token" in result
+            assert result["expires_in"] == 3600
+
+    @pytest.mark.asyncio
+    async def test_create_user_test_mode_returns_mock_user(self, cognito_service):
+        """Test create_user returns mock user in TEST_MODE."""
+        import os
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            result = await cognito_service.create_user(
+                "client@test.com", "Password123", "Test User", "client"
+            )
+
+            assert "user_id" in result
+            assert result["username"] == "client"
+            assert result["email"] == "client@test.com"
+
+    @pytest.mark.asyncio
+    async def test_delete_user_test_mode_is_skipped(self, cognito_service):
+        """Test delete_user is skipped in TEST_MODE."""
+        import os
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            # Should not raise any errors
+            await cognito_service.delete_user("testuser")
+
+
+class TestCognitoServiceLocalStackEndpoint:
+    """Tests for LocalStack endpoint handling."""
+
+    def test_init_uses_localstack_endpoint_when_set(self, monkeypatch):
+        """Test uses LocalStack endpoint when AWS_ENDPOINT_URL is set."""
+        monkeypatch.setenv("AWS_ENDPOINT_URL", "http://localhost:4566")
+
+        service = CognitoService(
+            user_pool_id="us-east-1_TestPool",
+            client_id="test-client-id",
+            client_secret=None,
+            region="us-east-1",
+        )
+
+        assert service.cognito_idp_url == "http://localhost:4566/"
+
+    def test_init_uses_real_aws_when_endpoint_not_set(self):
+        """Test uses real AWS endpoint when AWS_ENDPOINT_URL not set."""
+        service = CognitoService(
+            user_pool_id="us-east-1_TestPool",
+            client_id="test-client-id",
+            client_secret=None,
+            region="us-east-1",
+        )
+
+        assert "cognito-idp" in service.cognito_idp_url
+        assert "amazonaws.com" in service.cognito_idp_url

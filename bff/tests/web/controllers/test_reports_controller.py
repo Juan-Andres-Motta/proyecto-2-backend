@@ -153,6 +153,24 @@ class TestCreateReport:
 
         assert exc_info.value.status_code == 500
 
+    @pytest.mark.asyncio
+    async def test_create_report_routes_correctly_based_on_type(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
+        """Test that invalid report type in if condition is handled."""
+        # Test the else condition by using a mock request that bypasses validation
+        # to simulate an invalid report type
+        request_mock = Mock()
+        request_mock.report_type = "some_other_type"
+
+        with pytest.raises(HTTPException) as exc_info:
+            await create_report(
+                request_mock, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
+
+        assert exc_info.value.status_code == 400
+        assert "Invalid report type" in exc_info.value.detail
+
 
 class TestListReports:
     """Test list_reports controller function."""
@@ -376,6 +394,51 @@ class TestListReports:
         assert result.total == 1
         assert len(result.items) == 1
 
+    @pytest.mark.asyncio
+    async def test_list_reports_handles_inventory_service_error_gracefully(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
+        """Test that inventory service errors don't fail the request."""
+        order_report = ReportResponse(
+            id=uuid4(),
+            report_type="orders_per_seller",
+            status="completed",
+            created_at=datetime(2025, 1, 15),
+            start_date=datetime(2025, 1, 1),
+            end_date=datetime(2025, 1, 31),
+        )
+
+        mock_order_adapter.list_reports = AsyncMock(
+            return_value=PaginatedReportsResponse(
+                items=[order_report],
+                total=1,
+                page=1,
+                size=1,
+                has_next=False,
+                has_previous=False,
+            )
+        )
+
+        # Inventory service fails
+        mock_inventory_adapter.list_reports = AsyncMock(
+            side_effect=Exception("Inventory service down")
+        )
+
+        result = await list_reports(
+            limit=10,
+            offset=0,
+            status=None,
+            report_type=None,
+            order_reports=mock_order_adapter,
+            inventory_reports=mock_inventory_adapter,
+            user=mock_user,
+        )
+
+        # Should return order reports even though inventory service failed
+        assert result.total == 1
+        assert len(result.items) == 1
+        assert result.items[0].report_type == "orders_per_seller"
+
 
 class TestGetReport:
     """Test get_report controller function."""
@@ -457,3 +520,69 @@ class TestGetReport:
             )
 
         assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_get_report_order_service_non_404_error(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
+        """Test that non-404 errors from order service are handled."""
+        report_id = uuid4()
+
+        # Order service returns 500 - should raise HTTPException
+        mock_order_adapter.get_report = AsyncMock(
+            side_effect=MicroserviceHTTPError("order", 500, "Server error")
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_report(
+                report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
+
+        # Should return 500 error
+        assert exc_info.value.status_code == 500
+        # Inventory service should NOT be called
+        mock_inventory_adapter.get_report.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_report_inventory_service_non_404_error(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
+        """Test that non-404 errors from inventory service are handled."""
+        report_id = uuid4()
+
+        # Order service returns 404
+        mock_order_adapter.get_report = AsyncMock(
+            side_effect=MicroserviceHTTPError("order", 404, "Not found")
+        )
+
+        # Inventory service returns 503
+        mock_inventory_adapter.get_report = AsyncMock(
+            side_effect=MicroserviceHTTPError("inventory", 503, "Service unavailable")
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_report(
+                report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
+
+        # Should return 503 error from inventory service
+        assert exc_info.value.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_get_report_handles_unexpected_error(
+        self, mock_user, mock_order_adapter, mock_inventory_adapter
+    ):
+        """Test that unexpected errors return 500."""
+        report_id = uuid4()
+
+        # Order service returns unexpected error
+        mock_order_adapter.get_report = AsyncMock(
+            side_effect=Exception("Unexpected error")
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_report(
+                report_id, mock_order_adapter, mock_inventory_adapter, mock_user
+            )
+
+        assert exc_info.value.status_code == 500

@@ -83,6 +83,8 @@ async def create_report(
         logger.info(f"Report {response.report_id} created successfully")
         return response
 
+    except HTTPException:
+        raise
     except MicroserviceError as e:
         logger.error(f"Microservice error creating report: {e}")
         raise HTTPException(status_code=e.status_code, detail=str(e))

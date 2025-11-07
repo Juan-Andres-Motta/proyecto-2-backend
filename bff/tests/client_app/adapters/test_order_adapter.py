@@ -90,3 +90,51 @@ class TestOrderAdapter:
         response = await order_adapter.create_order(sample_order_input, customer_id)
 
         assert response.message == "Order created successfully"
+
+    @pytest.mark.asyncio
+    async def test_list_customer_orders(self, order_adapter, mock_http_client):
+        """Test listing orders for a customer."""
+        customer_id = uuid4()
+        mock_http_client.get = AsyncMock(
+            return_value={
+                "items": [],
+                "total": 0,
+                "page": 1,
+                "size": 10,
+                "has_next": False,
+                "has_previous": False,
+            }
+        )
+
+        result = await order_adapter.list_customer_orders(customer_id)
+
+        mock_http_client.get.assert_called_once()
+        call_args = mock_http_client.get.call_args
+        assert call_args.args[0] == f"/order/customers/{customer_id}/orders"
+        params = call_args.kwargs["params"]
+        assert params["limit"] == 10
+        assert params["offset"] == 0
+
+    @pytest.mark.asyncio
+    async def test_list_customer_orders_with_pagination(self, order_adapter, mock_http_client):
+        """Test listing orders with custom pagination."""
+        customer_id = uuid4()
+        mock_http_client.get = AsyncMock(
+            return_value={
+                "items": [],
+                "total": 100,
+                "page": 2,
+                "size": 20,
+                "has_next": True,
+                "has_previous": True,
+            }
+        )
+
+        result = await order_adapter.list_customer_orders(customer_id, limit=20, offset=20)
+
+        call_args = mock_http_client.get.call_args
+        params = call_args.kwargs["params"]
+        assert params["limit"] == 20
+        assert params["offset"] == 20
+        assert result.page == 2
+        assert result.total == 100

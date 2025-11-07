@@ -280,6 +280,83 @@ class TestSellerAdapterCreateSellerSaga:
         assert request_payload["city"] == "Test City"
         assert request_payload["country"] == "CO"
 
+    @pytest.mark.asyncio
+    async def test_create_seller_group_assignment_success(self, seller_adapter, mock_http_client, mock_cognito_service):
+        """Test that seller user is added to seller_users group."""
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@example.com",
+            phone="+1234567890",
+            city="Test City",
+            country="CO",
+        )
+
+        # Mock Cognito success
+        mock_cognito_service.create_user = AsyncMock(
+            return_value={
+                "user_id": "cognito-user-id-123",
+                "username": "test@example.com"
+            }
+        )
+
+        # Mock add_user_to_group
+        mock_cognito_service.add_user_to_group = AsyncMock()
+
+        # Mock seller microservice success
+        mock_http_client.post = AsyncMock(
+            return_value={"id": "seller-id-456", "message": "Created"}
+        )
+
+        # Execute saga
+        await seller_adapter.create_seller(seller_data)
+
+        # Verify add_user_to_group was called with correct params
+        mock_cognito_service.add_user_to_group.assert_called_once_with(
+            username="test@example.com",
+            group_name="seller_users"
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_seller_group_assignment_failure_triggers_rollback(self, seller_adapter, mock_http_client, mock_cognito_service):
+        """Test saga Step 1.5 failure: Group assignment fails, Cognito user is deleted."""
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@example.com",
+            phone="+1234567890",
+            city="Test City",
+            country="CO",
+        )
+
+        # Mock Cognito success
+        mock_cognito_service.create_user = AsyncMock(
+            return_value={
+                "user_id": "cognito-user-id-123",
+                "username": "test@example.com"
+            }
+        )
+
+        # Mock add_user_to_group failure
+        mock_cognito_service.add_user_to_group = AsyncMock(
+            side_effect=Exception("Failed to add user to group")
+        )
+
+        # Mock delete_user for rollback
+        mock_cognito_service.delete_user = AsyncMock()
+
+        # Execute saga - should raise HTTPException
+        with pytest.raises(HTTPException) as exc_info:
+            await seller_adapter.create_seller(seller_data)
+
+        # Verify error response
+        assert exc_info.value.status_code == 500
+        assert "Failed to assign seller permissions" in exc_info.value.detail
+
+        # Verify rollback was called
+        mock_cognito_service.delete_user.assert_called_once_with("test@example.com")
+
+        # Verify seller microservice was NOT called
+        mock_http_client.post.assert_not_called()
+
 
 class TestSellerAdapterGetSellers:
     """Test get_sellers calls correct endpoint."""
