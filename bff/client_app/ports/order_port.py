@@ -24,7 +24,7 @@ class OrderPort(ABC):
     """
 
     @abstractmethod
-    async def create_order(self, order_data: OrderCreateInput) -> OrderCreateResponse:
+    async def create_order(self, order_data: OrderCreateInput, customer_id: UUID) -> OrderCreateResponse:
         """
         Create a new order via client app.
 
@@ -32,7 +32,8 @@ class OrderPort(ABC):
         and ensures no seller_id or visit_id are included.
 
         Args:
-            order_data: The order information (customer_id, items)
+            order_data: The order information (items)
+            customer_id: The customer UUID (fetched from authenticated user)
 
         Returns:
             OrderCreateResponse with the created order ID

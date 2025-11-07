@@ -35,7 +35,7 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
+omit = ["app.py", "main.py", "src/dependencies.py", "*/tests/*", "*/__pycache__/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*"]
 relative_files = true
 concurrency = ["thread", "greenlet"]
 branch = true

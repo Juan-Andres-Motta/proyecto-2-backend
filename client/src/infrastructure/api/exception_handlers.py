@@ -6,6 +6,8 @@ from pydantic import ValidationError as PydanticValidationError
 
 from src.domain.exceptions import (
     BusinessRuleException,
+    ClientAlreadyAssignedException,
+    ClientNotFoundException,
     DomainException,
     NotFoundException,
     ValidationException,
@@ -88,6 +90,42 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "error_code": exc.error_code,
                 "message": exc.message,
                 "type": "validation_error"
+            }
+        )
+
+    @app.exception_handler(ClientAlreadyAssignedException)
+    async def handle_client_already_assigned_exception(
+        request: Request,
+        exc: ClientAlreadyAssignedException
+    ) -> JSONResponse:
+        """Handle client already assigned exception (409)."""
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "detail": {
+                    "error": exc.error_code,
+                    "message": exc.message,
+                    "details": {
+                        "cliente_id": str(exc.cliente_id),
+                        "current_vendedor_asignado_id": str(exc.vendedor_asignado_id)
+                    }
+                }
+            }
+        )
+
+    @app.exception_handler(ClientNotFoundException)
+    async def handle_client_not_found_exception(
+        request: Request,
+        exc: ClientNotFoundException
+    ) -> JSONResponse:
+        """Handle client not found exception (404)."""
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "detail": {
+                    "error": exc.error_code,
+                    "message": exc.message
+                }
             }
         )
 

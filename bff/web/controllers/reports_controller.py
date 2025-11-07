@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from common.auth.dependencies import require_web_user
 from common.error_schemas import NotFoundErrorResponse, ValidationErrorResponse
-from common.exceptions import MicroserviceError, ResourceNotFoundError
+from common.exceptions import MicroserviceError, MicroserviceHTTPError, ResourceNotFoundError
 from dependencies import get_inventory_reports_adapter, get_order_reports_adapter
 
 from ..adapters.reports_adapter import InventoryReportsAdapter, OrderReportsAdapter
@@ -83,6 +83,8 @@ async def create_report(
         logger.info(f"Report {response.report_id} created successfully")
         return response
 
+    except HTTPException:
+        raise
     except MicroserviceError as e:
         logger.error(f"Microservice error creating report: {e}")
         raise HTTPException(status_code=e.status_code, detail=str(e))
@@ -258,7 +260,10 @@ async def get_report(
         try:
             response = await order_reports.get_report(user_id=user_id, report_id=report_id)
             return response
-        except ResourceNotFoundError:
+        except MicroserviceHTTPError as e:
+            # If 404, try Inventory; otherwise raise
+            if e.status_code != 404:
+                raise
             # Not found in Order, try Inventory
             pass
 
@@ -268,9 +273,12 @@ async def get_report(
                 user_id=user_id, report_id=report_id
             )
             return response
-        except ResourceNotFoundError:
-            # Not found in either service
-            raise HTTPException(status_code=404, detail="Report not found")
+        except MicroserviceHTTPError as e:
+            # If 404, report not found in either service
+            if e.status_code == 404:
+                raise HTTPException(status_code=404, detail="Report not found")
+            # For other errors, let it bubble up
+            raise
 
     except HTTPException:
         raise

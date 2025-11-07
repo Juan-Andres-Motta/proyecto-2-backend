@@ -130,3 +130,98 @@ class TestCatalogAdapterGetProducts:
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
         assert call_args.args[0] == "/catalog/products"
+
+
+class TestCatalogAdapterGetProductById:
+    """Test get_product_by_id calls correct endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_calls_correct_endpoint(self, catalog_adapter, mock_http_client):
+        """Test that GET /product/{id} is called."""
+        from web.schemas.catalog_schemas import ProductResponse
+        from datetime import datetime
+
+        product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+        provider_id = UUID("550e8400-e29b-41d4-a716-446655440001")
+
+        response_data = {
+            "id": product_id,
+            "provider_id": provider_id,
+            "provider_name": "Test Provider",
+            "name": "Test Product",
+            "category": "SPECIAL_MEDICATIONS",
+            "sku": "PROD-001",
+            "price": 100.50,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        }
+
+        mock_http_client.get = AsyncMock(return_value=response_data)
+
+        result = await catalog_adapter.get_product_by_id(product_id)
+
+        mock_http_client.get.assert_called_once()
+        call_args = mock_http_client.get.call_args
+        assert call_args.args[0] == f"/catalog/product/{product_id}"
+        assert result is not None
+        assert isinstance(result, ProductResponse)
+        assert result.id == product_id
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_http_client_error(self, catalog_adapter, mock_http_client):
+        """Test that None is returned when http client raises error."""
+        from httpx import HTTPError
+
+        product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+        mock_http_client.get = AsyncMock(
+            side_effect=HTTPError("Product not found")
+        )
+
+        result = await catalog_adapter.get_product_by_id(product_id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_invalid_response_data(self, catalog_adapter, mock_http_client):
+        """Test that None is returned when response data is invalid."""
+        product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+        # Return data that can't be parsed into ProductResponse
+        mock_http_client.get = AsyncMock(
+            return_value={"invalid": "data"}
+        )
+
+        result = await catalog_adapter.get_product_by_id(product_id)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_product_response_on_success(
+        self, catalog_adapter, mock_http_client
+    ):
+        """Test that ProductResponse is returned on success."""
+        from web.schemas.catalog_schemas import ProductResponse
+        from datetime import datetime
+
+        product_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+        provider_id = UUID("550e8400-e29b-41d4-a716-446655440001")
+
+        response_data = {
+            "id": product_id,
+            "provider_id": provider_id,
+            "provider_name": "Test Provider",
+            "name": "Test Product",
+            "category": "SPECIAL_MEDICATIONS",
+            "sku": "PROD-001",
+            "price": 100.50,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+        }
+
+        mock_http_client.get = AsyncMock(return_value=response_data)
+
+        result = await catalog_adapter.get_product_by_id(product_id)
+
+        assert result is not None
+        assert isinstance(result, ProductResponse)
+        assert result.id == product_id
+        assert result.name == "Test Product"

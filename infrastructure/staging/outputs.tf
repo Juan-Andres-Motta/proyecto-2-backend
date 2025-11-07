@@ -1,56 +1,46 @@
-# EC2 Instance Outputs
-output "instance_id" {
-  description = "EC2 instance ID"
-  value       = aws_instance.staging.id
+# Staging Environment Outputs
+# Note: EC2 and ECS compute resources have been removed from staging.
+# This environment maintains IAM roles, VPC, RDS database, and CloudWatch log groups.
+# S3 buckets and SQS queues are accessed via common infrastructure.
+
+output "vpc_id" {
+  description = "VPC ID for staging"
+  value       = module.vpc.vpc_id
 }
 
-output "instance_public_ip" {
-  description = "EC2 instance public IP"
-  value       = aws_eip.staging.public_ip
+output "rds_endpoint" {
+  description = "RDS database endpoint"
+  value       = module.rds_shared.db_instance_address
 }
 
-output "instance_public_dns" {
-  description = "EC2 instance public DNS"
-  value       = aws_instance.staging.public_dns
+output "rds_database_name" {
+  description = "RDS database name"
+  value       = "medisupply"
 }
 
-output "ssh_command" {
-  description = "SSH command to connect to the instance"
-  value       = "ssh -i ~/.ssh/${var.key_name}.pem ec2-user@${aws_eip.staging.public_ip}"
+output "iam_ecs_task_execution_role_arn" {
+  description = "ECS Task Execution Role ARN"
+  value       = module.iam.ecs_task_execution_role_arn
 }
 
-# Service URLs
-output "bff_url" {
-  description = "BFF service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8000/bff"
+output "iam_ecs_task_role_arn" {
+  description = "ECS Task Role ARN"
+  value       = module.iam.ecs_task_role_arn
 }
 
-output "catalog_url" {
-  description = "Catalog service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8001/catalog"
+output "shared_s3_buckets" {
+  description = "Shared S3 buckets accessible from common infrastructure"
+  value = {
+    order_reports     = data.terraform_remote_state.common.outputs.s3_order_reports_bucket_name
+    inventory_reports = data.terraform_remote_state.common.outputs.s3_inventory_reports_bucket_name
+    evidence          = try(data.terraform_remote_state.common.outputs.s3_evidence_bucket_name, "not yet created")
+  }
 }
 
-output "client_url" {
-  description = "Client service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8002/client"
-}
-
-output "delivery_url" {
-  description = "Delivery service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8003/delivery"
-}
-
-output "inventory_url" {
-  description = "Inventory service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8004/inventory"
-}
-
-output "order_url" {
-  description = "Order service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8005/order"
-}
-
-output "seller_url" {
-  description = "Seller service URL"
-  value       = "http://${aws_eip.staging.public_ip}:8006/seller"
+output "shared_sqs_queue" {
+  description = "Shared SQS queue accessible from common infrastructure"
+  value = {
+    reports_queue_url = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
+    reports_queue_arn = data.terraform_remote_state.common.outputs.sqs_reports_queue_arn
+  }
 }

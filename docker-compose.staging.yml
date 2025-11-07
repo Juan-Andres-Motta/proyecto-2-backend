@@ -82,6 +82,8 @@ services:
       - INVENTORY_URL=http://inventory:8000
       - ORDER_URL=http://order:8000
       - SELLER_URL=http://seller:8000
+    volumes:
+      - ./bff:/app
     networks:
       - medisupply
     depends_on:

@@ -122,8 +122,56 @@ resource "aws_iam_role_policy" "ecs_task" {
         ]
         Resource = [
           "arn:aws:s3:::medisupply-*-reports",
-          "arn:aws:s3:::medisupply-*-reports/*"
+          "arn:aws:s3:::medisupply-*-reports/*",
+          "arn:aws:s3:::medisupply-evidence",
+          "arn:aws:s3:::medisupply-evidence/*"
         ]
+      }
+    ]
+  })
+}
+
+# CI/CD User for pushing Docker images to ECR
+resource "aws_iam_user" "cicd_ecr_push" {
+  name = "${var.name_prefix}-cicd-ecr-push"
+
+  tags = merge(
+    var.tags,
+    {
+      Purpose = "CI/CD pipeline ECR image push"
+    }
+  )
+}
+
+# Policy for ECR push operations
+resource "aws_iam_user_policy" "cicd_ecr_push" {
+  name = "${var.name_prefix}-cicd-ecr-push-policy"
+  user = aws_iam_user.cicd_ecr_push.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "GetAuthorizationToken"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "PushImagesToECR"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = var.ecr_repository_arns
       }
     ]
   })

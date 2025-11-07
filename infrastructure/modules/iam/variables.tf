@@ -8,3 +8,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ecr_repository_arns" {
+  description = "List of ECR repository ARNs for CI/CD push access"
+  type        = list(string)
+  default     = []
+}

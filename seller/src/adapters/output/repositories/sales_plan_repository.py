@@ -162,6 +162,7 @@ class SalesPlanRepository(SalesPlanRepositoryPort):
         # Map seller
         domain_seller = DomainSeller(
             id=orm_sales_plan.seller.id,
+            cognito_user_id=orm_sales_plan.seller.cognito_user_id,
             name=orm_sales_plan.seller.name,
             email=orm_sales_plan.seller.email,
             phone=orm_sales_plan.seller.phone,

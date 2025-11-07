@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.ports.client_repository_port import ClientRepositoryPort
@@ -122,6 +122,45 @@ class ClientRepository(ClientRepositoryPort):
             return [self._to_domain(client) for client in orm_clients]
         except Exception as e:
             logger.error(f"DB: List all clients failed: error={e}")
+            raise
+
+    async def update(self, client: DomainClient) -> DomainClient:
+        """Update existing client and return domain entity."""
+        logger.debug(f"DB: Updating client: cliente_id={client.cliente_id}")
+
+        try:
+            # Use UPDATE statement for explicit update
+            stmt = (
+                update(ORMClient)
+                .where(ORMClient.cliente_id == client.cliente_id)
+                .values(
+                    cognito_user_id=client.cognito_user_id,
+                    email=client.email,
+                    telefono=client.telefono,
+                    nombre_institucion=client.nombre_institucion,
+                    tipo_institucion=client.tipo_institucion,
+                    nit=client.nit,
+                    direccion=client.direccion,
+                    ciudad=client.ciudad,
+                    pais=client.pais,
+                    representante=client.representante,
+                    vendedor_asignado_id=client.vendedor_asignado_id,
+                    updated_at=client.updated_at,
+                )
+            )
+            await self.session.execute(stmt)
+            await self.session.commit()
+
+            # Fetch updated entity
+            stmt_select = select(ORMClient).where(ORMClient.cliente_id == client.cliente_id)
+            result = await self.session.execute(stmt_select)
+            updated_orm_client = result.scalars().first()
+
+            logger.debug(f"DB: Successfully updated client: cliente_id={client.cliente_id}")
+            return self._to_domain(updated_orm_client)
+        except Exception as e:
+            logger.error(f"DB: Update client failed: error={e}")
+            await self.session.rollback()
             raise
 
     @staticmethod

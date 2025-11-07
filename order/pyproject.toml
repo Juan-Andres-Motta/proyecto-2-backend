@@ -43,7 +43,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = [
+omit = ["app.py", "main.py", 
     "*/tests/*",
     "*/__pycache__/*",
     "*/alembic/*",

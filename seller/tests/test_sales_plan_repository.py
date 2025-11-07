@@ -18,6 +18,7 @@ async def test_find_by_seller_and_period_exists(db_session):
 
     # Create seller
     orm_seller = await seller_repo.create({
+        "cognito_user_id": "test-cognito-id-plan-exists",
         "name": "seller",
         "email": "s@example.com",
         "phone": "1234567890",
@@ -28,6 +29,7 @@ async def test_find_by_seller_and_period_exists(db_session):
     # Convert ORM seller to domain entity
     domain_seller = DomainSeller(
         id=orm_seller.id,
+        cognito_user_id=orm_seller.cognito_user_id,
         name=orm_seller.name,
         email=orm_seller.email,
         phone=orm_seller.phone,
@@ -70,6 +72,7 @@ async def test_list_sales_plans(db_session):
     plan_repo = SalesPlanRepository(db_session)
 
     orm_seller = await seller_repo.create({
+        "cognito_user_id": "test-cognito-id-list-plans-repo",
         "name": "list seller",
         "email": "list@example.com",
         "phone": "9999999999",
@@ -80,6 +83,7 @@ async def test_list_sales_plans(db_session):
     # Convert ORM seller to domain entity
     domain_seller = DomainSeller(
         id=orm_seller.id,
+        cognito_user_id=orm_seller.cognito_user_id,
         name=orm_seller.name,
         email=orm_seller.email,
         phone=orm_seller.phone,
@@ -119,6 +123,7 @@ async def test_create_sales_plan_database_error(db_session):
 
     # Create seller
     orm_seller = await seller_repo.create({
+        "cognito_user_id": "test-cognito-id-db-error",
         "name": "test seller",
         "email": "test@example.com",
         "phone": "1234567890",
@@ -128,6 +133,7 @@ async def test_create_sales_plan_database_error(db_session):
 
     domain_seller = DomainSeller(
         id=orm_seller.id,
+        cognito_user_id=orm_seller.cognito_user_id,
         name=orm_seller.name,
         email=orm_seller.email,
         phone=orm_seller.phone,

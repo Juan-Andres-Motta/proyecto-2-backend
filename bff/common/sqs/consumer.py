@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Any, Callable, Dict, Optional
 
 import aioboto3
@@ -20,11 +21,13 @@ class SQSConsumer:
         aws_region: str = "us-east-1",
         max_messages: int = 10,
         wait_time_seconds: int = 20,
+        endpoint_url: Optional[str] = None,
     ):
         self.queue_url = queue_url
         self.aws_region = aws_region
         self.max_messages = max_messages
         self.wait_time_seconds = wait_time_seconds
+        self.endpoint_url = endpoint_url or os.getenv("AWS_SQS_ENDPOINT_URL")
         self._handlers: Dict[str, Callable] = {}
         self._running = False
         self._session: Optional[aioboto3.Session] = None
@@ -59,7 +62,12 @@ class SQSConsumer:
 
     async def _poll_messages(self) -> None:
         """Poll SQS for messages continuously."""
-        async with self._session.client("sqs", region_name=self.aws_region) as sqs:
+        client_kwargs = {"region_name": self.aws_region}
+        if self.endpoint_url:
+            client_kwargs["endpoint_url"] = self.endpoint_url
+            logger.info(f"Using SQS endpoint: {self.endpoint_url}")
+
+        async with self._session.client("sqs", **client_kwargs) as sqs:
             while self._running:
                 try:
                     response = await sqs.receive_message(

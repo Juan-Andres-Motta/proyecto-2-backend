@@ -98,3 +98,77 @@ class DuplicateSalesPlanException(BusinessRuleException):
             ),
             error_code="DUPLICATE_SALES_PLAN"
         )
+
+
+# Visit exceptions
+class VisitDomainException(Exception):
+    """Base exception for visit domain errors."""
+    pass
+
+
+class InvalidVisitDateError(VisitDomainException):
+    """Raised when visit date is invalid (not in future)."""
+
+    def __init__(self, fecha_visita, earliest_allowed_date):
+        self.fecha_visita = fecha_visita
+        self.earliest_allowed_date = earliest_allowed_date
+        super().__init__(
+            f"Visit must be scheduled at least 1 day in advance. "
+            f"Requested: {fecha_visita}, Earliest allowed: {earliest_allowed_date}"
+        )
+
+
+class VisitTimeConflictError(VisitDomainException):
+    """Raised when visit conflicts with another visit (180-minute rule)."""
+
+    def __init__(self, requested_time, conflicting_visit):
+        self.requested_time = requested_time
+        self.conflicting_visit = conflicting_visit
+        super().__init__(
+            f"Visit at {requested_time} conflicts with existing visit at "
+            f"{conflicting_visit.fecha_visita}. Visits must be at least 180 minutes apart."
+        )
+
+
+class InvalidStatusTransitionError(VisitDomainException):
+    """Raised when attempting invalid status transition."""
+
+    def __init__(self, current_status, requested_status):
+        self.current_status = current_status
+        self.requested_status = requested_status
+        super().__init__(
+            f"Cannot transition from '{current_status}' to '{requested_status}'. "
+            f"Only 'programada' → 'completada'/'cancelada' transitions are allowed."
+        )
+
+
+class ClientAssignedToOtherSellerError(VisitDomainException):
+    """Raised when trying to create visit for client assigned to another seller."""
+
+    def __init__(self, client_id, client_nombre, assigned_seller_id):
+        self.client_id = client_id
+        self.client_nombre = client_nombre
+        self.assigned_seller_id = assigned_seller_id
+        super().__init__(
+            f"Client '{client_nombre}' (ID: {client_id}) is already assigned to "
+            f"seller {assigned_seller_id}."
+        )
+
+
+class VisitNotFoundError(VisitDomainException):
+    """Raised when visit does not exist."""
+
+    def __init__(self, visit_id):
+        self.visit_id = visit_id
+        super().__init__(f"Visit with ID {visit_id} not found.")
+
+
+class UnauthorizedVisitAccessError(VisitDomainException):
+    """Raised when seller tries to access visit they don't own."""
+
+    def __init__(self, visit_id, seller_id):
+        self.visit_id = visit_id
+        self.seller_id = seller_id
+        super().__init__(
+            f"Seller {seller_id} is not authorized to access visit {visit_id}."
+        )

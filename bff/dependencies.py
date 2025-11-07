@@ -126,15 +126,22 @@ def get_catalog_port() -> CatalogPort:
 
 def get_seller_port() -> SellerPort:
     """
-    Factory for SellerPort implementation.
+    Factory for SellerPort implementation with Cognito integration for saga pattern.
 
     Returns:
         SellerPort implementation (SellerAdapter)
     """
     from web.adapters.seller_adapter import SellerAdapter
+    from common.auth.cognito_service import CognitoService
 
     client = get_seller_http_client()
-    return SellerAdapter(client)
+    cognito_service = CognitoService(
+        user_pool_id=settings.aws_cognito_user_pool_id,
+        client_id=settings.aws_cognito_web_client_id,
+        client_secret=None,
+        region=settings.aws_cognito_region,
+    )
+    return SellerAdapter(client, cognito_service)
 
 
 def get_inventory_port() -> InventoryPort:
@@ -218,6 +225,34 @@ def get_seller_client_port():
 
     client = get_client_http_client()
     return ClientAdapter(client)
+
+
+def get_seller_app_seller_port():
+    """
+    Factory for Sellers App SellerPort implementation.
+
+    Returns:
+        SellerPort implementation for sellers app (SellerAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from sellers_app.adapters.seller_adapter import SellerAdapter
+
+    client = get_seller_http_client()
+    return SellerAdapter(client)
+
+
+def get_visit_port():
+    """
+    Factory for Sellers App VisitPort implementation.
+
+    Returns:
+        VisitPort implementation for sellers app (VisitAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from sellers_app.adapters.visit_adapter import VisitAdapter
+
+    client = get_seller_http_client()
+    return VisitAdapter(client)
 
 
 def get_order_reports_adapter():

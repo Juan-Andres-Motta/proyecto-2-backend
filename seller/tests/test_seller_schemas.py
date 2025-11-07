@@ -11,6 +11,7 @@ from src.adapters.input.schemas import SellerCreate
 def test_seller_create_with_country_normalization(country_input, expected_output):
     """Test seller creation with various country formats."""
     data = {
+        "cognito_user_id": "test-cognito-id-schema",
         "name": "  John Doe  ",
         "email": "john@example.com",
         "phone": "  1234567890  ",
@@ -20,6 +21,7 @@ def test_seller_create_with_country_normalization(country_input, expected_output
 
     seller = SellerCreate(**data)
 
+    assert seller.cognito_user_id == "test-cognito-id-schema"
     assert seller.name == "John Doe"  # Trimmed and capitalized
     assert seller.email == "john@example.com"
     assert seller.phone == "1234567890"  # Trimmed
@@ -52,6 +54,7 @@ def test_seller_response_serialize_country_lookup_error():
 
     data = {
         "id": uuid4(),
+        "cognito_user_id": "test-cognito-id-lookup",
         "name": "Test Seller",
         "email": "test@example.com",
         "phone": "1234567890",
@@ -81,6 +84,7 @@ def test_seller_response_serialize_country_attribute_error():
 
     data = {
         "id": uuid4(),
+        "cognito_user_id": "test-cognito-id-attribute",
         "name": "Test Seller",
         "email": "test@example.com",
         "phone": "1234567890",

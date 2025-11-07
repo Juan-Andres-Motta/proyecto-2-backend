@@ -1,0 +1,1767 @@
+{
+	"info": {
+		"_postman_id": "medisupply-bff-2025",
+		"name": "MediSupply BFF - Complete Collection",
+		"description": "Complete API collection for MediSupply BFF with all tested endpoints.\n\nFor Newman: Run sequentially to test complete workflow\nFor Postman: All folders organized by user type with automatic credential management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Login - Web User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    pm.environment.set('web_access_token', response.access_token);",
+							"    pm.environment.set('web_id_token', response.id_token);",
+							"    pm.environment.set('web_refresh_token', response.refresh_token);",
+							"    console.log('\u2705 Web user tokens saved');",
+							"} else {",
+							"    console.log('\u274c Web user login failed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"testwebuser@medisupply.com\",\n    \"password\": \"WebUser@123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				},
+				"description": "Login as web user to create sellers"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Create Seller",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    pm.environment.set('created_seller_id', response.id);",
+							"    ",
+							"    // Extract email from request body (response only has id and message)",
+							"    const requestBody = JSON.parse(pm.request.body.raw);",
+							"    pm.environment.set('seller_email', requestBody.email);",
+							"    ",
+							"    // Generate password: {CleanName}@Password123",
+							"    const cleanName = requestBody.name.replace(/[^a-zA-Z0-9]/g, '');",
+							"    const sellerPassword = cleanName + '@Password123';",
+							"    pm.environment.set('seller_password', sellerPassword);",
+							"    console.log('\u2705 Seller created:', requestBody.email);",
+							"    console.log('   Password:', sellerPassword);",
+							"} else {",
+							"    console.log('\u274c Seller creation failed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"NewmanTestSeller\",\n    \"email\": \"newmanseller{{$timestamp}}@example.com\",\n    \"phone\": \"+1234567890\",\n    \"city\": \"Bogota\",\n    \"country\": \"Colombia\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/sellers",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"sellers"
+					]
+				},
+				"description": "Create new seller. Password auto-generated as NewmanTestSeller@Password123"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Login - Seller",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    pm.environment.set('seller_access_token', response.access_token);",
+							"    pm.environment.set('seller_id_token', response.id_token);",
+							"    pm.environment.set('seller_refresh_token', response.refresh_token);",
+							"    console.log('\u2705 Seller tokens saved');",
+							"} else {",
+							"    console.log('\u274c Seller login failed');",
+							"    console.log('   Email:', pm.environment.get('seller_email'));",
+							"    console.log('   Password:', pm.environment.get('seller_password'));",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{seller_email}}\",\n    \"password\": \"{{seller_password}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				},
+				"description": "Login as seller using credentials from Create Seller step"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Signup - Client",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    console.log('\u2705 Client created:', response.user_id);",
+							"    pm.environment.set('new_client_id', response.user_id);",
+							"} else if (pm.response.code === 409) {",
+							"    console.log('\u26a0\ufe0f  Client already exists, using existing credentials');",
+							"} else {",
+							"    console.log('\u274c Client signup failed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Set client credentials for later login",
+							"pm.environment.set('client_email', 'newmanclient@example.com');",
+							"pm.environment.set('client_password', 'NewmanClient@123');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"newmanclient@example.com\",\n    \"password\": \"NewmanClient@123\",\n    \"name\": \"Newman Test Client\",\n    \"telefono\": \"+573001234567\",\n    \"nombre_institucion\": \"Newman Test Hospital\",\n    \"tipo_institucion\": \"hospital\",\n    \"nit\": \"900999888\",\n    \"direccion\": \"123 Newman St\",\n    \"ciudad\": \"Bogota\",\n    \"pais\": \"Colombia\",\n    \"representante\": \"Newman Test Client\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/signup",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"signup"
+					]
+				},
+				"description": "Register new client"
+			},
+			"response": []
+		},
+		{
+			"name": "5. Seller - Get Clients",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has clients array', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('clients');",
+							"    pm.expect(response.clients).to.be.an('array');",
+							"});",
+							"",
+							"// Save first unassigned client ID for testing",
+							"const response = pm.response.json();",
+							"if (response.clients && response.clients.length > 0) {",
+							"    // Try to find unassigned client first",
+							"    const unassignedClient = response.clients.find(c => !c.vendedor_asignado_id);",
+							"    if (unassignedClient) {",
+							"        pm.environment.set('test_client_id', unassignedClient.cliente_id);",
+							"        console.log('\u2705 Found unassigned client:', unassignedClient.cliente_id);",
+							"    } else {",
+							"        pm.environment.set('test_client_id', response.clients[0].cliente_id);",
+							"        console.log('\u26a0\ufe0f  Using first client (may be assigned)');",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/clients",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"clients"
+					]
+				},
+				"description": "List clients assigned to seller"
+			},
+			"response": []
+		},
+		{
+			"name": "6. Seller - Create Order",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Order created successfully', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('id');",
+							"    pm.expect(response).to.have.property('message');",
+							"    pm.environment.set('created_order_id', response.id);",
+							"    console.log('\u2705 Order created:', response.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"customer_id\": \"{{test_client_id}}\",\n    \"items\": [\n        {\n            \"producto_id\": \"2802604d-b819-4e98-8462-42e023613d86\",\n            \"cantidad\": 5\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/orders",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"orders"
+					]
+				},
+				"description": "Create order for customer"
+			},
+			"response": []
+		},
+		{
+			"name": "7. Seller - Create Visit",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    const response = pm.response.json();",
+							"    pm.environment.set('created_visit_id', response.id);",
+							"    console.log('\u2705 Visit created:', response.id);",
+							"}",
+							"",
+							"pm.test('Status code is 201 or 403', function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([201, 403]);",
+							"});",
+							"",
+							"if (pm.response.code === 201) {",
+							"    pm.test('Visit created successfully', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response).to.have.property('id');",
+							"    });",
+							"} else {",
+							"    console.log('\u26a0\ufe0f  Client already assigned to another seller');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generate future date (3 days from now)",
+							"const futureDate = new Date();",
+							"futureDate.setDate(futureDate.getDate() + 3);",
+							"pm.environment.set('future_date', futureDate.toISOString());"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"client_id\": \"{{test_client_id}}\",\n    \"fecha_visita\": \"{{future_date}}\",\n    \"notas_visita\": \"Newman automated test visit\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/visits",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"visits"
+					]
+				},
+				"description": "Schedule visit to client"
+			},
+			"response": []
+		},
+		{
+			"name": "8. Seller - Get Visits by Date",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has visits array', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('visits');",
+							"    pm.expect(response.visits).to.be.an('array');",
+							"    console.log('\u2705 Found', response.visits.length, 'visits');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generate query date (3 days from now, midnight)",
+							"const queryDate = new Date();",
+							"queryDate.setDate(queryDate.getDate() + 3);",
+							"queryDate.setHours(0, 0, 0, 0);",
+							"pm.environment.set('query_date', queryDate.toISOString());"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/visits?date={{query_date}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"visits"
+					],
+					"query": [
+						{
+							"key": "date",
+							"value": "{{query_date}}"
+						}
+					]
+				},
+				"description": "Query visits by date"
+			},
+			"response": []
+		},
+		{
+			"name": "9. Seller - Update Visit Status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const visitId = pm.environment.get('created_visit_id');",
+							"",
+							"if (!visitId) {",
+							"    console.log('\u26a0\ufe0f  Skipping - no visit created');",
+							"    pm.test.skip('Status code is 200');",
+							"    pm.test.skip('Visit status updated');",
+							"} else {",
+							"    pm.test('Status code is 200', function () {",
+							"        pm.response.to.have.status(200);",
+							"    });",
+							"    ",
+							"    pm.test('Visit status updated', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response.status).to.equal('completada');",
+							"        console.log('\u2705 Visit status updated to completada');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"completada\",\n    \"recomendaciones\": \"Newman test - visit completed successfully\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/visits/{{created_visit_id}}/status",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"visits",
+						"{{created_visit_id}}",
+						"status"
+					]
+				},
+				"description": "Update visit status to completed"
+			},
+			"response": []
+		},
+		{
+			"name": "10. Seller - Get Evidence Upload URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const visitId = pm.environment.get('created_visit_id');",
+							"",
+							"if (!visitId) {",
+							"    console.log('\u26a0\ufe0f  Skipping - no visit created');",
+							"    pm.test.skip('Status code is 200');",
+							"    pm.test.skip('Response has upload URL');",
+							"} else {",
+							"    pm.test('Status code is 200', function () {",
+							"        pm.response.to.have.status(200);",
+							"    });",
+							"    ",
+							"    pm.test('Response has upload URL', function () {",
+							"        const response = pm.response.json();",
+							"        pm.expect(response).to.have.property('upload_url');",
+							"        pm.expect(response).to.have.property('s3_url');",
+							"        pm.environment.set('evidence_upload_url', response.upload_url);",
+							"        pm.environment.set('evidence_s3_url', response.s3_url);",
+							"        console.log('\u2705 S3 upload URL generated');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"filename\": \"newman_test_evidence.jpg\",\n    \"content_type\": \"image/jpeg\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/visits/{{created_visit_id}}/evidence/upload-url",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"visits",
+						"{{created_visit_id}}",
+						"evidence",
+						"upload-url"
+					]
+				},
+				"description": "Get S3 presigned URL for evidence upload"
+			},
+			"response": []
+		},
+		{
+			"name": "11. Login - Client",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    pm.environment.set('client_access_token', response.access_token);",
+							"    pm.environment.set('client_id_token', response.id_token);",
+							"    pm.environment.set('client_refresh_token', response.refresh_token);",
+							"    console.log('\u2705 Client tokens saved');",
+							"} else {",
+							"    console.log('\u274c Client login failed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{client_email}}\",\n    \"password\": \"{{client_password}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				},
+				"description": "Login as client using credentials from signup"
+			},
+			"response": []
+		},
+		{
+			"name": "12. Client - Create Order",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Order created successfully', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('id');",
+							"    pm.expect(response).to.have.property('message');",
+							"    pm.environment.set('client_order_id', response.id);",
+							"    console.log('\u2705 Client order created:', response.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{client_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"items\": [\n        {\n            \"producto_id\": \"2802604d-b819-4e98-8462-42e023613d86\",\n            \"cantidad\": 3\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/client-app/orders",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"client-app",
+						"orders"
+					]
+				},
+				"description": "Create order as client"
+			},
+			"response": []
+		},
+		{
+			"name": "13. Client - Get My Orders",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has orders', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('items');",
+							"    pm.expect(response.items).to.be.an('array');",
+							"    pm.expect(response).to.have.property('total');",
+							"    console.log('\u2705 Found', response.total, 'orders');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{client_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/client-app/my-orders?page=1&size=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"client-app",
+						"my-orders"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						}
+					]
+				},
+				"description": "List all orders for authenticated client"
+			},
+			"response": []
+		},
+		{
+			"name": "15. Web - Get Sellers",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/sellers?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"sellers"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all sellers with pagination"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Sellers list retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "16. Web - Create Sales Plan",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"seller_id\": \"{{created_seller_id}}\",\n    \"sales_period\": \"Q1-2025\",\n    \"goal\": 50000.00\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/sales-plans",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"sales-plans"
+					]
+				},
+				"description": "Create sales plan for seller"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"const response = pm.response.json();",
+							"pm.environment.set('created_sales_plan_id', response.id);",
+							"console.log('\u2705 Sales plan created:', response.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "17. Web - Get Sales Plans",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/sales-plans?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"sales-plans"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all sales plans"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Sales plans retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "18. Web - Create Provider",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Test Provider\",\n    \"nit\": \"{{unique_nit}}\",\n    \"contact_name\": \"John Doe\",\n    \"email\": \"provider-{{unique_nit}}@test.com\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Test St\",\n    \"country\": \"Colombia\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/provider",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"provider"
+					]
+				},
+				"description": "Create new provider"
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"// Generate unique NIT using timestamp",
+							"const uniqueNIT = '9' + Date.now().toString().slice(-8);",
+							"pm.environment.set('unique_nit', uniqueNIT);"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"const response = pm.response.json();",
+							"pm.environment.set('created_provider_id', response.id);",
+							"console.log('\u2705 Provider created:', response.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "19. Web - Get Providers",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/providers?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"providers"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all providers"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Providers retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "20. Web - Create Product",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"provider_id\": \"{{created_provider_id}}\",\n    \"name\": \"Test Product\",\n    \"category\": \"medicamentos_especiales\",\n    \"sku\": \"TEST-{{$timestamp}}\",\n    \"price\": 100.50\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/products",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"products"
+					]
+				},
+				"description": "Create single product"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"const response = pm.response.json();",
+							"if (response.created && response.created.length > 0) {",
+							"    pm.environment.set('created_product_id', response.created[0].id);",
+							"    console.log('\u2705 Product created:', response.created[0].id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "21. Web - Get Products",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/products?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"products"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all products"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Products retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "22. Web - Create Warehouse",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Test Warehouse\",\n    \"country\": \"Colombia\",\n    \"city\": \"Bogota\",\n    \"address\": \"Test Address 123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/warehouse",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"warehouse"
+					]
+				},
+				"description": "Create new warehouse"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"const response = pm.response.json();",
+							"pm.environment.set('created_warehouse_id', response.id);",
+							"console.log('\u2705 Warehouse created:', response.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "23. Web - Get Warehouses",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/warehouses?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"warehouses"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all warehouses"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Warehouses retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "24. Web - Create Inventory",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"product_id\": \"{{created_product_id}}\",\n    \"warehouse_id\": \"{{created_warehouse_id}}\",\n    \"total_quantity\": 100,\n    \"batch_number\": \"BATCH-{{$timestamp}}\",\n    \"expiration_date\": \"2026-12-31\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/inventory",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"inventory"
+					]
+				},
+				"description": "Create inventory entry"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"const response = pm.response.json();",
+							"pm.environment.set('created_inventory_id', response.id);",
+							"console.log('\u2705 Inventory created:', response.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "25. Web - Get Inventories",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/inventories?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"inventories"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all inventories"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Inventories retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "26. Web - Create Report",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"report_type\": \"orders_per_seller\",\n    \"start_date\": \"2025-10-07\",\n    \"end_date\": \"2025-11-06\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/web/reports",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"reports"
+					]
+				},
+				"description": "Create report generation request"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 202', function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"const response = pm.response.json();",
+							"pm.environment.set('created_report_id', response.report_id);",
+							"console.log('\u2705 Report request created:', response.report_id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "27. Web - Get Reports",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/reports?limit=10&offset=0",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"reports"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "offset",
+							"value": "0"
+						}
+					]
+				},
+				"description": "List all reports"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Reports retrieved');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "28. Web - Get Report By ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/web/reports/{{created_report_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"web",
+						"reports",
+						"{{created_report_id}}"
+					]
+				},
+				"description": "Get report with download URL"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// May return 200 or 404 if report not ready yet",
+							"pm.test('Status code is 200, 202, or 404', function () {",
+							"    pm.expect([200, 202, 404]).to.include(pm.response.code);",
+							"});",
+							"console.log('\u2705 Report details checked');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "29. Auth - Get Me",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{web_id_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/auth/me",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"me"
+					]
+				},
+				"description": "Get current user info (uses ID token, not access token)"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"const response = pm.response.json();",
+							"console.log('\u2705 User info:', response.email);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "30. Seller - Confirm Evidence Upload",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{seller_access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"s3_url\": \"{{evidence_s3_url}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/bff/sellers-app/visits/{{created_visit_id}}/evidence/confirm",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"sellers-app",
+						"visits",
+						"{{created_visit_id}}",
+						"evidence",
+						"confirm"
+					]
+				},
+				"description": "Confirm evidence upload"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const visitId = pm.environment.get('created_visit_id');",
+							"if (!visitId) {",
+							"    console.log('\u26a0\ufe0f  Skipping - no visit created');",
+							"    pm.test.skip('Status code is 200');",
+							"} else {",
+							"    pm.test('Status code is 200', function () {",
+							"        pm.response.to.have.status(200);",
+							"    });",
+							"    console.log('\u2705 Evidence confirmed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "31. Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"console.log('\u2705 Health check passed');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/bff/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"bff",
+						"health"
+					]
+				},
+				"description": "API health check"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}

@@ -176,3 +176,32 @@ class TestCsvParserServiceMalformedCsv:
             await CsvParserService.parse_products_from_csv(upload_file)
 
         assert "CSV row 2" in str(exc_info.value.message)
+
+    @pytest.mark.asyncio
+    async def test_handles_invalid_price_format(self):
+        """Test that invalid price format is handled with proper error message."""
+        csv_content = """provider_id,name,category,sku,price
+550e8400-e29b-41d4-a716-446655440000,Product,medicamentos_especiales,SKU-001,invalid_price"""
+
+        csv_bytes = csv_content.encode("utf-8")
+        upload_file = UploadFile(filename="products.csv", file=io.BytesIO(csv_bytes))
+
+        with pytest.raises(ValidationError) as exc_info:
+            await CsvParserService.parse_products_from_csv(upload_file)
+
+        assert "CSV row 2" in str(exc_info.value.message)
+        assert exc_info.value.details["row"] == 2
+
+    @pytest.mark.asyncio
+    async def test_handles_invalid_uuid_format(self):
+        """Test that invalid UUID format is caught and reported."""
+        csv_content = """provider_id,name,category,sku,price
+not-a-uuid,Product,medicamentos_especiales,SKU-001,10.00"""
+
+        csv_bytes = csv_content.encode("utf-8")
+        upload_file = UploadFile(filename="products.csv", file=io.BytesIO(csv_bytes))
+
+        with pytest.raises(ValidationError) as exc_info:
+            await CsvParserService.parse_products_from_csv(upload_file)
+
+        assert "CSV row 2" in str(exc_info.value.message)

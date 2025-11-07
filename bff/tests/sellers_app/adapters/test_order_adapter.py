@@ -27,7 +27,6 @@ def sample_order_input():
     """Create sample order input without visit_id."""
     return OrderCreateInput(
         customer_id=uuid4(),
-        seller_id=uuid4(),
         items=[
             OrderItemInput(producto_id=uuid4(), cantidad=5),
             OrderItemInput(producto_id=uuid4(), cantidad=3),
@@ -40,7 +39,6 @@ def sample_order_input_with_visit():
     """Create sample order input with visit_id."""
     return OrderCreateInput(
         customer_id=uuid4(),
-        seller_id=uuid4(),
         visit_id=uuid4(),
         items=[
             OrderItemInput(producto_id=uuid4(), cantidad=2),
@@ -56,11 +54,12 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter transforms sellers app schema to Order Service API format."""
+        seller_id = uuid4()
         mock_http_client.post = AsyncMock(
             return_value={"id": str(uuid4()), "message": "Order created"}
         )
 
-        await order_adapter.create_order(sample_order_input)
+        await order_adapter.create_order(sample_order_input, seller_id)
 
         mock_http_client.post.assert_called_once()
         call_args = mock_http_client.post.call_args
@@ -71,7 +70,7 @@ class TestOrderAdapter:
         # Check payload structure
         payload = call_args[1]["json"]
         assert payload["customer_id"] == str(sample_order_input.customer_id)
-        assert payload["seller_id"] == str(sample_order_input.seller_id)
+        assert payload["seller_id"] == str(seller_id)
         assert payload["metodo_creacion"] == "app_vendedor"  # Hardcoded for sellers app
         assert "visit_id" not in payload  # Not provided in this case
         assert len(payload["items"]) == 2
@@ -81,11 +80,12 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input_with_visit
     ):
         """Test adapter includes visit_id when provided."""
+        seller_id = uuid4()
         mock_http_client.post = AsyncMock(
             return_value={"id": str(uuid4()), "message": "Order created"}
         )
 
-        await order_adapter.create_order(sample_order_input_with_visit)
+        await order_adapter.create_order(sample_order_input_with_visit, seller_id)
 
         call_args = mock_http_client.post.call_args
         payload = call_args[1]["json"]
@@ -98,12 +98,13 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter returns OrderCreateResponse."""
+        seller_id = uuid4()
         order_id = uuid4()
         mock_http_client.post = AsyncMock(
             return_value={"id": str(order_id), "message": "Success"}
         )
 
-        response = await order_adapter.create_order(sample_order_input)
+        response = await order_adapter.create_order(sample_order_input, seller_id)
 
         assert response.id == order_id
         assert response.message == "Success"
@@ -113,8 +114,9 @@ class TestOrderAdapter:
         self, order_adapter, mock_http_client, sample_order_input
     ):
         """Test adapter uses default message when not provided."""
+        seller_id = uuid4()
         mock_http_client.post = AsyncMock(return_value={"id": str(uuid4())})
 
-        response = await order_adapter.create_order(sample_order_input)
+        response = await order_adapter.create_order(sample_order_input, seller_id)
 
         assert response.message == "Order created successfully"
