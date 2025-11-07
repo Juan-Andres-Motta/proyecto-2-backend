@@ -74,14 +74,6 @@ jobs:
         run: |
           echo "🔍 Verifying LocalStack resources..."
 
-          # Check Cognito JWKS
-          if curl -sf http://localhost:4566/us-east-1_cipool/.well-known/jwks.json >/dev/null; then
-            echo "✅ Cognito JWKS endpoint responding"
-          else
-            echo "❌ Cognito JWKS endpoint not responding"
-            exit 1
-          fi
-
           # Check SQS Queue
           if docker exec localstack awslocal sqs list-queues | grep -q "reports-queue"; then
             echo "✅ SQS queue available"

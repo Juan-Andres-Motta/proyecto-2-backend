@@ -168,3 +168,111 @@ class TestHandleOrderCreation:
 
         assert "missing user_id" in caplog.text
         publisher.publish.assert_not_called()
+
+
+class TestHandleReportGenerated:
+    """Tests for handle_report_generated."""
+
+    @pytest.mark.asyncio
+    async def test_publishes_to_user_report_channel(self):
+        """Test publishes to correct user report channel."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {
+            "event_type": "report_generated",
+            "user_id": "user-123",
+        }
+
+        await handlers.handle_report_generated(event_data)
+
+        publisher.publish.assert_called_once_with(
+            channel="web:users:user-123:report",
+            event_name="report.generated",
+            data=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_handles_missing_user_id(self, caplog):
+        """Test logs warning when user_id missing."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {"event_type": "report_generated"}
+
+        await handlers.handle_report_generated(event_data)
+
+        assert "missing user_id" in caplog.text
+        publisher.publish.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_sends_no_data_to_client(self):
+        """Test that no data is sent to client (client should refetch)."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {
+            "event_type": "report_generated",
+            "user_id": "user-456",
+        }
+
+        await handlers.handle_report_generated(event_data)
+
+        # Verify data parameter is None (client will refetch)
+        call_args = publisher.publish.call_args
+        assert call_args.kwargs["data"] is None
+
+
+class TestEventHandlersIntegration:
+    """Integration tests for EventHandlers."""
+
+    @pytest.mark.asyncio
+    async def test_multiple_event_types_with_same_publisher(self):
+        """Test handling multiple event types with same publisher instance."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        # Handle first event
+        await handlers.handle_web_report_generated(
+            {"user_id": "user-1", "report_id": "report-1"}
+        )
+
+        # Handle second event
+        await handlers.handle_order_creation(
+            {"user_id": "user-2", "order_id": "order-1"}
+        )
+
+        # Both should be published
+        assert publisher.publish.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_web_delivery_routes_handles_missing_route_id(self):
+        """Test web_delivery_routes handles missing route_id gracefully."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {"event_type": "web_delivery_routes", "user_id": "user-123"}
+
+        await handlers.handle_web_delivery_routes(event_data)
+
+        publisher.publish.assert_called_once_with(
+            channel="web:users:user-123",
+            event_name="delivery_routes.generated",
+            data=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_mobile_seller_visit_routes_handles_missing_route_id(self):
+        """Test mobile_seller_visit_routes handles missing route_id gracefully."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {"event_type": "mobile_seller_visit_routes", "seller_id": "seller-123"}
+
+        await handlers.handle_mobile_seller_visit_routes(event_data)
+
+        publisher.publish.assert_called_once_with(
+            channel="sellers:seller-123",
+            event_name="visit_routes.generated",
+            data=None,
+        )

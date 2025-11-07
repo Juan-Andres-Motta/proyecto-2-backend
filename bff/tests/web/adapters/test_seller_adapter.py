@@ -476,3 +476,139 @@ class TestSellerAdapterGetSellerSalesPlans:
         mock_http_client.get.assert_called_once()
         call_args = mock_http_client.get.call_args
         assert call_args.args[0] == f"/seller/sellers/{seller_id}/sales-plans"
+
+
+class TestSellerAdapterValidationErrorHandling:
+    """Test handling of validation errors from seller microservice."""
+
+    @pytest.mark.asyncio
+    async def test_create_seller_with_microservice_validation_error_json_response(
+        self, seller_adapter, mock_http_client, mock_cognito_service
+    ):
+        """Test validation error with JSON response body is properly extracted."""
+        from common.exceptions import MicroserviceValidationError
+
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@example.com",
+            phone="+1234567890",
+            city="Test City",
+            country="CO",
+        )
+
+        # Mock Cognito success
+        mock_cognito_service.create_user = AsyncMock(
+            return_value={
+                "user_id": "cognito-user-id-123",
+                "username": "test@example.com"
+            }
+        )
+        mock_cognito_service.add_user_to_group = AsyncMock()
+
+        # Mock seller microservice validation error with JSON response
+        validation_error = MicroserviceValidationError(
+            "seller",
+            "Validation failed",
+            status_code=422,
+            details={"response": '{"detail": "Email already registered"}'}
+        )
+        mock_http_client.post = AsyncMock(side_effect=validation_error)
+
+        # Mock rollback
+        mock_cognito_service.delete_user = AsyncMock()
+
+        # Execute saga
+        with pytest.raises(HTTPException) as exc_info:
+            await seller_adapter.create_seller(seller_data)
+
+        # Verify validation error is returned with extracted detail
+        assert exc_info.value.status_code == 422
+        assert "Email already registered" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_create_seller_with_microservice_validation_error_invalid_json(
+        self, seller_adapter, mock_http_client, mock_cognito_service
+    ):
+        """Test validation error with invalid JSON response falls back to error string."""
+        from common.exceptions import MicroserviceValidationError
+
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@example.com",
+            phone="+1234567890",
+            city="Test City",
+            country="CO",
+        )
+
+        # Mock Cognito success
+        mock_cognito_service.create_user = AsyncMock(
+            return_value={
+                "user_id": "cognito-user-id-123",
+                "username": "test@example.com"
+            }
+        )
+        mock_cognito_service.add_user_to_group = AsyncMock()
+
+        # Mock seller microservice validation error with invalid JSON
+        validation_error = MicroserviceValidationError(
+            "seller",
+            "Validation failed",
+            status_code=422,
+            details={"response": "invalid json content"}
+        )
+        mock_http_client.post = AsyncMock(side_effect=validation_error)
+
+        # Mock rollback
+        mock_cognito_service.delete_user = AsyncMock()
+
+        # Execute saga
+        with pytest.raises(HTTPException) as exc_info:
+            await seller_adapter.create_seller(seller_data)
+
+        # Verify falls back to error string
+        assert exc_info.value.status_code == 422
+        assert "Validation failed" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_create_seller_with_microservice_validation_error_message_field(
+        self, seller_adapter, mock_http_client, mock_cognito_service
+    ):
+        """Test validation error extraction from 'message' field (seller service format)."""
+        from common.exceptions import MicroserviceValidationError
+
+        seller_data = SellerCreate(
+            name="Test Seller",
+            email="test@example.com",
+            phone="+1234567890",
+            city="Test City",
+            country="CO",
+        )
+
+        # Mock Cognito success
+        mock_cognito_service.create_user = AsyncMock(
+            return_value={
+                "user_id": "cognito-user-id-123",
+                "username": "test@example.com"
+            }
+        )
+        mock_cognito_service.add_user_to_group = AsyncMock()
+
+        # Mock seller microservice validation error with 'message' field
+        validation_error = MicroserviceValidationError(
+            "seller",
+            "Validation failed",
+            status_code=422,
+            details={"response": '{"message": "Invalid phone format"}'}
+        )
+        mock_http_client.post = AsyncMock(side_effect=validation_error)
+
+        # Mock rollback
+        mock_cognito_service.delete_user = AsyncMock()
+
+        # Execute saga
+        with pytest.raises(HTTPException) as exc_info:
+            await seller_adapter.create_seller(seller_data)
+
+        # Verify 'message' field is extracted
+        assert exc_info.value.status_code == 422
+        assert "Invalid phone format" in exc_info.value.detail

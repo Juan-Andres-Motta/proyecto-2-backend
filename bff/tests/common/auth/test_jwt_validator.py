@@ -500,3 +500,130 @@ class TestLocalStackEndpoint:
 
         assert "cognito-idp" in validator.issuer
         assert "amazonaws.com" in validator.issuer
+
+
+class TestValidateTokenClientIdValidation:
+    """Tests for client_id validation in validate_token."""
+
+    @pytest.mark.asyncio
+    async def test_validate_token_invalid_single_client_id(self, jwt_validator, mock_jwks):
+        """Test validation fails when single client_id doesn't match allowed clients."""
+        jwt_validator.get_jwks = AsyncMock(return_value=mock_jwks)
+
+        mock_claims = {
+            "sub": "user-123",
+            "client_id": "invalid-client-id",
+            "iss": jwt_validator.issuer,
+            "exp": 9999999999,
+        }
+
+        with patch("jose.jwt.get_unverified_header") as mock_get_header:
+            with patch("jose.jwt.decode") as mock_decode:
+                mock_get_header.return_value = {"kid": "test-key-id-1"}
+                mock_decode.return_value = mock_claims
+
+                with pytest.raises(JWTError) as exc_info:
+                    await jwt_validator.validate_token("invalid-client-id-token")
+
+                assert "Invalid client_id" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_validate_token_no_client_id_and_no_aud(self, jwt_validator, mock_jwks):
+        """Test validation succeeds when token has neither client_id nor aud (valid case)."""
+        jwt_validator.get_jwks = AsyncMock(return_value=mock_jwks)
+
+        mock_claims = {
+            "sub": "user-123",
+            "email": "test@example.com",
+            "iss": jwt_validator.issuer,
+            "exp": 9999999999,
+        }
+
+        with patch("jose.jwt.get_unverified_header") as mock_get_header:
+            with patch("jose.jwt.decode") as mock_decode:
+                mock_get_header.return_value = {"kid": "test-key-id-1"}
+                mock_decode.return_value = mock_claims
+
+                result = await jwt_validator.validate_token("token-without-audience")
+
+                assert result == mock_claims
+                assert "client_id" not in result
+                assert "aud" not in result
+
+
+class TestGetMockClaims:
+    """Tests for _get_mock_claims method in TEST_MODE."""
+
+    @pytest.mark.asyncio
+    async def test_get_mock_claims_with_multiple_groups(self, jwt_validator):
+        """Test mock claims with multiple groups in token."""
+        import os
+        import json
+        import base64
+
+        # Create token with multiple groups
+        payload = {
+            "email": "seller@example.com",
+            "sub": "seller-user-id",
+            "cognito:groups": ["seller_users", "admin"],
+        }
+        encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        token = f"header.{encoded_payload}.signature"
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            validator = CognitoJWTValidator(
+                user_pool_id="us-east-1_TestPool",
+                region="us-east-1",
+                client_ids=["test-client"],
+            )
+            result = await validator.validate_token(token)
+
+            assert result["cognito:groups"] == ["seller_users", "admin"]
+            assert result["email"] == "seller@example.com"
+            assert result["sub"] == "seller-user-id"
+
+    @pytest.mark.asyncio
+    async def test_get_mock_claims_with_invalid_base64(self, jwt_validator):
+        """Test mock claims falls back to defaults with invalid base64 in token."""
+        import os
+
+        # Token with invalid base64
+        token = "header.invalid!!!base64.signature"
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            validator = CognitoJWTValidator(
+                user_pool_id="us-east-1_TestPool",
+                region="us-east-1",
+                client_ids=["test-client"],
+            )
+            result = await validator.validate_token(token)
+
+            # Should return defaults
+            assert result["sub"] is not None
+            assert result["cognito:username"] == "testwebuser"
+            assert result["cognito:groups"] == ["web_users"]
+
+    @pytest.mark.asyncio
+    async def test_get_mock_claims_partial_payload_extraction(self, jwt_validator):
+        """Test mock claims extracts only available fields from payload."""
+        import os
+        import json
+        import base64
+
+        # Create token with only email (no sub, no groups)
+        payload = {"email": "partial@example.com"}
+        encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        token = f"header.{encoded_payload}.signature"
+
+        with patch.dict(os.environ, {"TEST_MODE": "true"}):
+            validator = CognitoJWTValidator(
+                user_pool_id="us-east-1_TestPool",
+                region="us-east-1",
+                client_ids=["test-client"],
+            )
+            result = await validator.validate_token(token)
+
+            # Should have extracted email, but other fields are defaults
+            assert result["email"] == "partial@example.com"
+            assert result["cognito:username"] == "testwebuser"  # Default
+            assert result["cognito:groups"] == ["web_users"]  # Default
