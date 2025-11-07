@@ -146,6 +146,30 @@ class TestOrderEntityValidation:
                 customer_name="John Doe",
             )
 
+    def test_order_rejects_invalid_metodo_creacion(self):
+        """Test that invalid metodo_creacion values are rejected."""
+        # Create a valid order first
+        order = Order(
+            id=uuid4(),
+            customer_id=uuid4(),
+            seller_id=None,
+            visit_id=None,
+            fecha_pedido=datetime.now(),
+            fecha_entrega_estimada=date.today() + timedelta(days=1),
+            metodo_creacion=CreationMethod.APP_CLIENTE,
+            direccion_entrega="123 Main St",
+            ciudad_entrega="City",
+            pais_entrega="Country",
+            customer_name="John Doe",
+        )
+
+        # Inject an invalid metodo_creacion value to test the else branch
+        object.__setattr__(order, 'metodo_creacion', 'invalid_method')
+
+        # Trigger validation which should catch the invalid value
+        with pytest.raises(ValueError, match="Invalid metodo_creacion"):
+            order.validate()
+
 
 class TestOrderEntityItems:
     """Test Order entity item management."""

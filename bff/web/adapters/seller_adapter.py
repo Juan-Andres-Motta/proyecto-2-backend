@@ -150,10 +150,34 @@ class SellerAdapter(SellerPort):
                     f"exists but seller record was not created. Please delete manually."
                 )
 
-            # Return error
+            # Determine appropriate error response
+            # Import here to avoid circular imports
+            from common.exceptions import MicroserviceValidationError
+
+            # Extract validation details if available
+            error_detail = "Failed to complete seller creation. Please check your input data."
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+            if isinstance(seller_error, MicroserviceValidationError):
+                # This is a validation error (422) - return validation details
+                status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+
+                # Try to extract actual validation error from response
+                if seller_error.details and "response" in seller_error.details:
+                    try:
+                        import json
+                        response_data = json.loads(seller_error.details["response"])
+                        # Try different error message fields (FastAPI uses 'detail', seller service uses 'message')
+                        error_detail = response_data.get("detail") or response_data.get("message", error_detail)
+                    except (json.JSONDecodeError, KeyError):
+                        error_detail = str(seller_error)
+                else:
+                    error_detail = str(seller_error)
+
+            # Return appropriate error
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to complete seller creation. Please try again.",
+                status_code=status_code,
+                detail=error_detail,
             )
 
     async def _rollback_cognito_user(self, username: str) -> bool:

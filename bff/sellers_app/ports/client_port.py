@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from sellers_app.schemas.client_schemas import ClientCreateInput, ClientListResponse, ClientResponse
+from sellers_app.schemas.client_schemas import ClientListResponse, ClientResponse
 
 
 class ClientPort(ABC):
@@ -12,20 +12,10 @@ class ClientPort(ABC):
 
     This interface defines the contract for client-related operations
     that sellers can perform.
+
+    Note: Sellers can only VIEW clients, not create them.
+    Clients are ONLY created via self-signup: POST /auth/signup with user_type="client"
     """
-
-    @abstractmethod
-    async def create_client(self, client_data: ClientCreateInput):
-        """
-        Create a new client.
-
-        Args:
-            client_data: Client creation input
-
-        Returns:
-            Client creation response with ID
-        """
-        pass
 
     @abstractmethod
     async def list_clients(self, vendedor_asignado_id: UUID | None = None) -> ClientListResponse:

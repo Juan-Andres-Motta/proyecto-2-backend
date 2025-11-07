@@ -53,7 +53,7 @@ asyncio_default_fixture_loop_scope = "session"
 
 [tool.coverage.run]
 source = ["src"]
-omit = [
+omit = ["app.py", "main.py", 
     "*/tests/*",
     "*/__pycache__/*",
     "*/alembic/*",

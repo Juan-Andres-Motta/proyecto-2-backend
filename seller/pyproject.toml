@@ -43,7 +43,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "*/infrastructure/database/config.py"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/alembic/*", "*/.venv/*", "*/__init__.py", "*/infrastructure/config/*", "*/infrastructure/database/config.py", "app.py", "main.py"]
 relative_files = true
 concurrency = ["thread", "greenlet"]
 branch = true

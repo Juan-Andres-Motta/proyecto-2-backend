@@ -1,24 +1,15 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import UUID, Date, DateTime, Enum, Numeric, String, func
+from sqlalchemy import UUID, Date, DateTime, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
 if TYPE_CHECKING:
     from .order_item import OrderItem
-
-
-class CreationMethod(PyEnum):
-    """Order creation method enum."""
-
-    visita_vendedor = "visita_vendedor"
-    app_cliente = "app_cliente"
-    app_vendedor = "app_vendedor"
 
 
 class Order(Base):
@@ -60,10 +51,8 @@ class Order(Base):
     ciudad_entrega: Mapped[str] = mapped_column(String(100), nullable=False)
     pais_entrega: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    # Creation method
-    metodo_creacion: Mapped[CreationMethod] = mapped_column(
-        Enum(CreationMethod), nullable=False
-    )
+    # Creation method (stored as string, validated by domain enum)
+    metodo_creacion: Mapped[str] = mapped_column(String(50), nullable=False)
 
     # Denormalized customer data
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)

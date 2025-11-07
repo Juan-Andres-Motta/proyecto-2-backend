@@ -24,7 +24,7 @@ from dependencies import get_visit_port, get_seller_app_seller_port, get_seller_
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/visits", tags=["Seller Visits"])
+router = APIRouter(prefix="/visits")
 
 
 # ========== Endpoints ==========
