@@ -16,6 +16,10 @@ jobs:
     name: Run Integration Tests with LocalStack
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -63,7 +67,17 @@ jobs:
       - name: Wait for services to be ready
         run: |
           echo "⏳ Waiting for services to initialize..."
-          sleep 15
+          sleep 30
+
+          echo "🔍 Checking BFF health..."
+          for i in {1..10}; do
+            if curl -sf http://localhost:8000/bff/health >/dev/null 2>&1; then
+              echo "✅ BFF is healthy"
+              break
+            fi
+            echo "   Attempt $i/10..."
+            sleep 3
+          done
 
       - name: Check service status
         run: |

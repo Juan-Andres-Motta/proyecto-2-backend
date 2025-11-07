@@ -179,7 +179,70 @@
 			"response": []
 		},
 		{
-			"name": "4. Seller - Get Clients",
+			"name": "4. Signup - Client",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    const response = pm.response.json();",
+							"    console.log('\u2705 Client created:', response.user_id);",
+							"    pm.environment.set('new_client_id', response.user_id);",
+							"} else if (pm.response.code === 409) {",
+							"    console.log('\u26a0\ufe0f  Client already exists, using existing credentials');",
+							"} else {",
+							"    console.log('\u274c Client signup failed');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Set client credentials for later login",
+							"pm.environment.set('client_email', 'newmanclient@example.com');",
+							"pm.environment.set('client_password', 'NewmanClient@123');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"newmanclient@example.com\",\n    \"password\": \"NewmanClient@123\",\n    \"name\": \"Newman Test Client\",\n    \"telefono\": \"+573001234567\",\n    \"nombre_institucion\": \"Newman Test Hospital\",\n    \"tipo_institucion\": \"hospital\",\n    \"nit\": \"900999888\",\n    \"direccion\": \"123 Newman St\",\n    \"ciudad\": \"Bogota\",\n    \"pais\": \"Colombia\",\n    \"representante\": \"Newman Test Client\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/signup",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"signup"
+					]
+				},
+				"description": "Register new client"
+			},
+			"response": []
+		},
+		{
+			"name": "5. Seller - Get Clients",
 			"event": [
 				{
 					"listen": "test",
@@ -242,7 +305,7 @@
 			"response": []
 		},
 		{
-			"name": "5. Seller - Create Order",
+			"name": "6. Seller - Create Order",
 			"event": [
 				{
 					"listen": "test",
@@ -307,7 +370,7 @@
 			"response": []
 		},
 		{
-			"name": "6. Seller - Create Visit",
+			"name": "7. Seller - Create Visit",
 			"event": [
 				{
 					"listen": "test",
@@ -391,7 +454,7 @@
 			"response": []
 		},
 		{
-			"name": "7. Seller - Get Visits by Date",
+			"name": "8. Seller - Get Visits by Date",
 			"event": [
 				{
 					"listen": "test",
@@ -460,7 +523,7 @@
 			"response": []
 		},
 		{
-			"name": "8. Seller - Update Visit Status",
+			"name": "9. Seller - Update Visit Status",
 			"event": [
 				{
 					"listen": "test",
@@ -533,7 +596,7 @@
 			"response": []
 		},
 		{
-			"name": "9. Seller - Get Evidence Upload URL",
+			"name": "10. Seller - Get Evidence Upload URL",
 			"event": [
 				{
 					"listen": "test",
@@ -555,6 +618,7 @@
 							"        pm.expect(response).to.have.property('upload_url');",
 							"        pm.expect(response).to.have.property('s3_url');",
 							"        pm.environment.set('evidence_upload_url', response.upload_url);",
+							"        pm.environment.set('evidence_s3_url', response.s3_url);",
 							"        console.log('\u2705 S3 upload URL generated');",
 							"    });",
 							"}"
@@ -605,69 +669,6 @@
 					]
 				},
 				"description": "Get S3 presigned URL for evidence upload"
-			},
-			"response": []
-		},
-		{
-			"name": "10. Signup - Client",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"if (pm.response.code === 200) {",
-							"    const response = pm.response.json();",
-							"    console.log('\u2705 Client created:', response.user_id);",
-							"    pm.environment.set('new_client_id', response.user_id);",
-							"} else if (pm.response.code === 409) {",
-							"    console.log('\u26a0\ufe0f  Client already exists, using existing credentials');",
-							"} else {",
-							"    console.log('\u274c Client signup failed');",
-							"}"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"// Set client credentials for later login",
-							"pm.environment.set('client_email', 'newmanclient@example.com');",
-							"pm.environment.set('client_password', 'NewmanClient@123');"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"email\": \"newmanclient@example.com\",\n    \"password\": \"NewmanClient@123\",\n    \"name\": \"Newman Test Client\",\n    \"telefono\": \"+573001234567\",\n    \"nombre_institucion\": \"Newman Test Hospital\",\n    \"tipo_institucion\": \"hospital\",\n    \"nit\": \"900999888\",\n    \"direccion\": \"123 Newman St\",\n    \"ciudad\": \"Bogota\",\n    \"pais\": \"Colombia\",\n    \"representante\": \"Newman Test Client\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{base_url}}/auth/signup",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"auth",
-						"signup"
-					]
-				},
-				"description": "Register new client"
 			},
 			"response": []
 		},
@@ -1682,7 +1683,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"evidence_url\": \"https://s3.amazonaws.com/bucket/test-evidence.jpg\"\n}"
+					"raw": "{\n    \"s3_url\": \"{{evidence_s3_url}}\"\n}"
 				},
 				"url": {
 					"raw": "{{base_url}}/bff/sellers-app/visits/{{created_visit_id}}/evidence/confirm",
