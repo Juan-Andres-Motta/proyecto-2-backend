@@ -185,7 +185,7 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"if (pm.response.code === 200) {",
+							"if (pm.response.code === 201) {",
 							"    const response = pm.response.json();",
 							"    console.log('\u2705 Client created:', response.user_id);",
 							"    pm.environment.set('new_client_id', response.user_id);",
