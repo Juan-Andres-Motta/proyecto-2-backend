@@ -6,6 +6,7 @@ import base64
 import hashlib
 import hmac
 import logging
+import os
 from typing import Dict, Optional
 
 import aioboto3
@@ -30,9 +31,15 @@ class CognitoService:
         self.client_id = client_id
         self.client_secret = client_secret
         self.region = region
-        self.cognito_idp_url = (
-            f"https://cognito-idp.{region}.amazonaws.com/"
-        )
+
+        # Use LocalStack endpoint if AWS_ENDPOINT_URL is set, otherwise use real AWS
+        aws_endpoint = os.getenv("AWS_ENDPOINT_URL")
+        if aws_endpoint:
+            # LocalStack Cognito endpoint
+            self.cognito_idp_url = f"{aws_endpoint.rstrip('/')}/"
+        else:
+            # Real AWS Cognito endpoint
+            self.cognito_idp_url = f"https://cognito-idp.{region}.amazonaws.com/"
 
     def _get_secret_hash(self, username: str) -> str:
         """Generate SECRET_HASH for Cognito client authentication."""
@@ -58,6 +65,10 @@ class CognitoService:
         Raises:
             HTTPException: If authentication fails
         """
+        # Test mode: Return mock tokens
+        if os.getenv("TEST_MODE") == "true":
+            return self._get_mock_tokens(email)
+
         # Extract username from email (part before @) to match signup behavior
         username = email.split("@")[0]
 
@@ -219,6 +230,19 @@ class CognitoService:
         # Cognito with email aliases requires non-email usernames
         username = email.split("@")[0]
 
+        # Test mode: Return mock user
+        if os.getenv("TEST_MODE") == "true":
+            import uuid
+            # Generate deterministic UUID based on username (same username = same UUID)
+            namespace_uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+            user_uuid = str(uuid.uuid5(namespace_uuid, username))
+            logger.info(f"TEST_MODE: Mock created user {username} with UUID {user_uuid}")
+            return {
+                "user_id": user_uuid,
+                "username": username,
+                "email": email,
+            }
+
         user_attributes = [
             {"Name": "email", "Value": email},
             {"Name": "name", "Value": name},
@@ -307,6 +331,11 @@ class CognitoService:
         Raises:
             HTTPException: If user deletion fails
         """
+        # Test mode: Skip actual Cognito operation
+        if os.getenv("TEST_MODE") == "true":
+            logger.info(f"TEST_MODE: Mock deleted user {username}")
+            return
+
         try:
             session = aioboto3.Session()
             async with session.client("cognito-idp", region_name=self.region) as client:
@@ -342,6 +371,11 @@ class CognitoService:
         Raises:
             HTTPException: If adding user to group fails
         """
+        # Test mode: Skip actual Cognito operation
+        if os.getenv("TEST_MODE") == "true":
+            logger.info(f"TEST_MODE: Mock added user {username} to group {group_name}")
+            return
+
         try:
             session = aioboto3.Session()
             async with session.client("cognito-idp", region_name=self.region) as client:
@@ -366,3 +400,60 @@ class CognitoService:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Authentication service temporarily unavailable",
             )
+
+    def _get_mock_tokens(self, email: str) -> Dict:
+        """
+        Generate mock tokens for TEST_MODE.
+
+        Args:
+            email: User's email address
+
+        Returns:
+            Mock authentication response
+        """
+        import base64
+        import json
+        import uuid
+
+        username = email.split("@")[0]
+
+        # Determine user type and groups from email
+        if "seller" in email.lower():
+            user_type = "seller"
+            groups = ["seller_users"]  # Fixed: was "sellers", should be "seller_users"
+        elif "web" in email.lower():
+            user_type = "client"
+            groups = ["web_users"]
+        else:
+            user_type = "client"
+            groups = ["client_users"]
+
+        # Generate deterministic UUID based on username (same username = same UUID)
+        namespace_uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+        user_uuid = str(uuid.uuid5(namespace_uuid, username))
+
+        # Create mock payload
+        payload = {
+            "sub": user_uuid,
+            "cognito:username": username,
+            "cognito:groups": groups,
+            "email": email,
+            "token_use": "access",
+            "client_id": self.client_id,
+            "exp": 9999999999,
+            "iat": 1000000000,
+        }
+
+        # Create a fake JWT (header.payload.signature)
+        header = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()).decode().rstrip("=")
+        encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        signature = "mock_signature"
+
+        mock_token = f"{header}.{encoded_payload}.{signature}"
+
+        return {
+            "access_token": mock_token,
+            "id_token": mock_token,  # Same for simplicity
+            "refresh_token": f"mock_refresh_{username}",
+            "expires_in": 3600,
+        }

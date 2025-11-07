@@ -1,5 +1,6 @@
 """JWT token validation using AWS Cognito public keys."""
 
+import os
 import httpx
 from jose import jwt, JWTError
 from typing import Dict, List, Optional
@@ -26,10 +27,18 @@ class CognitoJWTValidator:
         self.user_pool_id = user_pool_id
         self.region = region
         self.client_ids = client_ids
-        self.issuer = (
-            f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}"
-        )
-        self.jwks_url = f"{self.issuer}/.well-known/jwks.json"
+
+        # Use LocalStack endpoint if AWS_ENDPOINT_URL is set, otherwise use real AWS
+        aws_endpoint = os.getenv("AWS_ENDPOINT_URL")
+        if aws_endpoint:
+            # LocalStack Cognito JWKS endpoint
+            self.issuer = f"{aws_endpoint.rstrip('/')}/{user_pool_id}"
+            self.jwks_url = f"{self.issuer}/.well-known/jwks.json"
+        else:
+            # Real AWS Cognito endpoint
+            self.issuer = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}"
+            self.jwks_url = f"{self.issuer}/.well-known/jwks.json"
+
         self._jwks_cache: Optional[Dict] = None
 
     async def get_jwks(self) -> Dict:
@@ -64,6 +73,10 @@ class CognitoJWTValidator:
         Raises:
             JWTError: If token is invalid, expired, or signature verification fails
         """
+        # Test mode: Skip validation and return mock claims
+        if os.getenv("TEST_MODE") == "true":
+            return self._get_mock_claims(token)
+
         # Fetch public keys
         jwks = await self.get_jwks()
 
@@ -160,6 +173,63 @@ class CognitoJWTValidator:
             Cognito username or None
         """
         return claims.get("cognito:username")
+
+    def _get_mock_claims(self, token: str) -> Dict:
+        """
+        Generate mock claims for TEST_MODE.
+
+        Args:
+            token: JWT token string (used to determine user type)
+
+        Returns:
+            Mock claims dictionary
+        """
+        # Parse token to extract email/username if present (basic decode without verification)
+        import base64
+        import json
+        import uuid
+
+        # Generate deterministic UUID for default user
+        namespace_uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
+        default_uuid = str(uuid.uuid5(namespace_uuid, "testwebuser"))
+
+        # Default mock claims
+        mock_claims = {
+            "sub": default_uuid,
+            "cognito:username": "testwebuser",
+            "cognito:groups": ["web_users"],
+            "email": "testwebuser@example.com",
+            "token_use": "access",
+            "client_id": self.client_ids[0] if self.client_ids else "test-client",
+            "exp": 9999999999,  # Far future
+            "iat": 1000000000,
+        }
+
+        # Try to decode payload (middle part of JWT) to get user info
+        try:
+            parts = token.split(".")
+            if len(parts) >= 2:
+                # Add padding if needed
+                payload = parts[1]
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += "=" * padding
+                decoded = json.loads(base64.urlsafe_b64decode(payload))
+
+                # Use decoded info if available
+                if "email" in decoded:
+                    mock_claims["email"] = decoded["email"]
+                if "sub" in decoded:
+                    mock_claims["sub"] = decoded["sub"]
+                if "cognito:username" in decoded:
+                    mock_claims["cognito:username"] = decoded["cognito:username"]
+                if "cognito:groups" in decoded:
+                    mock_claims["cognito:groups"] = decoded["cognito:groups"]
+        except Exception:
+            # If decode fails, use defaults
+            pass
+
+        return mock_claims
 
 
 @lru_cache(maxsize=1)
