@@ -40,8 +40,6 @@ services:
       - "8004:8000"
     env_file:
       - .env.staging
-    environment:
-      - S3_REPORTS_BUCKET=${S3_INVENTORY_REPORTS_BUCKET}
     networks:
       - medisupply
 
@@ -53,8 +51,6 @@ services:
       - "8005:8000"
     env_file:
       - .env.staging
-    environment:
-      - S3_REPORTS_BUCKET=${S3_ORDER_REPORTS_BUCKET}
     networks:
       - medisupply
 
@@ -82,6 +78,7 @@ services:
       - INVENTORY_URL=http://inventory:8000
       - ORDER_URL=http://order:8000
       - SELLER_URL=http://seller:8000
+      - SQS_ORDER_EVENTS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/889966880047/medisupply-order-events-bff-queue
     volumes:
       - ./bff:/app
     networks:

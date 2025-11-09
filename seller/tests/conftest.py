@@ -38,8 +38,19 @@ async def db_session(test_engine):
 async def clear_tables(test_engine):
     # Clear tables before each test
     async with test_engine.begin() as conn:
-        await conn.execute(text("DELETE FROM sales_plans"))
-        await conn.execute(text("DELETE FROM sellers"))
+        # Only delete if tables exist
+        try:
+            await conn.execute(text("DELETE FROM sales_plans"))
+        except Exception:
+            pass
+        try:
+            await conn.execute(text("DELETE FROM sellers"))
+        except Exception:
+            pass
+        try:
+            await conn.execute(text("DELETE FROM order_recived_event"))
+        except Exception:
+            pass
 
 
 @pytest_asyncio.fixture
