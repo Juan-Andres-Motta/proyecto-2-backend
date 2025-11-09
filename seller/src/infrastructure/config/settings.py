@@ -37,9 +37,21 @@ class Settings(BaseSettings):
         default="test-evidence-bucket",
         description="S3 bucket name for storing visit evidence files"
     )
+
+    # Event Consumption Configuration
+    # NEW: Dedicated SQS queue for Seller service (subscribed to SNS topic)
+    sqs_order_events_queue_url: str = Field(
+        default="https://localstack:4566/000000000000/medisupply-order-events-seller-queue",
+        description="SQS queue URL for consuming order events (Seller-specific queue)"
+    )
+
     aws_region: str = Field(
         default="us-east-1",
         description="AWS region for S3 and other AWS services"
+    )
+    aws_endpoint_url: str | None = Field(
+        default=None,
+        description="AWS endpoint URL (for LocalStack in development, None for real AWS)"
     )
 
 

@@ -63,15 +63,23 @@ class EventHandlers:
         )
 
     async def handle_order_creation(self, event_data: Dict[str, Any]) -> None:
-        """Handle order_creation event."""
-        user_id = event_data.get("user_id")
+        """
+        Handle order_creation event.
+
+        Business Logic:
+        - Extract customer_id from event
+        - Publish WebSocket notification to customer's channel
+        - Enable real-time order status updates
+        """
+        customer_id = event_data.get("customer_id")
         order_id = event_data.get("order_id")
 
-        if not user_id:
-            logger.warning("order_creation missing user_id")
+        if not customer_id:
+            logger.warning("order_creation missing customer_id")
             return
 
-        channel = f"users:{user_id}"
+        # Notify customer via WebSocket
+        channel = f"customers:{customer_id}"
         self.publisher.publish(
             channel=channel,
             event_name="order.created",

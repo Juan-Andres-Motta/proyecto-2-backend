@@ -28,41 +28,61 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
     # Startup
-    consumer_task = None
+    consumer_tasks = []
 
+    # Get shared publisher and handlers
+    publisher = get_publisher()
+    handlers = EventHandlers(publisher)
+
+    # Start reports queue consumer
     if settings.sqs_queue_url:
-        logger.info("Starting SQS consumer...")
+        logger.info(f"Starting SQS reports consumer for {settings.sqs_queue_url}...")
 
-        # Create consumer with handlers
-        consumer = SQSConsumer(
+        reports_consumer = SQSConsumer(
             queue_url=settings.sqs_queue_url,
             aws_region=settings.sqs_region,
             max_messages=settings.sqs_max_messages,
             wait_time_seconds=settings.sqs_wait_time_seconds,
         )
 
-        # Register event handlers
-        publisher = get_publisher()
-        handlers = EventHandlers(publisher)
+        reports_consumer.register_handler("web_report_generated", handlers.handle_web_report_generated)
+        reports_consumer.register_handler("web_delivery_routes", handlers.handle_web_delivery_routes)
+        reports_consumer.register_handler("mobile_seller_visit_routes", handlers.handle_mobile_seller_visit_routes)
 
-        consumer.register_handler("web_report_generated", handlers.handle_web_report_generated)
-        consumer.register_handler("web_delivery_routes", handlers.handle_web_delivery_routes)
-        consumer.register_handler("mobile_seller_visit_routes", handlers.handle_mobile_seller_visit_routes)
-        consumer.register_handler("order_creation", handlers.handle_order_creation)
-
-        # Start consumer in background
-        consumer_task = asyncio.create_task(consumer.start())
-        app.state.sqs_consumer = consumer
+        task = asyncio.create_task(reports_consumer.start())
+        consumer_tasks.append((reports_consumer, task))
+        app.state.sqs_reports_consumer = reports_consumer
     else:
-        logger.info("SQS queue URL not configured - skipping consumer startup")
+        logger.info("SQS reports queue URL not configured - skipping reports consumer startup")
+
+    # Start order events queue consumer
+    order_events_queue = getattr(settings, 'sqs_order_events_queue_url', None)
+    if order_events_queue:
+        logger.info(f"Starting SQS order events consumer for {order_events_queue}...")
+
+        order_consumer = SQSConsumer(
+            queue_url=order_events_queue,
+            aws_region=settings.sqs_region,
+            max_messages=settings.sqs_max_messages,
+            wait_time_seconds=settings.sqs_wait_time_seconds,
+        )
+
+        order_consumer.register_handler("order_created", handlers.handle_order_creation)
+
+        task = asyncio.create_task(order_consumer.start())
+        consumer_tasks.append((order_consumer, task))
+        app.state.sqs_order_consumer = order_consumer
+    else:
+        logger.info("SQS order events queue URL not configured - skipping order events consumer startup")
 
     yield
 
     # Shutdown
-    if consumer_task and settings.sqs_queue_url:
-        logger.info("Stopping SQS consumer...")
-        await app.state.sqs_consumer.stop()
-        await consumer_task
+    logger.info("Stopping SQS consumers...")
+    for consumer, task in consumer_tasks:
+        await consumer.stop()
+        await task
+    logger.info("All SQS consumers stopped")
 
 
 app = FastAPI(

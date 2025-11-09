@@ -8,6 +8,26 @@ output "vpc_id" {
   value       = module.vpc.vpc_id
 }
 
+output "public_subnet_ids" {
+  description = "Public subnet IDs"
+  value       = module.vpc.public_subnet_ids
+}
+
+output "alb_security_group_id" {
+  description = "ALB Security Group ID"
+  value       = module.security_groups.alb_security_group_id
+}
+
+output "ecs_tasks_security_group_id" {
+  description = "ECS Tasks Security Group ID"
+  value       = module.security_groups.ecs_tasks_security_group_id
+}
+
+output "rds_security_group_id" {
+  description = "RDS Security Group ID"
+  value       = module.security_groups.rds_security_group_id
+}
+
 output "rds_endpoint" {
   description = "RDS database endpoint"
   value       = module.rds_shared.db_instance_address
@@ -40,7 +60,19 @@ output "shared_s3_buckets" {
 output "shared_sqs_queue" {
   description = "Shared SQS queue accessible from common infrastructure"
   value = {
-    reports_queue_url = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
-    reports_queue_arn = data.terraform_remote_state.common.outputs.sqs_reports_queue_arn
+    reports_queue_url               = data.terraform_remote_state.common.outputs.sqs_reports_queue_url
+    reports_queue_arn               = data.terraform_remote_state.common.outputs.sqs_reports_queue_arn
+    order_events_seller_queue_url   = data.terraform_remote_state.common.outputs.sqs_order_events_seller_queue_url
+    order_events_seller_queue_arn   = data.terraform_remote_state.common.outputs.sqs_order_events_seller_queue_arn
+    order_events_bff_queue_url      = data.terraform_remote_state.common.outputs.sqs_order_events_bff_queue_url
+    order_events_bff_queue_arn      = data.terraform_remote_state.common.outputs.sqs_order_events_bff_queue_arn
+  }
+}
+
+output "shared_sns_topics" {
+  description = "Shared SNS topics accessible from common infrastructure"
+  value = {
+    order_events_topic_arn  = data.terraform_remote_state.common.outputs.sns_order_events_topic_arn
+    order_events_topic_name = data.terraform_remote_state.common.outputs.sns_order_events_topic_name
   }
 }

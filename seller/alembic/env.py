@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from src.infrastructure.database.models import Base
+from src.infrastructure.database.models import Base, ProcessedEvent, SalesPlan, Seller, Visit
 
 target_metadata = Base.metadata
 
@@ -35,7 +35,7 @@ def include_object(object, name, type_, reflected, compare_to):
     """
     if type_ == "table":
         # Only include tables that belong to the seller microservice
-        return name in ["sellers", "sales_plans", "visits", "seller_alembic_version"]
+        return name in ["sellers", "sales_plans", "visits", "seller_alembic_version", "order_recived_event"]
     return True
 
 # other values from the config, defined by the needs of env.py,
