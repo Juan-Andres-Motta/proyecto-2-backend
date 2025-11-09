@@ -138,27 +138,27 @@ class TestHandleOrderCreation:
 
     @pytest.mark.asyncio
     async def test_publishes_to_user_channel(self):
-        """Test publishes to correct user channel."""
+        """Test publishes to correct customer channel."""
         publisher = Mock()
         handlers = EventHandlers(publisher)
 
         event_data = {
             "event_type": "order_creation",
-            "user_id": "user-123",
+            "customer_id": "customer-123",
             "order_id": "order-456",
         }
 
         await handlers.handle_order_creation(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="users:user-123",
+            channel="customers:customer-123",
             event_name="order.created",
             data={"order_id": "order-456"},
         )
 
     @pytest.mark.asyncio
     async def test_handles_missing_user_id(self, caplog):
-        """Test logs warning when user_id missing."""
+        """Test logs warning when customer_id missing."""
         publisher = Mock()
         handlers = EventHandlers(publisher)
 
@@ -166,7 +166,7 @@ class TestHandleOrderCreation:
 
         await handlers.handle_order_creation(event_data)
 
-        assert "missing user_id" in caplog.text
+        assert "missing customer_id" in caplog.text
         publisher.publish.assert_not_called()
 
 
@@ -239,7 +239,7 @@ class TestEventHandlersIntegration:
 
         # Handle second event
         await handlers.handle_order_creation(
-            {"user_id": "user-2", "order_id": "order-1"}
+            {"customer_id": "customer-2", "order_id": "order-1"}
         )
 
         # Both should be published
