@@ -72,6 +72,50 @@ output "sqs_reports_queue_arn" {
   value       = module.sqs_reports_queue.queue_arn
 }
 
+# SNS Order Events Topic Outputs
+output "sns_order_events_topic_arn" {
+  description = "SNS topic ARN for order events"
+  value       = module.sns_order_events_topic.topic_arn
+}
+
+output "sns_order_events_topic_name" {
+  description = "SNS topic name for order events"
+  value       = module.sns_order_events_topic.topic_name
+}
+
+# SQS Order Events Queue Outputs - Seller Consumer
+output "sqs_order_events_seller_queue_url" {
+  description = "SQS queue URL for order events (Seller service consumer)"
+  value       = module.sqs_order_events_seller_queue.queue_url
+}
+
+output "sqs_order_events_seller_queue_arn" {
+  description = "SQS queue ARN for order events (Seller service consumer)"
+  value       = module.sqs_order_events_seller_queue.queue_arn
+}
+
+# SQS Order Events Queue Outputs - BFF Consumer
+output "sqs_order_events_bff_queue_url" {
+  description = "SQS queue URL for order events (BFF service consumer)"
+  value       = module.sqs_order_events_bff_queue.queue_url
+}
+
+output "sqs_order_events_bff_queue_arn" {
+  description = "SQS queue ARN for order events (BFF service consumer)"
+  value       = module.sqs_order_events_bff_queue.queue_arn
+}
+
+# DEPRECATED: Old single queue outputs (for backward compatibility during migration)
+output "sqs_order_events_queue_url" {
+  description = "DEPRECATED - SQS queue URL for order events (use service-specific queues)"
+  value       = module.sqs_order_events_queue.queue_url
+}
+
+output "sqs_order_events_queue_arn" {
+  description = "DEPRECATED - SQS queue ARN for order events (use service-specific queues)"
+  value       = module.sqs_order_events_queue.queue_arn
+}
+
 # IAM CI/CD User Outputs
 output "cicd_user_name" {
   description = "IAM user name for CI/CD ECR push operations"
@@ -81,4 +125,15 @@ output "cicd_user_name" {
 output "cicd_user_arn" {
   description = "IAM user ARN for CI/CD ECR push operations"
   value       = module.iam.cicd_user_arn
+}
+
+# IAM ECS Task Role Outputs
+output "ecs_task_execution_role_arn" {
+  description = "ECS task execution role ARN"
+  value       = module.iam.ecs_task_execution_role_arn
+}
+
+output "ecs_task_role_arn" {
+  description = "ECS task role ARN"
+  value       = module.iam.ecs_task_role_arn
 }

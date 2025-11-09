@@ -20,10 +20,10 @@ from src.adapters.input.schemas import (
 )
 from src.adapters.output.adapters import (
     MockCustomerAdapter,
-    MockEventPublisher,
     MockInventoryAdapter,
     MockSellerAdapter,
 )
+from src.adapters.output.adapters.sns_event_publisher import SNSEventPublisher
 from src.adapters.output.repositories.order_repository import OrderRepository
 from src.application.use_cases import (
     CreateOrderInput,
@@ -35,6 +35,7 @@ from src.application.use_cases import (
 from src.application.use_cases.list_customer_orders import ListCustomerOrdersUseCase
 from src.domain.entities import Order as OrderEntity
 from src.domain.value_objects import CreationMethod
+from src.infrastructure.config.settings import settings
 from src.infrastructure.database.config import get_db
 
 logger = logging.getLogger(__name__)
@@ -138,7 +139,12 @@ async def create_order(
         customer_adapter = MockCustomerAdapter()
         seller_adapter = MockSellerAdapter()
         inventory_adapter = MockInventoryAdapter()
-        event_publisher = MockEventPublisher()
+        # Use SNS for event publishing (fanout pattern to multiple consumers)
+        event_publisher = SNSEventPublisher(
+            topic_arn=settings.sns_order_events_topic_arn,
+            aws_region=settings.aws_region,
+            endpoint_url=settings.aws_endpoint_url,
+        )
 
         # Initialize use case
         use_case = CreateOrderUseCase(

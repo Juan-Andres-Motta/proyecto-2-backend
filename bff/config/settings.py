@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     ably_api_key: str = Field(default="")  # From SSM: /medisupply/prod/ably/api_key
     ably_environment: str = Field(default="dev")  # dev, staging, prod
 
-    # SQS Event Consumer
+    # SQS Event Consumer Configuration
     sqs_queue_url: str = Field(default="")
     sqs_region: str = Field(default="us-east-1")
     sqs_max_messages: int = Field(default=10)
@@ -55,6 +55,13 @@ class Settings(BaseSettings):
 
     # SQS Reports Queue
     sqs_reports_queue_url: str = Field(default="")
+
+    # SQS Order Events Queue - BFF Service Consumer
+    # NEW: Dedicated SQS queue for BFF service (subscribed to SNS topic)
+    sqs_order_events_queue_url: str = Field(
+        default="https://localstack:4566/000000000000/medisupply-order-events-bff-queue",
+        description="SQS queue URL for consuming order events (BFF-specific queue)"
+    )
 
 
 settings = Settings()
