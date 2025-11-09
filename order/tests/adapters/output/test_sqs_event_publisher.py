@@ -1,6 +1,7 @@
 """Unit tests for SQS event publisher adapter."""
 
 import json
+import logging
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -167,6 +168,8 @@ class TestPublishOrderCreated:
         self, sqs_publisher, sample_event_data, caplog
     ):
         """Test that SQS errors don't raise exceptions (fire-and-forget)."""
+        caplog.set_level(logging.ERROR)
+
         mock_sqs = AsyncMock()
         mock_sqs.send_message.side_effect = Exception("SQS connection failed")
 
@@ -188,6 +191,8 @@ class TestPublishOrderCreated:
         self, caplog
     ):
         """Test that publishing is skipped when queue URL is not configured."""
+        caplog.set_level(logging.WARNING)
+
         publisher = SQSEventPublisher(queue_url="")
         event_data = {"order_id": str(uuid4())}
 
@@ -440,6 +445,8 @@ class TestPublishingErrorHandling:
         self, sqs_publisher, sample_event_data, caplog
     ):
         """Test that successful publish is logged with order details."""
+        caplog.set_level(logging.INFO)
+
         mock_sqs = AsyncMock()
         mock_sqs.send_message = AsyncMock()
 
@@ -461,6 +468,8 @@ class TestPublishingErrorHandling:
         self, sqs_publisher, sample_event_data, caplog
     ):
         """Test that errors are logged with order context."""
+        caplog.set_level(logging.ERROR)
+
         mock_sqs = AsyncMock()
         mock_sqs.send_message.side_effect = RuntimeError("Network error")
 
