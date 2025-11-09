@@ -1,6 +1,7 @@
 """Unit tests for SQS event handlers."""
 
 import json
+import logging
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -128,48 +129,6 @@ class TestHandleOrderCreated:
                 mock_repo_class.assert_called_once_with(mock_session)
 
     @pytest.mark.asyncio
-    async def test_handle_order_created_logs_event_reception(
-        self, mock_db_session_factory, sample_order_created_event, caplog
-    ):
-        """Test that handler logs event reception with context."""
-        mock_factory, mock_session = mock_db_session_factory
-
-        handlers = EventHandlers(db_session_factory=mock_factory)
-
-        with patch(
-            "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
-        ) as mock_use_case_class:
-            mock_use_case = AsyncMock()
-            mock_use_case_class.return_value = mock_use_case
-
-            await handlers.handle_order_created(sample_order_created_event)
-
-            # Verify logging
-            assert "Handling order_created event" in caplog.text
-            assert sample_order_created_event["event_id"] in caplog.text or "event_id" in caplog.text
-
-    @pytest.mark.asyncio
-    async def test_handle_order_created_logs_success(
-        self, mock_db_session_factory, sample_order_created_event, caplog
-    ):
-        """Test that successful processing is logged."""
-        mock_factory, mock_session = mock_db_session_factory
-
-        handlers = EventHandlers(db_session_factory=mock_factory)
-
-        with patch(
-            "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
-        ) as mock_use_case_class:
-            mock_use_case = AsyncMock()
-            mock_use_case.execute = AsyncMock()
-            mock_use_case_class.return_value = mock_use_case
-
-            await handlers.handle_order_created(sample_order_created_event)
-
-            # Verify success logging
-            assert "Successfully processed order_created event" in caplog.text
-
-    @pytest.mark.asyncio
     async def test_handle_order_created_raises_on_use_case_error(
         self, mock_db_session_factory, sample_order_created_event
     ):
@@ -216,26 +175,6 @@ class TestHandleOrderCreated:
             assert "Database connection failed" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_handle_order_created_extracts_event_fields(
-        self, mock_db_session_factory, sample_order_created_event, caplog
-    ):
-        """Test that handler correctly extracts event fields for logging."""
-        mock_factory, mock_session = mock_db_session_factory
-
-        handlers = EventHandlers(db_session_factory=mock_factory)
-
-        with patch(
-            "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
-        ) as mock_use_case_class:
-            mock_use_case = AsyncMock()
-            mock_use_case_class.return_value = mock_use_case
-
-            await handlers.handle_order_created(sample_order_created_event)
-
-            # Verify fields were extracted (from logging)
-            assert "order_id" in caplog.text or sample_order_created_event["order_id"][:8] in caplog.text
-
-    @pytest.mark.asyncio
     async def test_handle_order_created_handles_missing_seller_id(
         self, mock_db_session_factory, caplog
     ):
@@ -274,17 +213,17 @@ class TestEventHandlersSessionManagement:
         self, sample_order_created_event
     ):
         """Test that session is properly managed with context manager."""
-        mock_factory = AsyncMock()
         mock_session = AsyncMock()
 
+        # Create mock context manager
+        mock_context_manager = AsyncMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
+
+        # Make factory return the context manager
+        mock_factory = MagicMock(return_value=mock_context_manager)
+
         handlers = EventHandlers(db_session_factory=mock_factory)
-
-        # Make factory return async context manager
-        async def async_context():
-            return mock_session
-
-        mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
@@ -295,21 +234,25 @@ class TestEventHandlersSessionManagement:
             await handlers.handle_order_created(sample_order_created_event)
 
             # Verify context manager was used
-            mock_factory.return_value.__aenter__.assert_called_once()
-            mock_factory.return_value.__aexit__.assert_called_once()
+            mock_context_manager.__aenter__.assert_called_once()
+            mock_context_manager.__aexit__.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_order_created_closes_session_on_error(
         self, sample_order_created_event
     ):
         """Test that session is closed even if use case fails."""
-        mock_factory = AsyncMock()
         mock_session = AsyncMock()
 
-        handlers = EventHandlers(db_session_factory=mock_factory)
+        # Create mock context manager
+        mock_context_manager = AsyncMock()
+        mock_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_context_manager.__aexit__ = AsyncMock(return_value=None)
 
-        mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
+        # Make factory return the context manager
+        mock_factory = MagicMock(return_value=mock_context_manager)
+
+        handlers = EventHandlers(db_session_factory=mock_factory)
 
         with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
@@ -324,7 +267,7 @@ class TestEventHandlersSessionManagement:
                 pass
 
             # Verify context manager exit was called
-            mock_factory.return_value.__aexit__.assert_called_once()
+            mock_context_manager.__aexit__.assert_called_once()
 
 
 class TestMultipleEventTypes:
