@@ -32,10 +32,10 @@ def sample_processed_event():
 
 @pytest.fixture(autouse=True)
 async def clear_processed_events(db_session):
-    """Clear processed_events table before each test."""
+    """Clear order_recived_event table before each test."""
     from sqlalchemy import text
 
-    await db_session.execute(text("DELETE FROM processed_events"))
+    await db_session.execute(text("DELETE FROM order_recived_event"))
     await db_session.commit()
     yield
 

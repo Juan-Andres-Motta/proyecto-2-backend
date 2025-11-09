@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -19,7 +19,6 @@ def mock_db_session_factory():
 
     mock_factory = MagicMock()
     mock_factory.return_value = mock_session
-    mock_factory.__call__.return_value = mock_session
 
     return mock_factory, mock_session
 
@@ -65,7 +64,7 @@ class TestHandleOrderCreated:
         handlers = EventHandlers(db_session_factory=mock_factory)
 
         # Mock the use case to avoid actual processing
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -85,7 +84,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -111,13 +110,13 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.ProcessedEventRepository"
         ) as mock_repo_class:
             mock_repo = MagicMock()
             mock_repo_class.return_value = mock_repo
 
-            with pytest.mock.patch(
+            with patch(
                 "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
             ) as mock_use_case_class:
                 mock_use_case = AsyncMock()
@@ -137,7 +136,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -158,7 +157,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -179,7 +178,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -199,7 +198,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -225,7 +224,7 @@ class TestHandleOrderCreated:
 
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -255,7 +254,7 @@ class TestHandleOrderCreated:
         mock_factory, mock_session = mock_db_session_factory
         handlers = EventHandlers(db_session_factory=mock_factory)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -287,7 +286,7 @@ class TestEventHandlersSessionManagement:
         mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
         mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()
@@ -312,7 +311,7 @@ class TestEventHandlersSessionManagement:
         mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_session)
         mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with pytest.mock.patch(
+        with patch(
             "src.adapters.input.consumers.event_handlers.UpdateSalesPlanFromOrderUseCase"
         ) as mock_use_case_class:
             mock_use_case = AsyncMock()

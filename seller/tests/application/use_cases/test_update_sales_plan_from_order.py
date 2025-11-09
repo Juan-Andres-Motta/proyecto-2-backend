@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -35,8 +35,12 @@ async def sample_seller_with_sales_plan(db_session):
     seller_id = uuid4()
     seller = Seller(
         id=seller_id,
-        nombre="Test Seller",
-        correo_electronico="seller@example.com",
+        cognito_user_id=f"cognito-{seller_id}",
+        name="Test Seller",
+        email="seller@example.com",
+        phone="+1234567890",
+        city="Test City",
+        country="Test Country",
     )
     db_session.add(seller)
     await db_session.flush()
@@ -51,7 +55,7 @@ async def sample_seller_with_sales_plan(db_session):
         id=uuid4(),
         seller_id=seller_id,
         sales_period=period,
-        target=Decimal("10000.00"),
+        goal=Decimal("10000.00"),
         accumulate=Decimal("0.00"),
     )
     db_session.add(sales_plan)
@@ -82,7 +86,7 @@ async def clear_tables(db_session):
     """Clear tables before each test."""
     from sqlalchemy import text
 
-    await db_session.execute(text("DELETE FROM processed_events"))
+    await db_session.execute(text("DELETE FROM order_recived_event"))
     await db_session.execute(text("DELETE FROM sales_plans"))
     await db_session.execute(text("DELETE FROM sellers"))
     await db_session.commit()
@@ -179,7 +183,7 @@ class TestGetCurrentQuarter:
         assert period[0] == "Q"
         assert period[1] in "1234"
         assert period[2] == "-"
-        assert len(period) == 8  # Q#-YYYY
+        assert len(period) == 7  # Q#-YYYY (e.g., "Q4-2025")
 
     @pytest.mark.asyncio
     async def test_get_current_quarter_q1(self, db_session, mock_processed_event_repository):
@@ -190,7 +194,7 @@ class TestGetCurrentQuarter:
         )
 
         # Mock datetime for January
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2025, 1, 15)
             period = use_case._get_current_quarter()
             assert period == "Q1-2025"
@@ -204,7 +208,7 @@ class TestGetCurrentQuarter:
         )
 
         # Mock datetime for November
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2025, 11, 9)
             period = use_case._get_current_quarter()
             assert period == "Q4-2025"
@@ -499,7 +503,7 @@ class TestQuarterCalculation:
             processed_event_repository=mock_processed_event_repository,
         )
 
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             # January
             mock_datetime.utcnow.return_value = datetime(2025, 1, 15)
             assert use_case._get_current_quarter() == "Q1-2025"
@@ -520,7 +524,7 @@ class TestQuarterCalculation:
             processed_event_repository=mock_processed_event_repository,
         )
 
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2025, 5, 15)
             assert use_case._get_current_quarter() == "Q2-2025"
 
@@ -532,7 +536,7 @@ class TestQuarterCalculation:
             processed_event_repository=mock_processed_event_repository,
         )
 
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2025, 8, 15)
             assert use_case._get_current_quarter() == "Q3-2025"
 
@@ -544,6 +548,6 @@ class TestQuarterCalculation:
             processed_event_repository=mock_processed_event_repository,
         )
 
-        with pytest.mock.patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
+        with patch("src.application.use_cases.update_sales_plan_from_order.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value = datetime(2025, 12, 15)
             assert use_case._get_current_quarter() == "Q4-2025"
