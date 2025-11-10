@@ -67,23 +67,21 @@ class EventHandlers:
         Handle order_creation event.
 
         Business Logic:
-        - Extract customer_id from event
-        - Publish WebSocket notification to customer's channel
+        - Extract customer_id and order_id from event
+        - Publish notification to mobile:products channel for all mobile clients
         - Enable real-time order status updates
         """
         customer_id = event_data.get("customer_id")
         order_id = event_data.get("order_id")
 
-        if not customer_id:
-            logger.warning("order_creation missing customer_id")
-            return
-
-        # Notify customer via WebSocket
-        channel = f"customers:{customer_id}"
+        # Notify all mobile clients connected to products channel
         self.publisher.publish(
-            channel=channel,
+            channel="mobile:products",
             event_name="order.created",
-            data={"order_id": order_id} if order_id else None,
+            data={
+                "order_id": order_id,
+                "customer_id": customer_id,
+            } if order_id and customer_id else None,
         )
 
     async def handle_report_generated(self, event_data: Dict[str, Any]) -> None:
