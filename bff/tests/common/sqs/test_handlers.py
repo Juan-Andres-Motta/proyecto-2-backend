@@ -137,8 +137,8 @@ class TestHandleOrderCreation:
     """Tests for handle_order_creation."""
 
     @pytest.mark.asyncio
-    async def test_publishes_to_user_channel(self):
-        """Test publishes to correct customer channel."""
+    async def test_publishes_to_mobile_products_channel(self):
+        """Test publishes to mobile:products channel."""
         publisher = Mock()
         handlers = EventHandlers(publisher)
 
@@ -150,24 +150,75 @@ class TestHandleOrderCreation:
 
         await handlers.handle_order_creation(event_data)
 
+        # Verify single call to mobile:products
         publisher.publish.assert_called_once_with(
-            channel="customers:customer-123",
+            channel="mobile:products",
             event_name="order.created",
-            data={"order_id": "order-456"},
+            data={
+                "order_id": "order-456",
+                "customer_id": "customer-123",
+            }
         )
 
     @pytest.mark.asyncio
-    async def test_handles_missing_user_id(self, caplog):
-        """Test logs warning when customer_id missing."""
+    async def test_publishes_with_order_and_customer_data(self):
+        """Test publishes to mobile:products channel with order data."""
         publisher = Mock()
         handlers = EventHandlers(publisher)
 
-        event_data = {"event_type": "order_creation"}
+        event_data = {
+            "event_type": "order_creation",
+            "customer_id": "customer-789",
+            "order_id": "order-xyz",
+        }
 
         await handlers.handle_order_creation(event_data)
 
-        assert "missing customer_id" in caplog.text
-        publisher.publish.assert_not_called()
+        call_args = publisher.publish.call_args
+        assert call_args.kwargs["channel"] == "mobile:products"
+        assert call_args.kwargs["event_name"] == "order.created"
+        assert call_args.kwargs["data"]["order_id"] == "order-xyz"
+        assert call_args.kwargs["data"]["customer_id"] == "customer-789"
+
+    @pytest.mark.asyncio
+    async def test_handles_missing_order_id(self):
+        """Test handles missing order_id gracefully."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {
+            "event_type": "order_creation",
+            "customer_id": "customer-123",
+        }
+
+        await handlers.handle_order_creation(event_data)
+
+        # Should publish with None data
+        publisher.publish.assert_called_once_with(
+            channel="mobile:products",
+            event_name="order.created",
+            data=None,
+        )
+
+    @pytest.mark.asyncio
+    async def test_handles_missing_customer_id(self):
+        """Test handles missing customer_id gracefully."""
+        publisher = Mock()
+        handlers = EventHandlers(publisher)
+
+        event_data = {
+            "event_type": "order_creation",
+            "order_id": "order-456",
+        }
+
+        await handlers.handle_order_creation(event_data)
+
+        # Should publish with None data
+        publisher.publish.assert_called_once_with(
+            channel="mobile:products",
+            event_name="order.created",
+            data=None,
+        )
 
 
 class TestHandleReportGenerated:
@@ -242,7 +293,7 @@ class TestEventHandlersIntegration:
             {"customer_id": "customer-2", "order_id": "order-1"}
         )
 
-        # Both should be published
+        # Total: 1 from web_report + 1 from order_creation = 2
         assert publisher.publish.call_count == 2
 
     @pytest.mark.asyncio
