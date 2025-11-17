@@ -16,8 +16,8 @@ class OrderItem(Base):
     """
     OrderItem database model.
 
-    Represents a single inventory allocation for an order.
-    Multiple items may exist for the same product (FEFO multi-batch allocation).
+    Represents a single inventory entry for an order.
+    Each order item maps to exactly one inventory entry (inventario_id).
     """
 
     __tablename__ = "order_items"
@@ -28,7 +28,6 @@ class OrderItem(Base):
     pedido_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False
     )
-    producto_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     inventario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Quantities and pricing
@@ -39,6 +38,7 @@ class OrderItem(Base):
     # Denormalized product data
     product_name: Mapped[str] = mapped_column(String(255), nullable=False)
     product_sku: Mapped[str] = mapped_column(String(100), nullable=False)
+    product_category: Mapped[str] = mapped_column(String(100), nullable=True)
 
     # Denormalized warehouse data
     warehouse_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

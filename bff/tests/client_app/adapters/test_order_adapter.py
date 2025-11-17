@@ -27,8 +27,8 @@ def sample_order_input():
     """Create sample order input."""
     return OrderCreateInput(
         items=[
-            OrderItemInput(producto_id=uuid4(), cantidad=5),
-            OrderItemInput(producto_id=uuid4(), cantidad=3),
+            OrderItemInput(inventario_id=uuid4(), cantidad=5),
+            OrderItemInput(inventario_id=uuid4(), cantidad=3),
         ],
     )
 

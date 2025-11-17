@@ -83,3 +83,14 @@ class ErrorResponse(BaseModel):
 
     error_code: str
     message: str
+
+
+class UserMeResponse(BaseModel):
+    """Response model for /me endpoint with complete user information."""
+
+    user_id: str
+    name: str
+    email: str
+    groups: list[str] = []
+    user_type: str | None = None
+    user_details: dict | None = None

@@ -28,6 +28,7 @@ async def test_create_inventory(db_session: AsyncSession):
         "product_price": Decimal("100.50"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
     }
 
     inventory = await repository.create(inventory_data)
@@ -77,6 +78,7 @@ async def test_list_inventories_with_data(db_session: AsyncSession):
             "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
         }
         await repository.create(inventory_data)
 
@@ -107,6 +109,7 @@ async def test_list_inventories_pagination(db_session: AsyncSession):
             "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
         }
         await repository.create(inventory_data)
 
@@ -138,6 +141,7 @@ async def test_find_by_id_found(db_session: AsyncSession):
         "product_price": Decimal("100.50"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
     }
     created = await repository.create(inventory_data)
 
@@ -180,6 +184,7 @@ async def test_list_inventories_filter_by_sku(db_session: AsyncSession):
             "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
         }
         await repository.create(inventory_data)
 
@@ -216,6 +221,7 @@ async def test_list_inventories_filter_by_product_id(db_session: AsyncSession):
             "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
         }
         await repository.create(inventory_data)
 
@@ -252,6 +258,7 @@ async def test_list_inventories_filter_by_warehouse_id(db_session: AsyncSession)
             "product_price": Decimal("100.50"),
             "warehouse_name": "Test Warehouse",
             "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
         }
         await repository.create(inventory_data)
 

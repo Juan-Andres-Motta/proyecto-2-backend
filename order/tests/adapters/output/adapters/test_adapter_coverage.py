@@ -6,7 +6,6 @@ from datetime import date, timedelta
 from src.adapters.output.adapters.customer_adapter import MockCustomerAdapter
 from src.adapters.output.adapters.event_publisher_adapter import MockEventPublisher
 from src.adapters.output.adapters.inventory_adapter import MockInventoryAdapter
-from src.adapters.output.adapters.seller_adapter import MockSellerAdapter
 
 
 @pytest.mark.asyncio
@@ -42,49 +41,38 @@ async def test_event_publisher_publish_order_created():
 
 
 @pytest.mark.asyncio
-async def test_inventory_adapter_allocate_inventory():
-    """Test MockInventoryAdapter allocate_inventory method (covers lines 44-69)."""
+async def test_inventory_adapter_get_inventory():
+    """Test MockInventoryAdapter get_inventory method."""
     adapter = MockInventoryAdapter()
-    product_id = uuid.uuid4()
-    required_quantity = 10
-    min_expiration_date = date.today() + timedelta(days=7)
+    inventory_id = uuid.uuid4()
 
-    result = await adapter.allocate_inventory(
-        product_id, required_quantity, min_expiration_date
-    )
+    result = await adapter.get_inventory(inventory_id)
 
-    assert len(result) == 1
-    allocation = result[0]
-    assert allocation.producto_id == product_id
-    assert allocation.cantidad == required_quantity
-    assert allocation.product_name == f"Mock Product {product_id}"
-    assert allocation.product_sku == f"SKU-{product_id}"
-    assert allocation.warehouse_name == "Mock Warehouse"
-    assert allocation.warehouse_city == "Mock City"
-    assert allocation.warehouse_country == "Mock Country"
-    assert allocation.expiration_date > min_expiration_date
+    # Verify it returns InventoryInfo
+    assert result.id == inventory_id
+    assert result.available_quantity == 1000  # Mock always has plenty
+    assert result.product_name == "Mock Product"
+    assert result.product_sku == "MOCK-SKU-001"
+    assert result.product_category == "medicamentos_especiales"
+    assert result.warehouse_name == "Mock Warehouse"
+    assert result.warehouse_city == "Mock City"
+    assert result.warehouse_country == "Mock Country"
+    assert result.batch_number.startswith("BATCH-")
+    assert result.expiration_date > date.today()  # Far future
 
 
 @pytest.mark.asyncio
-async def test_seller_adapter_get_seller():
-    """Test MockSellerAdapter get_seller method (covers lines 34-39)."""
-    adapter = MockSellerAdapter()
-    seller_id = uuid.uuid4()
+async def test_inventory_adapter_reserve_inventory():
+    """Test MockInventoryAdapter reserve_inventory method."""
+    adapter = MockInventoryAdapter()
+    inventory_id = uuid.uuid4()
 
-    result = await adapter.get_seller(seller_id)
+    result = await adapter.reserve_inventory(inventory_id, 10)
 
-    assert result.id == seller_id
-    assert result.name == f"Mock Seller {seller_id}"
-    assert result.email == f"seller-{seller_id}@example.com"
+    # Verify it returns success response
+    assert result["id"] == str(inventory_id)
+    assert result["reserved_quantity"] == 10
+    assert "message" in result
+    assert "Mock reservation successful" in result["message"]
 
 
-@pytest.mark.asyncio
-async def test_seller_adapter_validate_visit():
-    """Test MockSellerAdapter validate_visit method (covers lines 58-64)."""
-    adapter = MockSellerAdapter()
-    visit_id = uuid.uuid4()
-    seller_id = uuid.uuid4()
-
-    result = await adapter.validate_visit(visit_id, seller_id)
-
-    assert result is True

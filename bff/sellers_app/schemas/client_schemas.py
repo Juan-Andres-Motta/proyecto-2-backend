@@ -1,9 +1,10 @@
 """Client schemas for sellers app."""
 
 from datetime import datetime
+from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class ClientCreateInput(BaseModel):
@@ -41,5 +42,9 @@ class ClientResponse(BaseModel):
 
 class ClientListResponse(BaseModel):
     """Response schema for listing clients."""
-    clients: list[ClientResponse]
+    items: List[ClientResponse]
     total: int
+    page: int
+    size: int
+    has_next: bool
+    has_previous: bool

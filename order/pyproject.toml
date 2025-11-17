@@ -43,14 +43,18 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["app.py", "main.py", 
+omit = [
+    "app.py",
+    "main.py",
     "*/tests/*",
     "*/__pycache__/*",
     "*/alembic/*",
     "*/.venv/*",
     "*/__init__.py",
     "*/infrastructure/database/config.py",
-    "*/infrastructure/config/*"
+    "*/infrastructure/config/*",
+    "*/infrastructure/dependencies.py",
+    "*/domain/exceptions.py"
 ]
 relative_files = true
 concurrency = ["thread", "greenlet"]

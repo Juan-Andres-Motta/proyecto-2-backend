@@ -35,7 +35,8 @@ def seller_id():
 @pytest.fixture
 def test_date():
     """Test date."""
-    return datetime(2025, 11, 16, 0, 0, 0, tzinfo=timezone.utc)
+    from datetime import date
+    return date(2025, 11, 16)
 
 
 class TestListVisitsSuccess:
@@ -79,17 +80,31 @@ class TestListVisitsSuccess:
             updated_at=datetime.now(timezone.utc),
         )
 
-        mock_visit_repository.get_visits_by_date.return_value = [visit1, visit2]
+        mock_visit_repository.find_by_seller_and_date_range.return_value = [visit1, visit2]
+        mock_visit_repository.count_by_seller_and_date_range.return_value = 2
 
-        result = await use_case.execute(
-            seller_id=seller_id, date=test_date, session=mock_session
+        visits, pagination = await use_case.execute(
+            seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            session=mock_session
         )
 
-        assert len(result) == 2
-        assert result[0] == visit1
-        assert result[1] == visit2
-        mock_visit_repository.get_visits_by_date.assert_called_once_with(
-            seller_id=seller_id, date=test_date, session=mock_session
+        assert len(visits) == 2
+        assert visits[0] == visit1
+        assert visits[1] == visit2
+        assert pagination["total_results"] == 2
+        assert pagination["current_page"] == 1
+        mock_visit_repository.find_by_seller_and_date_range.assert_called_once_with(
+            seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            session=mock_session,
+            client_name=None
         )
 
     @pytest.mark.asyncio
@@ -97,14 +112,21 @@ class TestListVisitsSuccess:
         self, use_case, mock_visit_repository, mock_session, seller_id, test_date
     ):
         """Test listing visits returns empty list when no visits exist."""
-        mock_visit_repository.get_visits_by_date.return_value = []
+        mock_visit_repository.find_by_seller_and_date_range.return_value = []
+        mock_visit_repository.count_by_seller_and_date_range.return_value = 0
 
-        result = await use_case.execute(
-            seller_id=seller_id, date=test_date, session=mock_session
+        visits, pagination = await use_case.execute(
+            seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            session=mock_session
         )
 
-        assert result == []
-        assert isinstance(result, list)
+        assert visits == []
+        assert isinstance(visits, list)
+        assert pagination["total_results"] == 0
 
     @pytest.mark.asyncio
     async def test_list_visits_with_different_statuses(
@@ -160,16 +182,22 @@ class TestListVisitsSuccess:
             updated_at=datetime.now(timezone.utc),
         )
 
-        mock_visit_repository.get_visits_by_date.return_value = [programmed, completed, cancelled]
+        mock_visit_repository.find_by_seller_and_date_range.return_value = [programmed, completed, cancelled]
+        mock_visit_repository.count_by_seller_and_date_range.return_value = 3
 
-        result = await use_case.execute(
-            seller_id=seller_id, date=test_date, session=mock_session
+        visits, pagination = await use_case.execute(
+            seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            session=mock_session
         )
 
-        assert len(result) == 3
-        assert result[0].status == VisitStatus.PROGRAMADA
-        assert result[1].status == VisitStatus.COMPLETADA
-        assert result[2].status == VisitStatus.CANCELADA
+        assert len(visits) == 3
+        assert visits[0].status == VisitStatus.PROGRAMADA
+        assert visits[1].status == VisitStatus.COMPLETADA
+        assert visits[2].status == VisitStatus.CANCELADA
 
     @pytest.mark.asyncio
     async def test_list_visits_chronological_order(
@@ -211,13 +239,19 @@ class TestListVisitsSuccess:
         )
 
         # Repository guarantees chronological order
-        mock_visit_repository.get_visits_by_date.return_value = [early, late]
+        mock_visit_repository.find_by_seller_and_date_range.return_value = [early, late]
+        mock_visit_repository.count_by_seller_and_date_range.return_value = 2
 
-        result = await use_case.execute(
-            seller_id=seller_id, date=test_date, session=mock_session
+        visits, pagination = await use_case.execute(
+            seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            session=mock_session
         )
 
         # Verify order is preserved
-        assert result[0].fecha_visita < result[1].fecha_visita
-        assert result[0].notas_visita == "Early"
-        assert result[1].notas_visita == "Late"
+        assert visits[0].fecha_visita < visits[1].fecha_visita
+        assert visits[0].notas_visita == "Early"
+        assert visits[1].notas_visita == "Late"

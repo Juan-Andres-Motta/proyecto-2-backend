@@ -26,5 +26,8 @@ class Settings(BaseSettings):
     )
     debug_sql: bool = Field(default=False)
 
+    # External Services
+    catalog_service_url: str = Field(default="http://localhost:8001")
+
 
 settings = Settings()

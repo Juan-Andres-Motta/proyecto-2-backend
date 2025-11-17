@@ -302,11 +302,21 @@ async def test_list_clients_without_filter():
         ),
     ]
 
+    # Mock pagination metadata
+    pagination_metadata = {
+        "current_page": 1,
+        "page_size": 50,
+        "total_results": 2,
+        "total_pages": 1,
+        "has_next": False,
+        "has_previous": False,
+    }
+
     with patch(
         "src.adapters.input.controllers.client_controller.ListClientsUseCase"
     ) as MockUseCase:
         mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=clients)
+        mock_use_case.execute = AsyncMock(return_value=(clients, pagination_metadata))
 
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
@@ -319,6 +329,12 @@ async def test_list_clients_without_filter():
         assert len(data["clients"]) == 2
         assert data["clients"][0]["cliente_id"] == str(cliente_id_1)
         assert data["clients"][1]["cliente_id"] == str(cliente_id_2)
+        assert data["pagination"]["current_page"] == 1
+        assert data["pagination"]["page_size"] == 50
+        assert data["pagination"]["total_results"] == 2
+        assert data["pagination"]["total_pages"] == 1
+        assert data["pagination"]["has_next"] is False
+        assert data["pagination"]["has_previous"] is False
 
 
 @pytest.mark.asyncio
@@ -350,11 +366,21 @@ async def test_list_clients_with_seller_filter():
         ),
     ]
 
+    # Mock pagination metadata
+    pagination_metadata = {
+        "current_page": 1,
+        "page_size": 50,
+        "total_results": 1,
+        "total_pages": 1,
+        "has_next": False,
+        "has_previous": False,
+    }
+
     with patch(
         "src.adapters.input.controllers.client_controller.ListClientsUseCase"
     ) as MockUseCase:
         mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=clients)
+        mock_use_case.execute = AsyncMock(return_value=(clients, pagination_metadata))
 
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
@@ -366,6 +392,8 @@ async def test_list_clients_with_seller_filter():
         assert data["total"] == 1
         assert data["clients"][0]["cliente_id"] == str(cliente_id)
         assert data["clients"][0]["vendedor_asignado_id"] == str(vendedor_id)
+        assert data["pagination"]["current_page"] == 1
+        assert data["pagination"]["total_results"] == 1
 
 
 @pytest.mark.asyncio

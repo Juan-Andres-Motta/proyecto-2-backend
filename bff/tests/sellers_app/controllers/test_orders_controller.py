@@ -54,8 +54,8 @@ def sample_order_input_without_visit():
     return OrderCreateInput(
         customer_id=uuid4(),
         items=[
-            OrderItemInput(producto_id=uuid4(), cantidad=5),
-            OrderItemInput(producto_id=uuid4(), cantidad=3),
+            OrderItemInput(inventario_id=uuid4(), cantidad=5),
+            OrderItemInput(inventario_id=uuid4(), cantidad=3),
         ],
         visit_id=None,  # Optional, not provided
     )
@@ -67,8 +67,8 @@ def sample_order_input_with_visit():
     return OrderCreateInput(
         customer_id=uuid4(),
         items=[
-            OrderItemInput(producto_id=uuid4(), cantidad=5),
-            OrderItemInput(producto_id=uuid4(), cantidad=3),
+            OrderItemInput(inventario_id=uuid4(), cantidad=5),
+            OrderItemInput(inventario_id=uuid4(), cantidad=3),
         ],
         visit_id=uuid4(),  # Optional, provided
     )

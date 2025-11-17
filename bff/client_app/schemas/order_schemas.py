@@ -10,7 +10,7 @@ from pydantic import BaseModel, field_validator
 class OrderItemInput(BaseModel):
     """Input schema for a single order item."""
 
-    producto_id: UUID
+    inventario_id: UUID
     cantidad: int
 
     @field_validator("cantidad")
@@ -53,7 +53,6 @@ class OrderItemResponse(BaseModel):
 
     id: UUID
     pedido_id: UUID
-    producto_id: UUID
     inventario_id: UUID
     cantidad: int
     precio_unitario: float
@@ -76,7 +75,6 @@ class OrderResponse(BaseModel):
     id: UUID
     customer_id: UUID
     seller_id: Optional[UUID]
-    visit_id: Optional[UUID]
     route_id: Optional[UUID]
     fecha_pedido: datetime
     fecha_entrega_estimada: Optional[date]

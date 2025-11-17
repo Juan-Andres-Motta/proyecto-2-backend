@@ -290,14 +290,27 @@ class TestListVisitsBFF:
     @pytest.mark.asyncio
     async def test_list_visits_success(self, user_dict, seller_id, visit_response):
         """Test successful visit listing via BFF."""
-        date = datetime.now(timezone.utc)
-        list_response = ListVisitsResponseBFF(
-            visits=[visit_response],
-            count=1,
-        )
+        from sellers_app.schemas.visit_schemas import VisitStatusFilter
+
+        status = VisitStatusFilter.TODAY
+        page = 1
+        page_size = 50
+
+        # Mock adapter returns dict with pagination
+        adapter_response = {
+            "visits": [visit_response],
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 1,
+                "total_pages": 1,
+                "has_next": False,
+                "has_previous": False,
+            }
+        }
 
         mock_visit_port = AsyncMock()
-        mock_visit_port.list_visits.return_value = list_response
+        mock_visit_port.list_visits.return_value = adapter_response
 
         mock_seller_port = AsyncMock()
         mock_seller_port.get_seller_by_cognito_user_id.return_value = {
@@ -305,26 +318,51 @@ class TestListVisitsBFF:
         }
 
         response = await list_visits(
-            date=date,
+            status=status,
+            page=page,
+            page_size=page_size,
+            client_name=None,
             visit_port=mock_visit_port,
             seller_port=mock_seller_port,
             user=user_dict,
         )
 
-        assert response.count == 1
-        assert len(response.visits) == 1
+        # Verify flat pagination pattern
+        assert response.status == status
+        assert len(response.items) == 1
+        assert response.total == 1
+        assert response.page == 1
+        assert response.size == 50
+        assert response.has_next is False
+        assert response.has_previous is False
         mock_visit_port.list_visits.assert_called_once_with(
-            seller_id=seller_id, date=date
+            seller_id=seller_id, status=status, page=page, page_size=page_size, client_name=None
         )
 
     @pytest.mark.asyncio
     async def test_list_visits_empty(self, user_dict, seller_id):
         """Test listing visits returns empty list."""
-        date = datetime.now(timezone.utc)
-        list_response = ListVisitsResponseBFF(visits=[], count=0)
+        from sellers_app.schemas.visit_schemas import VisitStatusFilter
+
+        status = VisitStatusFilter.PAST
+        page = 1
+        page_size = 50
+
+        # Mock adapter returns dict with empty visits
+        adapter_response = {
+            "visits": [],
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False,
+            }
+        }
 
         mock_visit_port = AsyncMock()
-        mock_visit_port.list_visits.return_value = list_response
+        mock_visit_port.list_visits.return_value = adapter_response
 
         mock_seller_port = AsyncMock()
         mock_seller_port.get_seller_by_cognito_user_id.return_value = {
@@ -332,26 +370,40 @@ class TestListVisitsBFF:
         }
 
         response = await list_visits(
-            date=date,
+            status=status,
+            page=page,
+            page_size=page_size,
+            client_name=None,
             visit_port=mock_visit_port,
             seller_port=mock_seller_port,
             user=user_dict,
         )
 
-        assert response.count == 0
-        assert len(response.visits) == 0
+        # Verify flat pagination pattern with empty results
+        assert response.status == status
+        assert len(response.items) == 0
+        assert response.total == 0
+        assert response.page == 1
+        assert response.size == 50
 
     @pytest.mark.asyncio
     async def test_list_visits_missing_token(self):
         """Test list visits without valid JWT token."""
-        date = datetime.now(timezone.utc)
+        from sellers_app.schemas.visit_schemas import VisitStatusFilter
+
+        status = VisitStatusFilter.TODAY
+        page = 1
+        page_size = 50
         user_dict = {"cognito:groups": ["seller_users"]}  # Missing 'sub'
         mock_visit_port = AsyncMock()
         mock_seller_port = AsyncMock()
 
         with pytest.raises(HTTPException) as exc_info:
             await list_visits(
-                date=date,
+                status=status,
+                page=page,
+                page_size=page_size,
+                client_name=None,
                 visit_port=mock_visit_port,
                 seller_port=mock_seller_port,
                 user=user_dict,

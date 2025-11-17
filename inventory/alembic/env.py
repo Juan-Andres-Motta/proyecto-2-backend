@@ -31,6 +31,17 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Filter to only include objects managed by this service.
+    This prevents alembic from trying to manage tables from other microservices.
+    """
+    if type_ == "table":
+        # Only manage tables that belong to the inventory service
+        return name in ["inventories", "warehouses", "inventory_reports", "inventory_alembic_version"]
+    return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -50,6 +61,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         version_table="inventory_alembic_version",
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -74,6 +86,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             version_table="inventory_alembic_version",
+            include_object=include_object,
         )
 
         with context.begin_transaction():

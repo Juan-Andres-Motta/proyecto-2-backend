@@ -11,6 +11,7 @@ from src.adapters.input.schemas import (
     ClientCreate,
     ClientListResponse,
     ClientResponse,
+    PaginationMetadata,
 )
 from src.adapters.output.repositories.client_repository import ClientRepository
 from src.application.use_cases.assign_seller import AssignSellerUseCase
@@ -41,17 +42,26 @@ async def create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)
 @router.get("/clients", response_model=ClientListResponse)
 async def list_clients(
     vendedor_asignado_id: Optional[UUID] = Query(None, description="Filter by seller ID"),
+    client_name: Optional[str] = Query(None, description="Filter by institution name (partial match)"),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(50, ge=1, le=100, description="Results per page (max 100)"),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all clients or filter by assigned seller."""
+    """List all clients or filter by assigned seller and/or client name with pagination."""
     repository = ClientRepository(db)
     use_case = ListClientsUseCase(repository)
 
-    clients = await use_case.execute(vendedor_asignado_id=vendedor_asignado_id)
+    clients, pagination_metadata = await use_case.execute(
+        vendedor_asignado_id=vendedor_asignado_id,
+        client_name=client_name,
+        page=page,
+        page_size=page_size
+    )
 
     return ClientListResponse(
         clients=[ClientResponse.from_domain(client) for client in clients],
-        total=len(clients)
+        total=pagination_metadata["total_results"],  # Backward compatibility
+        pagination=PaginationMetadata(**pagination_metadata)
     )
 
 

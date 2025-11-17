@@ -1,6 +1,6 @@
 """Visit repository port (interface)."""
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -74,5 +74,66 @@ class VisitRepositoryPort(ABC):
 
         Returns:
             Conflicting Visit domain entity if found, None otherwise
+        """
+        ...  # pragma: no cover
+
+    @abstractmethod
+    async def find_by_seller_and_date_range(
+        self,
+        seller_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        page: int,
+        page_size: int,
+        session: AsyncSession,
+        client_name: Optional[str] = None,
+    ) -> List[Visit]:
+        """Find visits by seller within optional date range with pagination.
+
+        Args:
+            seller_id: UUID of the seller
+            date_from: Start date (inclusive), None for no lower bound
+            date_to: End date (inclusive), None for no upper bound
+            page: Page number (1-indexed)
+            page_size: Number of results per page
+            session: Database session
+
+        Returns:
+            List of Visit domain entities with applied ordering and pagination
+        """
+        ...  # pragma: no cover
+
+    @abstractmethod
+    async def count_by_seller_and_date_range(
+        self,
+        seller_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        session: AsyncSession,
+        client_name: Optional[str] = None,
+    ) -> int:
+        """Count visits matching seller and date range.
+
+        Args:
+            seller_id: UUID of the seller
+            date_from: Start date (inclusive), None for no lower bound
+            date_to: End date (inclusive), None for no upper bound
+            session: Database session
+
+        Returns:
+            Total count of matching visits
+        """
+        ...  # pragma: no cover
+
+    @abstractmethod
+    async def update(self, visit: Visit, session: AsyncSession) -> Visit:
+        """Update an existing visit.
+
+        Args:
+            visit: Visit domain entity with updated fields
+            session: Database session
+
+        Returns:
+            Updated Visit domain entity
         """
         ...  # pragma: no cover

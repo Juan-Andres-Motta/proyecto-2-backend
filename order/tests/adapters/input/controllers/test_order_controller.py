@@ -17,6 +17,8 @@ from src.domain.value_objects import CreationMethod
 @pytest.mark.asyncio
 async def test_create_order_app_cliente():
     """Test creating an order via app_cliente."""
+    from src.infrastructure.dependencies import get_create_order_use_case
+
     app = FastAPI()
     app.include_router(router)
 
@@ -24,7 +26,10 @@ async def test_create_order_app_cliente():
         "customer_id": "550e8400-e29b-41d4-a716-446655440000",
         "metodo_creacion": "app_cliente",
         "items": [
-            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 10}
+            {
+                "inventario_id": "550e8400-e29b-41d4-a716-446655440010",
+                "cantidad": 10
+            }
         ],
     }
 
@@ -43,37 +48,47 @@ async def test_create_order_app_cliente():
         monto_total=Decimal("260.00"),
     )
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.CreateOrderUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=mock_order)
+    # Create mock use case
+    mock_use_case = MagicMock()
+    mock_use_case.execute = AsyncMock(return_value=mock_order)
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/order", json=order_data)
+    # Override dependency
+    app.dependency_overrides[get_create_order_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 201
-        data = response.json()
-        assert "id" in data
-        assert data["message"] == "Order created successfully"
-        assert uuid.UUID(data["id"]) == order_id
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/order", json=order_data)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+    assert data["message"] == "Order created successfully"
+    assert uuid.UUID(data["id"]) == order_id
+
+    # Clean up overrides
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
-async def test_create_order_visita_vendedor():
-    """Test creating an order via visita_vendedor."""
+async def test_create_order_app_vendedor():
+    """Test creating an order via app_vendedor."""
+    from src.infrastructure.dependencies import get_create_order_use_case
+
     app = FastAPI()
     app.include_router(router)
 
     order_data = {
         "customer_id": "550e8400-e29b-41d4-a716-446655440000",
         "seller_id": "550e8400-e29b-41d4-a716-446655440002",
-        "visit_id": "550e8400-e29b-41d4-a716-446655440003",
-        "metodo_creacion": "visita_vendedor",
+        "seller_name": "Test Seller",
+        "seller_email": "seller@example.com",
+        "metodo_creacion": "app_vendedor",
         "items": [
-            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 5}
+            {
+                "inventario_id": "550e8400-e29b-41d4-a716-446655440010",
+                "cantidad": 5
+            }
         ],
     }
 
@@ -82,10 +97,9 @@ async def test_create_order_visita_vendedor():
         id=order_id,
         customer_id=uuid.UUID(order_data["customer_id"]),
         seller_id=uuid.UUID(order_data["seller_id"]),
-        visit_id=uuid.UUID(order_data["visit_id"]),
         fecha_pedido=datetime.now(),
         fecha_entrega_estimada=date.today() + timedelta(days=2),
-        metodo_creacion=CreationMethod.VISITA_VENDEDOR,
+        metodo_creacion=CreationMethod.APP_VENDEDOR,
         direccion_entrega="123 Test St",
         ciudad_entrega="Test City",
         pais_entrega="Test Country",
@@ -94,20 +108,24 @@ async def test_create_order_visita_vendedor():
         monto_total=Decimal("130.00"),
     )
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.CreateOrderUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(return_value=mock_order)
+    # Create mock use case
+    mock_use_case = MagicMock()
+    mock_use_case.execute = AsyncMock(return_value=mock_order)
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/order", json=order_data)
+    # Override dependency
+    app.dependency_overrides[get_create_order_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 201
-        data = response.json()
-        assert data["message"] == "Order created successfully"
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/order", json=order_data)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["message"] == "Order created successfully"
+
+    # Clean up overrides
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -140,7 +158,7 @@ async def test_create_order_invalid_metodo_creacion():
         "customer_id": "550e8400-e29b-41d4-a716-446655440000",
         "metodo_creacion": "invalid_method",
         "items": [
-            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 10}
+            {"inventario_id": "550e8400-e29b-41d4-a716-446655440010", "cantidad": 10}
         ],
     }
 
@@ -155,6 +173,8 @@ async def test_create_order_invalid_metodo_creacion():
 @pytest.mark.asyncio
 async def test_create_order_business_rule_violation():
     """Test creating order when business rule is violated."""
+    from src.infrastructure.dependencies import get_create_order_use_case
+
     app = FastAPI()
     app.include_router(router)
 
@@ -162,27 +182,34 @@ async def test_create_order_business_rule_violation():
         "customer_id": "550e8400-e29b-41d4-a716-446655440000",
         "metodo_creacion": "app_cliente",
         "items": [
-            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 10}
+            {
+                "inventario_id": "550e8400-e29b-41d4-a716-446655440010",
+                "cantidad": 10
+            }
         ],
     }
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.CreateOrderUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        # Simulate business rule violation
-        mock_use_case.execute = AsyncMock(
-            side_effect=ValueError("customer_name is required")
-        )
+    # Create mock use case
+    mock_use_case = MagicMock()
+    # Simulate business rule violation
+    mock_use_case.execute = AsyncMock(
+        side_effect=ValueError("customer_name is required")
+    )
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/order", json=order_data)
+    # Override dependency
+    app.dependency_overrides[get_create_order_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 400  # Business error
-        data = response.json()
-        assert "customer_name is required" in data["detail"]
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/order", json=order_data)
+
+    assert response.status_code == 400  # Business error
+    data = response.json()
+    assert "customer_name is required" in data["detail"]
+
+    # Clean up overrides
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -360,13 +387,13 @@ async def test_get_order_by_id():
     order_item = OrderItem(
         id=item_id,
         pedido_id=order_id,
-        producto_id=product_id,
         inventario_id=uuid.uuid4(),
         cantidad=10,
         precio_unitario=Decimal("26.00"),
         precio_total=Decimal("260.00"),
         product_name="Test Product",
         product_sku="SKU-001",
+        product_category="Electronics",
         warehouse_id=warehouse_id,
         warehouse_name="Test Warehouse",
         warehouse_city="Test City",
@@ -549,6 +576,8 @@ async def test_list_customer_orders_with_pagination():
 @pytest.mark.asyncio
 async def test_create_order_unexpected_exception():
     """Test create order with unexpected exception (covers lines 178-180)."""
+    from src.infrastructure.dependencies import get_create_order_use_case
+
     app = FastAPI()
     app.include_router(router)
 
@@ -556,100 +585,116 @@ async def test_create_order_unexpected_exception():
         "customer_id": "550e8400-e29b-41d4-a716-446655440000",
         "metodo_creacion": "app_cliente",
         "items": [
-            {"producto_id": "550e8400-e29b-41d4-a716-446655440001", "cantidad": 10}
+            {
+                "inventario_id": "550e8400-e29b-41d4-a716-446655440010",
+                "cantidad": 10
+            }
         ],
     }
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.CreateOrderUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        # Simulate unexpected error (not ValueError)
-        mock_use_case.execute = AsyncMock(
-            side_effect=Exception("Database connection error")
-        )
+    # Create mock use case
+    mock_use_case = MagicMock()
+    # Simulate unexpected error (not ValueError)
+    mock_use_case.execute = AsyncMock(
+        side_effect=Exception("Database connection error")
+    )
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.post("/order", json=order_data)
+    # Override dependency
+    app.dependency_overrides[get_create_order_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 500
-        data = response.json()
-        assert "Internal server error" in data["detail"]
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post("/order", json=order_data)
+
+    assert response.status_code == 500
+    data = response.json()
+    assert "Internal server error" in data["detail"]
+
+    # Clean up overrides
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
 async def test_list_orders_unexpected_exception():
     """Test list orders with unexpected exception (covers lines 230-232)."""
+    from src.infrastructure.dependencies import get_list_orders_use_case
+
     app = FastAPI()
     app.include_router(router)
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.ListOrdersUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(
-            side_effect=Exception("Database query error")
-        )
+    # Create mock use case
+    mock_use_case = MagicMock()
+    mock_use_case.execute = AsyncMock(
+        side_effect=Exception("Database query error")
+    )
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get("/orders")
+    # Override dependency
+    app.dependency_overrides[get_list_orders_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 500
-        data = response.json()
-        assert "Internal server error" in data["detail"]
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get("/orders")
+
+    assert response.status_code == 500
+    data = response.json()
+    assert "Internal server error" in data["detail"]
 
 
 @pytest.mark.asyncio
 async def test_get_order_unexpected_exception():
     """Test get order with unexpected exception (covers lines 272-274)."""
+    from src.infrastructure.dependencies import get_get_order_use_case
+
     app = FastAPI()
     app.include_router(router)
 
     order_id = uuid.uuid4()
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.GetOrderByIdUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(
-            side_effect=Exception("Database error")
-        )
+    # Create mock use case
+    mock_use_case = MagicMock()
+    mock_use_case.execute = AsyncMock(
+        side_effect=Exception("Database error")
+    )
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get(f"/orders/{order_id}")
+    # Override dependency
+    app.dependency_overrides[get_get_order_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 500
-        data = response.json()
-        assert "Internal server error" in data["detail"]
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(f"/orders/{order_id}")
+
+    assert response.status_code == 500
+    data = response.json()
+    assert "Internal server error" in data["detail"]
 
 
 @pytest.mark.asyncio
 async def test_list_customer_orders_unexpected_exception():
     """Test list customer orders with unexpected exception (covers lines 327-329)."""
+    from src.infrastructure.dependencies import get_list_customer_orders_use_case
+
     app = FastAPI()
     app.include_router(router)
 
     customer_id = uuid.uuid4()
 
-    with patch(
-        "src.adapters.input.controllers.order_controller.ListCustomerOrdersUseCase"
-    ) as MockUseCase:
-        mock_use_case = MockUseCase.return_value
-        mock_use_case.execute = AsyncMock(
-            side_effect=Exception("Database error")
-        )
+    # Create mock use case
+    mock_use_case = MagicMock()
+    mock_use_case.execute = AsyncMock(
+        side_effect=Exception("Database error")
+    )
 
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
-            response = await client.get(f"/customers/{customer_id}/orders")
+    # Override dependency
+    app.dependency_overrides[get_list_customer_orders_use_case] = lambda: mock_use_case
 
-        assert response.status_code == 500
-        data = response.json()
-        assert "Internal server error" in data["detail"]
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.get(f"/customers/{customer_id}/orders")
+
+    assert response.status_code == 500
+    data = response.json()
+    assert "Internal server error" in data["detail"]

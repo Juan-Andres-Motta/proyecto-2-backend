@@ -3,6 +3,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from unittest.mock import AsyncMock
+from dataclasses import replace
 
 from src.application.use_cases.confirm_evidence_upload import ConfirmEvidenceUploadUseCase
 from src.domain.entities.visit import Visit, VisitStatus
@@ -57,13 +58,18 @@ class TestConfirmEvidenceUploadSuccess:
         s3_url = "https://s3.amazonaws.com/bucket/visits/123/photo.jpg"
         mock_visit_repository.find_by_id.return_value = visit
 
+        # Mock the update method to return the updated visit
+        updated_visit = replace(visit, archivos_evidencia=s3_url)
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=visit.id,            s3_url=s3_url,
+            visit_id=visit.id,
+            s3_url=s3_url,
             session=mock_session,
         )
 
         assert result.archivos_evidencia == s3_url
-        mock_session.flush.assert_called_once()
+        mock_visit_repository.update.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_confirm_upload_updates_timestamp(
@@ -74,8 +80,18 @@ class TestConfirmEvidenceUploadSuccess:
         s3_url = "https://s3.amazonaws.com/bucket/test.jpg"
         mock_visit_repository.find_by_id.return_value = visit
 
+        # Mock the update method to return the updated visit with new timestamp
+        new_timestamp = datetime.now(timezone.utc)
+        updated_visit = replace(
+            visit,
+            archivos_evidencia=s3_url,
+            updated_at=new_timestamp,
+        )
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=visit.id,            s3_url=s3_url,
+            visit_id=visit.id,
+            s3_url=s3_url,
             session=mock_session,
         )
 
@@ -88,13 +104,18 @@ class TestConfirmEvidenceUploadSuccess:
     ):
         """Test confirming upload replaces existing evidence URL."""
         # Visit already has evidence
-        visit.archivos_evidencia = "https://s3.amazonaws.com/old.jpg"
+        visit_with_evidence = replace(visit, archivos_evidencia="https://s3.amazonaws.com/old.jpg")
 
         new_s3_url = "https://s3.amazonaws.com/new.jpg"
-        mock_visit_repository.find_by_id.return_value = visit
+        mock_visit_repository.find_by_id.return_value = visit_with_evidence
+
+        # Mock the update method to return the updated visit
+        updated_visit = replace(visit_with_evidence, archivos_evidencia=new_s3_url)
+        mock_visit_repository.update.return_value = updated_visit
 
         result = await use_case.execute(
-            visit_id=visit.id,            s3_url=new_s3_url,
+            visit_id=visit_with_evidence.id,
+            s3_url=new_s3_url,
             session=mock_session,
         )
 
@@ -113,8 +134,13 @@ class TestConfirmEvidenceUploadSuccess:
         s3_url = "https://s3.amazonaws.com/test.jpg"
         mock_visit_repository.find_by_id.return_value = visit
 
+        # Mock the update method to return the updated visit
+        updated_visit = replace(visit, archivos_evidencia=s3_url)
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=visit.id,            s3_url=s3_url,
+            visit_id=visit.id,
+            s3_url=s3_url,
             session=mock_session,
         )
 

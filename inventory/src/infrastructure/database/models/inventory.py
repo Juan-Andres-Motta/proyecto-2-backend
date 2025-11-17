@@ -30,8 +30,10 @@ class Inventory(Base):
     product_sku: Mapped[str] = mapped_column(String(100), nullable=False)
     product_name: Mapped[str] = mapped_column(String(500), nullable=False)
     product_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    product_category: Mapped[str] = mapped_column(String(100), nullable=True)
     warehouse_name: Mapped[str] = mapped_column(String(255), nullable=False)
     warehouse_city: Mapped[str] = mapped_column(String(100), nullable=False)
+    warehouse_country: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

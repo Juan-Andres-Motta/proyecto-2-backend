@@ -63,7 +63,7 @@ class OrderAdapter(OrderPort):
             "seller_id": str(seller_id),  # Required
             "metodo_creacion": "app_vendedor",  # Hardcoded for sellers app
             "items": [
-                {"producto_id": str(item.producto_id), "cantidad": item.cantidad}
+                {"inventario_id": str(item.inventario_id), "cantidad": item.cantidad}
                 for item in order_data.items
             ],
         }

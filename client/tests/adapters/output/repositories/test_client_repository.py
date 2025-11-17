@@ -696,3 +696,270 @@ async def test_update_exception_path(db_session):
         pass
     finally:
         db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_list_by_seller_with_client_name_filter(db_session):
+    """Test listing clients by seller with client name filter."""
+    repo = ClientRepository(db_session)
+    seller_id = uuid4()
+
+    # Create clients with various names
+    for i in range(3):
+        client = DomainClient(
+            cliente_id=uuid4(),
+            cognito_user_id=f"cognito-name-filter-{i}",
+            email=f"namefilter{i}@example.com",
+            telefono="+1234567890",
+            nombre_institucion=f"Hospital Alpha {i}" if i == 0 else f"Clinic Beta {i}",
+            tipo_institucion="hospital" if i == 0 else "clinic",
+            nit=f"55566677{i}",
+            direccion=f"{i} Filter St",
+            ciudad="Filter City",
+            pais="Filter Country",
+            representante=f"Filter Rep {i}",
+            vendedor_asignado_id=seller_id,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        await repo.create(client)
+
+    # Filter by name
+    found = await repo.list_by_seller(seller_id, client_name="Alpha")
+
+    assert len(found) == 1
+    assert "Alpha" in found[0].nombre_institucion
+
+
+@pytest.mark.asyncio
+async def test_list_all_with_client_name_filter(db_session):
+    """Test listing all clients with client name filter."""
+    repo = ClientRepository(db_session)
+
+    # Create clients with various names
+    client1 = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-filter-test-1",
+        email="filtertest1@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Test Hospital Alpha",
+        tipo_institucion="hospital",
+        nit="12345678",
+        direccion="123 Alpha St",
+        ciudad="Test City",
+        pais="Test Country",
+        representante="Alpha Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    client2 = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-filter-test-2",
+        email="filtertest2@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Test Clinic Gamma",
+        tipo_institucion="clinic",
+        nit="87654321",
+        direccion="456 Gamma St",
+        ciudad="Test City",
+        pais="Test Country",
+        representante="Gamma Rep",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client1)
+    await repo.create(client2)
+
+    # Filter by name containing "Alpha"
+    found = await repo.list_all(client_name="Alpha")
+
+    assert len(found) == 1
+    assert found[0].nombre_institucion == "Test Hospital Alpha"
+
+
+@pytest.mark.asyncio
+async def test_count_by_seller_no_filter(db_session):
+    """Test counting clients by seller without filter."""
+    repo = ClientRepository(db_session)
+    seller_id = uuid4()
+
+    # Create multiple clients
+    for i in range(4):
+        client = DomainClient(
+            cliente_id=uuid4(),
+            cognito_user_id=f"cognito-count-{i}",
+            email=f"count{i}@example.com",
+            telefono="+1234567890",
+            nombre_institucion=f"Count Hospital {i}",
+            tipo_institucion="hospital",
+            nit=f"99988877{i}",
+            direccion=f"{i} Count St",
+            ciudad="Count City",
+            pais="Count Country",
+            representante=f"Count Rep {i}",
+            vendedor_asignado_id=seller_id,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        await repo.create(client)
+
+    count = await repo.count_by_seller(seller_id)
+
+    assert count == 4
+
+
+@pytest.mark.asyncio
+async def test_count_by_seller_with_name_filter(db_session):
+    """Test counting clients by seller with name filter."""
+    repo = ClientRepository(db_session)
+    seller_id = uuid4()
+
+    # Create clients with different names
+    for i in range(3):
+        client = DomainClient(
+            cliente_id=uuid4(),
+            cognito_user_id=f"cognito-seller-count-{i}",
+            email=f"sellercount{i}@example.com",
+            telefono="+1234567890",
+            nombre_institucion=f"Delta Hospital {i}" if i < 2 else "Echo Clinic",
+            tipo_institucion="hospital" if i < 2 else "clinic",
+            nit=f"88877766{i}",
+            direccion=f"{i} Delta St",
+            ciudad="Delta City",
+            pais="Delta Country",
+            representante=f"Delta Rep {i}",
+            vendedor_asignado_id=seller_id,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        await repo.create(client)
+
+    count_delta = await repo.count_by_seller(seller_id, client_name="Delta")
+    count_echo = await repo.count_by_seller(seller_id, client_name="Echo")
+
+    assert count_delta == 2
+    assert count_echo == 1
+
+
+@pytest.mark.asyncio
+async def test_count_all_no_filter(db_session):
+    """Test counting all clients without filter."""
+    repo = ClientRepository(db_session)
+
+    # Create multiple clients
+    for i in range(3):
+        client = DomainClient(
+            cliente_id=uuid4(),
+            cognito_user_id=f"cognito-count-all-{i}",
+            email=f"countall{i}@example.com",
+            telefono="+1234567890",
+            nombre_institucion=f"Count All Hospital {i}",
+            tipo_institucion="hospital",
+            nit=f"77766655{i}",
+            direccion=f"{i} Count All St",
+            ciudad="Count All City",
+            pais="Count All Country",
+            representante=f"Count All Rep {i}",
+            vendedor_asignado_id=None,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        await repo.create(client)
+
+    count = await repo.count_all()
+
+    assert count >= 3
+
+
+@pytest.mark.asyncio
+async def test_count_all_with_name_filter(db_session):
+    """Test counting all clients with name filter."""
+    repo = ClientRepository(db_session)
+
+    # Create clients with different names
+    client1 = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-foxtrot-1",
+        email="foxtrot1@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Foxtrot Hospital",
+        tipo_institucion="hospital",
+        nit="66655544",
+        direccion="123 Foxtrot St",
+        ciudad="Foxtrot City",
+        pais="Foxtrot Country",
+        representante="Foxtrot Rep 1",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    client2 = DomainClient(
+        cliente_id=uuid4(),
+        cognito_user_id="cognito-golf-1",
+        email="golf1@example.com",
+        telefono="+1234567890",
+        nombre_institucion="Golf Clinic",
+        tipo_institucion="clinic",
+        nit="55544433",
+        direccion="456 Golf St",
+        ciudad="Golf City",
+        pais="Golf Country",
+        representante="Golf Rep 1",
+        vendedor_asignado_id=None,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+
+    await repo.create(client1)
+    await repo.create(client2)
+
+    count_foxtrot = await repo.count_all(client_name="Foxtrot")
+    count_golf = await repo.count_all(client_name="Golf")
+
+    assert count_foxtrot >= 1
+    assert count_golf >= 1
+
+
+@pytest.mark.asyncio
+async def test_count_by_seller_exception_path(db_session):
+    """Test count_by_seller exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.count_by_seller(uuid4())
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute
+
+
+@pytest.mark.asyncio
+async def test_count_all_exception_path(db_session):
+    """Test count_all exception handling path."""
+    from unittest.mock import AsyncMock
+
+    repo = ClientRepository(db_session)
+
+    # Mock session.execute to raise an exception
+    original_execute = db_session.execute
+    db_session.execute = AsyncMock(side_effect=RuntimeError("Test exception"))
+
+    try:
+        await repo.count_all()
+        pytest.fail("Expected exception")
+    except RuntimeError:
+        pass
+    finally:
+        db_session.execute = original_execute

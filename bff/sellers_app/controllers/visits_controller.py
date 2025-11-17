@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from common.auth.dependencies import require_seller_user
 from sellers_app.ports.visit_port import VisitPort
@@ -18,6 +18,7 @@ from sellers_app.schemas.visit_schemas import (
     VisitResponseBFF,
     PreSignedUploadURLResponseBFF,
     ListVisitsResponseBFF,
+    VisitStatusFilter,
 )
 from sellers_app.sagas.create_visit_saga import CreateVisitSaga, ClientAssignedToOtherSellerError, ClientNotFoundError
 from dependencies import get_visit_port, get_seller_app_seller_port, get_seller_client_port
@@ -128,17 +129,20 @@ async def update_visit_status(
 @router.get(
     "",
     response_model=ListVisitsResponseBFF,
-    summary="List visits for a date",
-    description="Retrieves all visits for the authenticated seller on a specific date, "
-    "ordered chronologically by fecha_visita.",
+    summary="List visits by temporal status",
+    description="Retrieves visits grouped by temporal status: today, past (most recent first), or future (nearest first). "
+    "Supports pagination with page and page_size parameters.",
 )
 async def list_visits(
-    date: datetime,
+    status: VisitStatusFilter,
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(50, ge=1, le=100, description="Number of items per page"),
+    client_name: str | None = Query(None, description="Filter by client institution name (partial match)"),
     visit_port: VisitPort = Depends(get_visit_port),
     seller_port: SellerPort = Depends(get_seller_app_seller_port),
     user: Dict = Depends(require_seller_user),
 ):
-    """List visits for a specific date."""
+    """List visits by temporal status with pagination."""
     try:
         cognito_user_id = user.get("sub")
         if not cognito_user_id:
@@ -147,8 +151,31 @@ async def list_visits(
         seller = await seller_port.get_seller_by_cognito_user_id(cognito_user_id)
         seller_id = UUID(seller["id"])  # Convert to UUID for consistency
 
-        logger.info(f"BFF: Listing visits for seller {seller_id} on {date.date()}")
-        return await visit_port.list_visits(seller_id=seller_id, date=date)
+        logger.info(
+            f"BFF: Listing visits for seller {seller_id} with status={status.value}, "
+            f"page={page}, page_size={page_size}, client_name={client_name}"
+        )
+
+        response = await visit_port.list_visits(
+            seller_id=seller_id,
+            status=status,
+            page=page,
+            page_size=page_size,
+            client_name=client_name
+        )
+
+        # Transform nested pagination to flat pattern
+        pagination_metadata = response.get("pagination", {})
+
+        return ListVisitsResponseBFF(
+            status=status,
+            items=response["visits"],
+            total=pagination_metadata.get("total_results", 0),
+            page=pagination_metadata.get("current_page", page),
+            size=pagination_metadata.get("page_size", page_size),
+            has_next=pagination_metadata.get("has_next", False),
+            has_previous=pagination_metadata.get("has_previous", False),
+        )
 
     except Exception as e:
         logger.error(f"BFF: Error listing visits: {e}")

@@ -36,10 +36,13 @@ class EventPublisher(ABC):
             "monto_total": Decimal,
             "items": [
                 {
-                    "producto_id": UUID,
                     "inventario_id": UUID,
                     "cantidad": int,
-                    ...
+                    "product_sku": str,
+                    "product_name": str,
+                    "product_category": str,
+                    "warehouse_id": UUID,
+                    "batch_number": str,
                 }
             ]
         }

@@ -23,9 +23,8 @@ class Order:
 
     Business Rules:
     - metodo_creacion is ALWAYS required
-    - If metodo_creacion is VISITA_VENDEDOR: seller_id and visit_id are required
-    - If metodo_creacion is APP_VENDEDOR: seller_id is required, visit_id is optional
-    - If metodo_creacion is APP_CLIENTE: seller_id and visit_id must be None
+    - If metodo_creacion is APP_VENDEDOR: seller_id is required (seller_name is optional)
+    - If metodo_creacion is APP_CLIENTE: seller_id must be None
     - route_id is optional (populated later by Delivery Service)
     - fecha_entrega_estimada is optional (set by Delivery Service)
     - monto_total is calculated incrementally as items are added
@@ -43,7 +42,6 @@ class Order:
 
     # Optional fields (with defaults)
     seller_id: Optional[UUID] = None
-    visit_id: Optional[UUID] = None
     route_id: Optional[UUID] = None  # Populated by Delivery Service via event
     fecha_entrega_estimada: Optional[date] = None  # Set by Delivery Service
     customer_phone: Optional[str] = None
@@ -69,39 +67,17 @@ class Order:
             raise ValueError("metodo_creacion is required")
 
         # Rule: Validation based on creation method
-        if self.metodo_creacion == CreationMethod.VISITA_VENDEDOR:
-            if not self.seller_id:
-                raise ValueError(
-                    "seller_id is required when metodo_creacion is visita_vendedor"
-                )
-            if not self.visit_id:
-                raise ValueError(
-                    "visit_id is required when metodo_creacion is visita_vendedor"
-                )
-            if not self.seller_name:
-                raise ValueError(
-                    "seller_name is required when metodo_creacion is visita_vendedor"
-                )
-
-        elif self.metodo_creacion == CreationMethod.APP_VENDEDOR:
+        if self.metodo_creacion == CreationMethod.APP_VENDEDOR:
             if not self.seller_id:
                 raise ValueError(
                     "seller_id is required when metodo_creacion is app_vendedor"
                 )
-            # visit_id is optional for app_vendedor
-            if not self.seller_name:
-                raise ValueError(
-                    "seller_name is required when metodo_creacion is app_vendedor"
-                )
+            # seller_name is optional - BFF provides it if available
 
         elif self.metodo_creacion == CreationMethod.APP_CLIENTE:
             if self.seller_id:
                 raise ValueError(
                     "seller_id must be None when metodo_creacion is app_cliente"
-                )
-            if self.visit_id:
-                raise ValueError(
-                    "visit_id must be None when metodo_creacion is app_cliente"
                 )
 
         else:

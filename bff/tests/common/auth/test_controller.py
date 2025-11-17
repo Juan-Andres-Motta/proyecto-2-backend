@@ -5,7 +5,7 @@ Tests that controller endpoints properly delegate to AuthService
 and handle HTTP request/response correctly.
 """
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from fastapi import HTTPException, status
 
@@ -23,6 +23,7 @@ from common.auth.schemas import (
     RefreshTokenResponse,
     SignupRequest,
     SignupResponse,
+    UserMeResponse,
 )
 from common.auth.auth_service import AuthService
 from common.auth.ports import ClientPort
@@ -235,29 +236,117 @@ class TestSignupEndpoint:
 
 
 class TestGetMeEndpoint:
-    """Test /auth/me endpoint."""
+    """Test /auth/me endpoint with enhanced user details."""
 
     @pytest.mark.asyncio
-    async def test_get_me_returns_user_claims(self):
-        """Test get_me extracts and returns user information from JWT."""
+    async def test_get_me_returns_seller_user_with_details(self):
+        """Test get_me fetches and returns seller details for seller users."""
         # Arrange
         mock_user = {
-            "sub": "abc123-user-id",
-            "name": "John Doe",
-            "email": "john@example.com",
-            "cognito:groups": ["client"],
+            "sub": "abc123-seller-id",
+            "name": "John Seller",
+            "email": "john.seller@example.com",
+            "cognito:groups": ["seller_users"],
+            "custom:user_type": "seller",
+        }
+
+        mock_seller_data = {
+            "id": "seller-uuid-123",
+            "cognito_user_id": "abc123-seller-id",
+            "name": "John Seller",
+            "email": "john.seller@example.com",
+            "phone": "+1234567890",
+            "city": "New York",
+            "country": "USA",
+        }
+
+        mock_seller_adapter = Mock()
+        mock_seller_adapter.get_seller_by_cognito_user_id = AsyncMock(
+            return_value=mock_seller_data
+        )
+
+        # Act
+        with patch("dependencies.get_seller_app_seller_port", return_value=mock_seller_adapter):
+            result = await get_me(mock_user)
+
+        # Assert
+        assert isinstance(result, UserMeResponse)
+        assert result.user_id == "abc123-seller-id"
+        assert result.name == "John Seller"
+        assert result.email == "john.seller@example.com"
+        assert result.groups == ["seller_users"]
+        assert result.user_type == "seller"
+        assert result.user_details == mock_seller_data
+        mock_seller_adapter.get_seller_by_cognito_user_id.assert_called_once_with("abc123-seller-id")
+
+    @pytest.mark.asyncio
+    async def test_get_me_returns_client_user_with_details(self):
+        """Test get_me fetches and returns client details for client users."""
+        # Arrange
+        mock_user = {
+            "sub": "abc123-client-id",
+            "name": "Jane Client",
+            "email": "jane.client@hospital.com",
+            "cognito:groups": ["client_users"],
             "custom:user_type": "client",
+        }
+
+        mock_client_data = {
+            "cliente_id": "client-uuid-456",
+            "cognito_user_id": "abc123-client-id",
+            "email": "jane.client@hospital.com",
+            "telefono": "+1234567890",
+            "nombre_institucion": "Test Hospital",
+            "tipo_institucion": "hospital",
+            "nit": "123456789",
+            "direccion": "123 Test St",
+            "ciudad": "Boston",
+            "pais": "USA",
+            "representante": "Jane Client",
+        }
+
+        mock_client_adapter = Mock()
+        mock_client_adapter.get_client_by_cognito_user_id = AsyncMock(
+            return_value=mock_client_data
+        )
+
+        # Act
+        with patch("dependencies.get_client_app_client_port", return_value=mock_client_adapter):
+            result = await get_me(mock_user)
+
+        # Assert
+        assert isinstance(result, UserMeResponse)
+        assert result.user_id == "abc123-client-id"
+        assert result.name == "Jane Client"
+        assert result.email == "jane.client@hospital.com"
+        assert result.groups == ["client_users"]
+        assert result.user_type == "client"
+        assert result.user_details == mock_client_data
+        mock_client_adapter.get_client_by_cognito_user_id.assert_called_once_with("abc123-client-id")
+
+    @pytest.mark.asyncio
+    async def test_get_me_returns_web_user_without_details(self):
+        """Test get_me returns only JWT claims for web users (no additional details)."""
+        # Arrange
+        mock_user = {
+            "sub": "abc123-web-user-id",
+            "name": "Web Admin",
+            "email": "admin@example.com",
+            "cognito:groups": ["web_users"],
+            "custom:user_type": "web",
         }
 
         # Act
         result = await get_me(mock_user)
 
         # Assert
-        assert result["user_id"] == "abc123-user-id"
-        assert result["name"] == "John Doe"
-        assert result["email"] == "john@example.com"
-        assert result["groups"] == ["client"]
-        assert result["user_type"] == "client"
+        assert isinstance(result, UserMeResponse)
+        assert result.user_id == "abc123-web-user-id"
+        assert result.name == "Web Admin"
+        assert result.email == "admin@example.com"
+        assert result.groups == ["web_users"]
+        assert result.user_type == "web"
+        assert result.user_details is None
 
     @pytest.mark.asyncio
     async def test_get_me_handles_missing_groups(self):
@@ -267,14 +356,73 @@ class TestGetMeEndpoint:
             "sub": "abc123-user-id",
             "name": "John Doe",
             "email": "john@example.com",
-            "custom:user_type": "client",
+            "custom:user_type": "web",
         }
 
         # Act
         result = await get_me(mock_user)
 
         # Assert
-        assert result["groups"] == []
+        assert isinstance(result, UserMeResponse)
+        assert result.groups == []
+
+    @pytest.mark.asyncio
+    async def test_get_me_handles_seller_fetch_failure_gracefully(self):
+        """Test get_me handles seller adapter errors gracefully."""
+        # Arrange
+        mock_user = {
+            "sub": "abc123-seller-id",
+            "name": "John Seller",
+            "email": "john.seller@example.com",
+            "cognito:groups": ["seller_users"],
+            "custom:user_type": "seller",
+        }
+
+        mock_seller_adapter = Mock()
+        mock_seller_adapter.get_seller_by_cognito_user_id = AsyncMock(
+            side_effect=Exception("Service unavailable")
+        )
+
+        # Act
+        with patch("dependencies.get_seller_app_seller_port", return_value=mock_seller_adapter):
+            result = await get_me(mock_user)
+
+        # Assert - Should return JWT claims even if adapter fails
+        assert isinstance(result, UserMeResponse)
+        assert result.user_id == "abc123-seller-id"
+        assert result.name == "John Seller"
+        assert result.email == "john.seller@example.com"
+        assert result.user_type == "seller"
+        assert result.user_details is None  # Should be None when fetch fails
+
+    @pytest.mark.asyncio
+    async def test_get_me_handles_client_fetch_failure_gracefully(self):
+        """Test get_me handles client adapter errors gracefully."""
+        # Arrange
+        mock_user = {
+            "sub": "abc123-client-id",
+            "name": "Jane Client",
+            "email": "jane.client@hospital.com",
+            "cognito:groups": ["client_users"],
+            "custom:user_type": "client",
+        }
+
+        mock_client_adapter = Mock()
+        mock_client_adapter.get_client_by_cognito_user_id = AsyncMock(
+            side_effect=Exception("Service unavailable")
+        )
+
+        # Act
+        with patch("dependencies.get_client_app_client_port", return_value=mock_client_adapter):
+            result = await get_me(mock_user)
+
+        # Assert - Should return JWT claims even if adapter fails
+        assert isinstance(result, UserMeResponse)
+        assert result.user_id == "abc123-client-id"
+        assert result.name == "Jane Client"
+        assert result.email == "jane.client@hospital.com"
+        assert result.user_type == "client"
+        assert result.user_details is None  # Should be None when fetch fails
 
 
 class TestDependencies:

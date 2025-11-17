@@ -64,7 +64,7 @@ class OrderAdapter(OrderPort):
             "customer_id": str(customer_id),
             "metodo_creacion": "app_cliente",  # Hardcoded for client app
             "items": [
-                {"producto_id": str(item.producto_id), "cantidad": item.cantidad}
+                {"inventario_id": str(item.inventario_id), "cantidad": item.cantidad}
                 for item in order_data.items
             ],
             # No seller_id or visit_id for client app orders

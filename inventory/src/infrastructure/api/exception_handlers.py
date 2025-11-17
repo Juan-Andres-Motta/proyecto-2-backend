@@ -7,6 +7,8 @@ from pydantic import ValidationError as PydanticValidationError
 from src.domain.exceptions import (
     BusinessRuleException,
     DomainException,
+    InsufficientInventoryException,
+    InvalidReservationReleaseException,
     NotFoundException,
     ValidationException,
 )
@@ -88,6 +90,42 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "error_code": exc.error_code,
                 "message": exc.message,
                 "type": "validation_error",
+            },
+        )
+
+    @app.exception_handler(InsufficientInventoryException)
+    async def handle_insufficient_inventory_exception(
+        request: Request, exc: InsufficientInventoryException
+    ) -> JSONResponse:
+        """Handle insufficient inventory errors (409)."""
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error_code": exc.error_code,
+                "message": exc.message,
+                "details": {
+                    "inventory_id": str(exc.inventory_id),
+                    "requested": exc.requested,
+                    "available": exc.available,
+                    "product_sku": exc.product_sku,
+                },
+            },
+        )
+
+    @app.exception_handler(InvalidReservationReleaseException)
+    async def handle_invalid_release_exception(
+        request: Request, exc: InvalidReservationReleaseException
+    ) -> JSONResponse:
+        """Handle invalid reservation release errors (409)."""
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error_code": exc.error_code,
+                "message": exc.message,
+                "details": {
+                    "requested_release": exc.requested_release,
+                    "currently_reserved": exc.currently_reserved,
+                },
             },
         )
 

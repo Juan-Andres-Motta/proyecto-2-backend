@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.ports.client_repository_port import ClientRepositoryPort
@@ -92,36 +92,163 @@ class ClientRepository(ClientRepositoryPort):
             logger.error(f"DB: Find client by nit failed: nit={nit}, error={e}")
             raise
 
-    async def list_by_seller(self, vendedor_asignado_id: UUID) -> list[DomainClient]:
-        """List all clients assigned to a specific seller."""
-        logger.debug(f"DB: Listing clients for vendedor_asignado_id={vendedor_asignado_id}")
+    async def list_by_seller(
+        self,
+        vendedor_asignado_id: UUID,
+        client_name: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> list[DomainClient]:
+        """List clients assigned to a specific seller with pagination."""
+        logger.debug(
+            f"DB: Listing clients for vendedor_asignado_id={vendedor_asignado_id}, "
+            f"client_name={client_name}, page={page}, page_size={page_size}"
+        )
 
         try:
             stmt = select(ORMClient).where(
-                ORMClient.vendedor_asignado_id == vendedor_asignado_id
+                (ORMClient.vendedor_asignado_id == vendedor_asignado_id) |
+                (ORMClient.vendedor_asignado_id.is_(None))
             )
+
+            if client_name:
+                stmt = stmt.where(ORMClient.nombre_institucion.ilike(f"%{client_name}%"))
+
+            stmt = stmt.order_by(
+                ORMClient.nombre_institucion.asc(),
+                ORMClient.cliente_id.asc()
+            )
+
+            # Apply pagination
+            offset = (page - 1) * page_size
+            stmt = stmt.limit(page_size).offset(offset)
+
             result = await self.session.execute(stmt)
             orm_clients = result.scalars().all()
 
-            logger.debug(f"DB: Successfully listed clients: count={len(orm_clients)}")
+            logger.debug(
+                f"DB: Successfully listed clients: count={len(orm_clients)}, "
+                f"page={page}, page_size={page_size}"
+            )
             return [self._to_domain(client) for client in orm_clients]
         except Exception as e:
             logger.error(f"DB: List clients by seller failed: error={e}")
             raise
 
-    async def list_all(self) -> list[DomainClient]:
-        """List all clients."""
-        logger.debug("DB: Listing all clients")
+    async def list_all(
+        self,
+        client_name: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> list[DomainClient]:
+        """List all clients with pagination."""
+        logger.debug(
+            f"DB: Listing all clients, client_name={client_name}, "
+            f"page={page}, page_size={page_size}"
+        )
 
         try:
             stmt = select(ORMClient)
+
+            if client_name:
+                stmt = stmt.where(ORMClient.nombre_institucion.ilike(f"%{client_name}%"))
+
+            stmt = stmt.order_by(
+                ORMClient.nombre_institucion.asc(),
+                ORMClient.cliente_id.asc()
+            )
+
+            # Apply pagination
+            offset = (page - 1) * page_size
+            stmt = stmt.limit(page_size).offset(offset)
+
             result = await self.session.execute(stmt)
             orm_clients = result.scalars().all()
 
-            logger.debug(f"DB: Successfully listed all clients: count={len(orm_clients)}")
+            logger.debug(
+                f"DB: Successfully listed all clients: count={len(orm_clients)}, "
+                f"page={page}, page_size={page_size}"
+            )
             return [self._to_domain(client) for client in orm_clients]
         except Exception as e:
             logger.error(f"DB: List all clients failed: error={e}")
+            raise
+
+    async def count_by_seller(
+        self,
+        vendedor_asignado_id: UUID,
+        client_name: Optional[str] = None
+    ) -> int:
+        """Count clients matching seller and optional filters.
+
+        Args:
+            vendedor_asignado_id: UUID of the seller
+            client_name: Optional client institution name filter (partial match)
+
+        Returns:
+            Total count of matching clients
+        """
+        logger.debug(
+            f"DB: Counting clients by seller: vendedor_asignado_id={vendedor_asignado_id}, "
+            f"client_name={client_name}"
+        )
+
+        try:
+            # Build count query with seller filter
+            stmt = select(func.count()).select_from(ORMClient).where(
+                (ORMClient.vendedor_asignado_id == vendedor_asignado_id) |
+                (ORMClient.vendedor_asignado_id.is_(None))
+            )
+
+            # Apply client name filter
+            if client_name:
+                stmt = stmt.where(ORMClient.nombre_institucion.ilike(f"%{client_name}%"))
+
+            # Execute query
+            result = await self.session.execute(stmt)
+            count = result.scalar() or 0
+
+            logger.debug(
+                f"DB: Successfully counted clients: vendedor_asignado_id={vendedor_asignado_id}, "
+                f"client_name={client_name}, count={count}"
+            )
+            return count
+        except Exception as e:
+            logger.error(
+                f"DB: Count clients by seller failed: vendedor_asignado_id={vendedor_asignado_id}, "
+                f"error={e}"
+            )
+            raise
+
+    async def count_all(self, client_name: Optional[str] = None) -> int:
+        """Count all clients matching optional filters.
+
+        Args:
+            client_name: Optional client institution name filter (partial match)
+
+        Returns:
+            Total count of matching clients
+        """
+        logger.debug(f"DB: Counting all clients, client_name={client_name}")
+
+        try:
+            # Build count query
+            stmt = select(func.count()).select_from(ORMClient)
+
+            # Apply client name filter
+            if client_name:
+                stmt = stmt.where(ORMClient.nombre_institucion.ilike(f"%{client_name}%"))
+
+            # Execute query
+            result = await self.session.execute(stmt)
+            count = result.scalar() or 0
+
+            logger.debug(
+                f"DB: Successfully counted all clients: client_name={client_name}, count={count}"
+            )
+            return count
+        except Exception as e:
+            logger.error(f"DB: Count all clients failed: error={e}")
             raise
 
     async def update(self, client: DomainClient) -> DomainClient:

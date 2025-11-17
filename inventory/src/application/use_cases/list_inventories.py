@@ -21,9 +21,11 @@ class ListInventoriesUseCase:
         product_id: Optional[UUID] = None,
         warehouse_id: Optional[UUID] = None,
         sku: Optional[str] = None,
+        category: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> Tuple[List[Inventory], int]:
         """List inventories with pagination and filters."""
-        logger.info(f"Listing inventories: limit={limit}, offset={offset}, product_id={product_id}, warehouse_id={warehouse_id}, sku={sku}")
+        logger.info(f"Listing inventories: limit={limit}, offset={offset}, product_id={product_id}, warehouse_id={warehouse_id}, sku={sku}, category={category}, name={name}")
         logger.debug(f"Fetching inventories with filters and pagination")
 
         inventories, total = await self.repository.list_inventories(
@@ -32,6 +34,8 @@ class ListInventoriesUseCase:
             product_id=product_id,
             warehouse_id=warehouse_id,
             sku=sku,
+            category=category,
+            name=name,
         )
 
         logger.info(f"Inventories retrieved successfully: count={len(inventories)}, total={total}")
