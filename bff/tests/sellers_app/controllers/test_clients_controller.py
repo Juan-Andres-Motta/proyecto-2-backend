@@ -6,7 +6,7 @@ and handles responses/errors appropriately.
 """
 
 from datetime import datetime
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, ANY
 from uuid import UUID, uuid4
 
 import pytest
@@ -79,7 +79,14 @@ def sample_clients_list_response(sample_client_response):
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
-    return ClientListResponse(clients=[client1, client2], total=2)
+    return ClientListResponse(
+        items=[client1, client2],
+        total=2,
+        page=1,
+        size=50,
+        has_next=False,
+        has_previous=False
+    )
 
 
 class TestSellersAppClientsController:
@@ -98,11 +105,11 @@ class TestSellersAppClientsController:
             user=mock_user,
         )
 
-        # Verify port was called with None (no filter)
-        mock_client_port.list_clients.assert_called_once_with(None)
+        # Verify port was called with pagination parameters (Query objects for page and page_size)
+        mock_client_port.list_clients.assert_called_once_with(None, ANY, ANY, ANY)
         assert result == sample_clients_list_response
         assert result.total == 2
-        assert len(result.clients) == 2
+        assert len(result.items) == 2
 
     @pytest.mark.asyncio
     async def test_list_clients_with_seller_filter_calls_port_with_filter(
@@ -111,7 +118,12 @@ class TestSellersAppClientsController:
         """Test that list_clients with seller filter calls port with filter."""
         seller_id = uuid4()
         filtered_response = ClientListResponse(
-            clients=[sample_clients_list_response.clients[0]], total=1
+            items=[sample_clients_list_response.items[0]],
+            total=1,
+            page=1,
+            size=50,
+            has_next=False,
+            has_previous=False
         )
         mock_client_port.list_clients = AsyncMock(return_value=filtered_response)
 
@@ -121,16 +133,23 @@ class TestSellersAppClientsController:
             user=mock_user,
         )
 
-        # Verify port was called with seller_id filter
-        mock_client_port.list_clients.assert_called_once_with(seller_id)
+        # Verify port was called with seller_id filter and pagination (Query objects for page and page_size)
+        mock_client_port.list_clients.assert_called_once_with(seller_id, ANY, ANY, ANY)
         assert result == filtered_response
         assert result.total == 1
-        assert len(result.clients) == 1
+        assert len(result.items) == 1
 
     @pytest.mark.asyncio
     async def test_list_clients_empty_list(self, mock_client_port, mock_user):
         """Test that list_clients returns empty list when no clients found."""
-        empty_response = ClientListResponse(clients=[], total=0)
+        empty_response = ClientListResponse(
+            items=[],
+            total=0,
+            page=1,
+            size=50,
+            has_next=False,
+            has_previous=False
+        )
         mock_client_port.list_clients = AsyncMock(return_value=empty_response)
 
         result = await list_clients(
@@ -139,10 +158,10 @@ class TestSellersAppClientsController:
             user=mock_user,
         )
 
-        mock_client_port.list_clients.assert_called_once_with(None)
+        mock_client_port.list_clients.assert_called_once_with(None, ANY, ANY, ANY)
         assert result == empty_response
         assert result.total == 0
-        assert len(result.clients) == 0
+        assert len(result.items) == 0
 
     @pytest.mark.asyncio
     async def test_list_clients_handles_connection_error(
@@ -242,7 +261,14 @@ class TestSellersAppClientsController:
         self, mock_client_port, sample_client_response, mock_user
     ):
         """Test that client data is properly preserved in response."""
-        response = ClientListResponse(clients=[sample_client_response], total=1)
+        response = ClientListResponse(
+            items=[sample_client_response],
+            total=1,
+            page=1,
+            size=50,
+            has_next=False,
+            has_previous=False
+        )
         mock_client_port.list_clients = AsyncMock(return_value=response)
 
         result = await list_clients(
@@ -251,7 +277,7 @@ class TestSellersAppClientsController:
             user=mock_user,
         )
 
-        client = result.clients[0]
+        client = result.items[0]
         assert client.cliente_id == sample_client_response.cliente_id
         assert client.email == sample_client_response.email
         assert client.nombre_institucion == sample_client_response.nombre_institucion
@@ -271,5 +297,5 @@ class TestSellersAppClientsController:
             user=mock_user,
         )
 
-        mock_client_port.list_clients.assert_called_once_with(seller_id)
+        mock_client_port.list_clients.assert_called_once_with(seller_id, ANY, ANY, ANY)
         assert result == sample_clients_list_response

@@ -23,26 +23,25 @@ class EventHandlers:
             logger.warning("web_report_generated missing user_id")
             return
 
-        channel = f"web:users:{user_id}"
-        self.publisher.publish(
+        channel = f"web:{user_id}"
+        await self.publisher.publish(
             channel=channel,
             event_name="report.generated",
             data={"report_id": report_id} if report_id else None,
         )
 
     async def handle_web_delivery_routes(self, event_data: Dict[str, Any]) -> None:
-        """Handle web_delivery_routes event."""
-        user_id = event_data.get("user_id")
+        """Handle web_delivery_routes event.
+
+        Notifies ALL web users when delivery routes are generated.
+        """
         route_id = event_data.get("route_id")
 
-        if not user_id:
-            logger.warning("web_delivery_routes missing user_id")
-            return
-
-        channel = f"web:users:{user_id}"
-        self.publisher.publish(
+        # Use broadcasts channel to notify all web users
+        channel = "web:broadcasts"
+        await self.publisher.publish(
             channel=channel,
-            event_name="delivery_routes.generated",
+            event_name="routes.generated",
             data={"route_id": route_id} if route_id else None,
         )
 
@@ -56,7 +55,7 @@ class EventHandlers:
             return
 
         channel = f"sellers:{seller_id}"
-        self.publisher.publish(
+        await self.publisher.publish(
             channel=channel,
             event_name="visit_routes.generated",
             data={"route_id": route_id} if route_id else None,
@@ -75,7 +74,7 @@ class EventHandlers:
         order_id = event_data.get("order_id")
 
         # Notify all mobile clients connected to products channel
-        self.publisher.publish(
+        await self.publisher.publish(
             channel="mobile:products",
             event_name="order.created",
             data={
@@ -92,10 +91,10 @@ class EventHandlers:
             logger.warning("report_generated missing user_id")
             return
 
-        # Channel includes user_id and 'report' keyword
+        # Notify specific user on their personal channel
         # No data sent - client refetches GET /bff/web/reports
-        channel = f"web:users:{user_id}:report"
-        self.publisher.publish(
+        channel = f"web:{user_id}"
+        await self.publisher.publish(
             channel=channel,
             event_name="report.generated",
             data=None,

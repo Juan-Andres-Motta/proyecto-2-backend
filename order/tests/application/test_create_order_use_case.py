@@ -7,8 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from src.application.ports.customer_port import CustomerData
-from src.application.ports.seller_port import SellerData
-from src.application.ports.inventory_port import InventoryAllocation
+from src.application.ports.inventory_port import InventoryInfo
 from src.application.use_cases import CreateOrderInput, CreateOrderUseCase, OrderItemInput
 from src.domain.entities import Order
 from src.domain.value_objects import CreationMethod
@@ -20,7 +19,6 @@ def mock_dependencies():
     return {
         "order_repository": AsyncMock(),
         "customer_port": AsyncMock(),
-        "seller_port": AsyncMock(),
         "inventory_port": AsyncMock(),
         "event_publisher": AsyncMock(),
     }
@@ -40,27 +38,20 @@ def sample_customer():
     )
 
 
-@pytest.fixture
-def sample_seller():
-    """Sample seller data."""
-    return SellerData(
-        id=uuid4(),
-        name="Jane Smith",
-        email="jane@example.com",
-    )
 
 
 @pytest.fixture
-def sample_inventory_allocation():
-    """Sample inventory allocation."""
-    return InventoryAllocation(
-        inventario_id=uuid4(),
-        producto_id=uuid4(),
+def sample_inventory_info():
+    """Sample inventory info."""
+    inventory_id = uuid4()
+    return InventoryInfo(
+        id=inventory_id,
         warehouse_id=uuid4(),
-        cantidad=10,
+        available_quantity=100,  # Sufficient stock
         product_name="Test Product",
         product_sku="SKU-001",
         product_price=Decimal("20.00"),
+        product_category="medicamentos_especiales",
         warehouse_name="Main Warehouse",
         warehouse_city="Bogota",
         warehouse_country="Colombia",
@@ -71,17 +62,15 @@ def sample_inventory_allocation():
 
 @pytest.mark.asyncio
 async def test_create_order_app_cliente_success(
-    mock_dependencies, sample_customer, sample_inventory_allocation
+    mock_dependencies, sample_customer, sample_inventory_info
 ):
     """Test creating an order via app_cliente."""
     # Setup mocks
     customer_id = sample_customer.id
-    producto_id = sample_inventory_allocation.producto_id
+    inventario_id = sample_inventory_info.id
 
     mock_dependencies["customer_port"].get_customer.return_value = sample_customer
-    mock_dependencies["inventory_port"].allocate_inventory.return_value = [
-        sample_inventory_allocation
-    ]
+    mock_dependencies["inventory_port"].get_inventory.return_value = sample_inventory_info
 
     # Mock repository save to return the order
     async def mock_save(order):
@@ -92,11 +81,11 @@ async def test_create_order_app_cliente_success(
     # Create use case
     use_case = CreateOrderUseCase(**mock_dependencies)
 
-    # Execute
+    # Execute - client provides inventario_id
     input_data = CreateOrderInput(
         customer_id=customer_id,
         metodo_creacion=CreationMethod.APP_CLIENTE,
-        items=[OrderItemInput(producto_id=producto_id, cantidad=10)],
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=10)],
     )
 
     order = await use_case.execute(input_data)
@@ -105,38 +94,36 @@ async def test_create_order_app_cliente_success(
     assert order.customer_id == customer_id
     assert order.customer_name == "John Doe"
     assert order.seller_id is None
-    assert order.visit_id is None
     assert order.metodo_creacion == CreationMethod.APP_CLIENTE
     assert order.item_count == 1
     assert order.monto_total == Decimal("260.00")  # 20.00 * 1.30 * 10
 
     # Verify mocks were called
     mock_dependencies["customer_port"].get_customer.assert_called_once_with(customer_id)
-    mock_dependencies["inventory_port"].allocate_inventory.assert_called_once()
+    mock_dependencies["inventory_port"].get_inventory.assert_called_once_with(inventario_id)
     mock_dependencies["order_repository"].save.assert_called_once()
     mock_dependencies["event_publisher"].publish_order_created.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_order_visita_vendedor_success(
-    mock_dependencies, sample_customer, sample_seller
+async def test_create_order_app_vendedor_success(
+    mock_dependencies, sample_customer
 ):
-    """Test creating an order via visita_vendedor."""
+    """Test creating an order via app_vendedor."""
     # Setup mocks
     customer_id = sample_customer.id
-    seller_id = sample_seller.id
-    visit_id = uuid4()
-    producto_id = uuid4()
+    seller_id = uuid4()
+    inventario_id = uuid4()
 
-    # Create allocation with correct cantidad (5 units to match the request)
-    allocation = InventoryAllocation(
-        inventario_id=uuid4(),
-        producto_id=producto_id,
+    # Create inventory info with sufficient stock
+    inventory_info = InventoryInfo(
+        id=inventario_id,
         warehouse_id=uuid4(),
-        cantidad=5,  # Match the requested quantity
+        available_quantity=100,  # More than requested 5
         product_name="Test Product",
         product_sku="SKU-001",
         product_price=Decimal("20.00"),
+        product_category="medicamentos_especiales",
         warehouse_name="Main Warehouse",
         warehouse_city="Bogota",
         warehouse_country="Colombia",
@@ -145,9 +132,7 @@ async def test_create_order_visita_vendedor_success(
     )
 
     mock_dependencies["customer_port"].get_customer.return_value = sample_customer
-    mock_dependencies["seller_port"].get_seller.return_value = sample_seller
-    mock_dependencies["seller_port"].validate_visit.return_value = True
-    mock_dependencies["inventory_port"].allocate_inventory.return_value = [allocation]
+    mock_dependencies["inventory_port"].get_inventory.return_value = inventory_info
 
     async def mock_save(order):
         return order
@@ -157,13 +142,14 @@ async def test_create_order_visita_vendedor_success(
     # Create use case
     use_case = CreateOrderUseCase(**mock_dependencies)
 
-    # Execute
+    # Execute - seller provides seller info
     input_data = CreateOrderInput(
         customer_id=customer_id,
         seller_id=seller_id,
-        visit_id=visit_id,
-        metodo_creacion=CreationMethod.VISITA_VENDEDOR,
-        items=[OrderItemInput(producto_id=producto_id, cantidad=5)],
+        seller_name="Jane Smith",
+        seller_email="jane@example.com",
+        metodo_creacion=CreationMethod.APP_VENDEDOR,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=5)],
     )
 
     order = await use_case.execute(input_data)
@@ -171,16 +157,9 @@ async def test_create_order_visita_vendedor_success(
     # Assertions
     assert order.customer_id == customer_id
     assert order.seller_id == seller_id
-    assert order.visit_id == visit_id
     assert order.seller_name == "Jane Smith"
-    assert order.metodo_creacion == CreationMethod.VISITA_VENDEDOR
+    assert order.metodo_creacion == CreationMethod.APP_VENDEDOR
     assert order.monto_total == Decimal("130.00")  # 20.00 * 1.30 * 5
-
-    # Verify seller and visit were validated
-    mock_dependencies["seller_port"].get_seller.assert_called_once_with(seller_id)
-    mock_dependencies["seller_port"].validate_visit.assert_called_once_with(
-        visit_id, seller_id
-    )
 
 
 @pytest.mark.asyncio
@@ -191,14 +170,16 @@ async def test_create_order_applies_30_percent_markup(
     mock_dependencies["customer_port"].get_customer.return_value = sample_customer
 
     # Product with base price of 100.00
-    allocation = InventoryAllocation(
-        inventario_id=uuid4(),
-        producto_id=uuid4(),
+    inventario_id = uuid4()
+
+    inventory_info = InventoryInfo(
+        id=inventario_id,
         warehouse_id=uuid4(),
-        cantidad=10,
+        available_quantity=100,
         product_name="Expensive Product",
         product_sku="EXP-001",
         product_price=Decimal("100.00"),  # Base price
+        product_category="medicamentos_especiales",
         warehouse_name="Warehouse",
         warehouse_city="City",
         warehouse_country="Country",
@@ -206,7 +187,7 @@ async def test_create_order_applies_30_percent_markup(
         expiration_date=date.today() + timedelta(days=30),
     )
 
-    mock_dependencies["inventory_port"].allocate_inventory.return_value = [allocation]
+    mock_dependencies["inventory_port"].get_inventory.return_value = inventory_info
 
     async def mock_save(order):
         return order
@@ -218,7 +199,7 @@ async def test_create_order_applies_30_percent_markup(
     input_data = CreateOrderInput(
         customer_id=sample_customer.id,
         metodo_creacion=CreationMethod.APP_CLIENTE,
-        items=[OrderItemInput(producto_id=allocation.producto_id, cantidad=10)],
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=10)],
     )
 
     order = await use_case.execute(input_data)
@@ -230,32 +211,15 @@ async def test_create_order_applies_30_percent_markup(
     assert order.items[0].precio_unitario == Decimal("130.00")
 
 
-@pytest.mark.asyncio
-async def test_create_order_with_visit_id_requires_seller_id(mock_dependencies):
-    """Test that visit_id requires seller_id."""
-    use_case = CreateOrderUseCase(**mock_dependencies)
-
-    input_data = CreateOrderInput(
-        customer_id=uuid4(),
-        seller_id=None,  # Missing
-        visit_id=uuid4(),
-        metodo_creacion=CreationMethod.APP_CLIENTE,
-        items=[OrderItemInput(producto_id=uuid4(), cantidad=1)],
-    )
-
-    with pytest.raises(ValueError, match="visit_id requires seller_id"):
-        await use_case.execute(input_data)
 
 
 @pytest.mark.asyncio
 async def test_create_order_handles_event_publish_failure_gracefully(
-    mock_dependencies, sample_customer, sample_inventory_allocation
+    mock_dependencies, sample_customer, sample_inventory_info
 ):
     """Test that event publish failure doesn't fail the order creation."""
     mock_dependencies["customer_port"].get_customer.return_value = sample_customer
-    mock_dependencies["inventory_port"].allocate_inventory.return_value = [
-        sample_inventory_allocation
-    ]
+    mock_dependencies["inventory_port"].get_inventory.return_value = sample_inventory_info
 
     async def mock_save(order):
         return order
@@ -269,10 +233,12 @@ async def test_create_order_handles_event_publish_failure_gracefully(
 
     use_case = CreateOrderUseCase(**mock_dependencies)
 
+    inventario_id = sample_inventory_info.id
+
     input_data = CreateOrderInput(
         customer_id=sample_customer.id,
         metodo_creacion=CreationMethod.APP_CLIENTE,
-        items=[OrderItemInput(producto_id=uuid4(), cantidad=1)],
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=1)],
     )
 
     # Should not raise exception
@@ -290,14 +256,17 @@ async def test_create_order_with_multiple_items(
     """Test creating an order with multiple items."""
     mock_dependencies["customer_port"].get_customer.return_value = sample_customer
 
-    allocation1 = InventoryAllocation(
-        inventario_id=uuid4(),
-        producto_id=uuid4(),
+    inventario_id_1 = uuid4()
+    inventario_id_2 = uuid4()
+
+    inventory_info_1 = InventoryInfo(
+        id=inventario_id_1,
         warehouse_id=uuid4(),
-        cantidad=5,
+        available_quantity=50,
         product_name="Product 1",
         product_sku="SKU-001",
         product_price=Decimal("10.00"),
+        product_category="medicamentos_basicos",
         warehouse_name="Warehouse",
         warehouse_city="City",
         warehouse_country="Country",
@@ -305,14 +274,14 @@ async def test_create_order_with_multiple_items(
         expiration_date=date.today() + timedelta(days=30),
     )
 
-    allocation2 = InventoryAllocation(
-        inventario_id=uuid4(),
-        producto_id=uuid4(),
+    inventory_info_2 = InventoryInfo(
+        id=inventario_id_2,
         warehouse_id=uuid4(),
-        cantidad=3,
+        available_quantity=50,
         product_name="Product 2",
         product_sku="SKU-002",
         product_price=Decimal("20.00"),
+        product_category="medicamentos_especiales",
         warehouse_name="Warehouse",
         warehouse_city="City",
         warehouse_country="Country",
@@ -320,10 +289,10 @@ async def test_create_order_with_multiple_items(
         expiration_date=date.today() + timedelta(days=30),
     )
 
-    # Mock returns different allocations based on producto_id
-    mock_dependencies["inventory_port"].allocate_inventory.side_effect = [
-        [allocation1],
-        [allocation2],
+    # Mock returns different inventory info based on inventory_id
+    mock_dependencies["inventory_port"].get_inventory.side_effect = [
+        inventory_info_1,
+        inventory_info_2,
     ]
 
     async def mock_save(order):
@@ -337,8 +306,8 @@ async def test_create_order_with_multiple_items(
         customer_id=sample_customer.id,
         metodo_creacion=CreationMethod.APP_CLIENTE,
         items=[
-            OrderItemInput(producto_id=allocation1.producto_id, cantidad=5),
-            OrderItemInput(producto_id=allocation2.producto_id, cantidad=3),
+            OrderItemInput(inventario_id=inventario_id_1, cantidad=5),
+            OrderItemInput(inventario_id=inventario_id_2, cantidad=3),
         ],
     )
 
@@ -349,3 +318,239 @@ async def test_create_order_with_multiple_items(
     # Total: 143.00
     assert order.item_count == 2
     assert order.monto_total == Decimal("143.00")
+
+
+@pytest.mark.asyncio
+async def test_create_order_insufficient_inventory(
+    mock_dependencies, sample_customer
+):
+    """Test that insufficient inventory raises ValueError."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+
+    inventario_id = uuid4()
+
+    # Inventory with insufficient stock
+    inventory_info = InventoryInfo(
+        id=inventario_id,
+        warehouse_id=uuid4(),
+        available_quantity=5,  # Only 5 available
+        product_name="Low Stock Product",
+        product_sku="LOW-001",
+        product_price=Decimal("10.00"),
+        product_category="medicamentos_basicos",
+        warehouse_name="Warehouse",
+        warehouse_city="City",
+        warehouse_country="Country",
+        batch_number="BATCH-001",
+        expiration_date=date.today() + timedelta(days=30),
+    )
+
+    mock_dependencies["inventory_port"].get_inventory.return_value = inventory_info
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    # Try to order 10 units when only 5 available
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=10)],
+    )
+
+    with pytest.raises(ValueError, match="Insufficient inventory"):
+        await use_case.execute(input_data)
+
+
+@pytest.mark.asyncio
+async def test_create_order_exact_available_quantity(
+    mock_dependencies, sample_customer
+):
+    """Test ordering exactly the available quantity (edge case)."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+
+    inventario_id = uuid4()
+
+    # Inventory with exactly the requested amount
+    inventory_info = InventoryInfo(
+        id=inventario_id,
+        warehouse_id=uuid4(),
+        available_quantity=10,  # Exactly what we'll request
+        product_name="Exact Stock Product",
+        product_sku="EXACT-001",
+        product_price=Decimal("15.00"),
+        product_category="medicamentos_especiales",
+        warehouse_name="Warehouse",
+        warehouse_city="City",
+        warehouse_country="Country",
+        batch_number="BATCH-001",
+        expiration_date=date.today() + timedelta(days=30),
+    )
+
+    mock_dependencies["inventory_port"].get_inventory.return_value = inventory_info
+
+    async def mock_save(order):
+        return order
+
+    mock_dependencies["order_repository"].save.side_effect = mock_save
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    # Order exactly the available quantity
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=10)],
+    )
+
+    order = await use_case.execute(input_data)
+
+    # Should succeed
+    assert order.item_count == 1
+    assert order.items[0].cantidad == 10
+    # 15.00 * 1.30 * 10 = 195.00
+    assert order.monto_total == Decimal("195.00")
+
+
+@pytest.mark.asyncio
+async def test_create_order_handles_inventory_reservation_failure_gracefully(
+    mock_dependencies, sample_customer, sample_inventory_info
+):
+    """Test that inventory reservation failure doesn't fail the order creation."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+    mock_dependencies["inventory_port"].get_inventory.return_value = sample_inventory_info
+
+    async def mock_save(order):
+        return order
+
+    mock_dependencies["order_repository"].save.side_effect = mock_save
+
+    # Make inventory reservation fail
+    mock_dependencies["inventory_port"].reserve_inventory.side_effect = Exception(
+        "Inventory reservation failed"
+    )
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    inventario_id = sample_inventory_info.id
+
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=1)],
+    )
+
+    # Should not raise exception - order is created, reservation is fire-and-forget
+    order = await use_case.execute(input_data)
+
+    # Order should be created successfully despite reservation failure
+    assert order.id is not None
+    assert order.customer_id == sample_customer.id
+
+
+@pytest.mark.asyncio
+async def test_create_order_with_seller_data(
+    mock_dependencies, sample_customer, sample_inventory_info
+):
+    """Test creating order with seller data (seller app scenario)."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+    mock_dependencies["inventory_port"].get_inventory.return_value = sample_inventory_info
+
+    async def mock_save(order):
+        return order
+
+    mock_dependencies["order_repository"].save.side_effect = mock_save
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    seller_id = uuid4()
+    inventario_id = sample_inventory_info.id
+
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        seller_id=seller_id,
+        seller_name="John Seller",
+        seller_email="seller@example.com",
+        metodo_creacion=CreationMethod.APP_VENDEDOR,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=5)],
+    )
+
+    order = await use_case.execute(input_data)
+
+    # Verify seller data is set
+    assert order.seller_id == seller_id
+    assert order.seller_name == "John Seller"
+    assert order.seller_email == "seller@example.com"
+
+
+@pytest.mark.asyncio
+async def test_create_order_publishes_event_with_correct_data(
+    mock_dependencies, sample_customer, sample_inventory_info
+):
+    """Test that published event contains correct order data."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+    mock_dependencies["inventory_port"].get_inventory.return_value = sample_inventory_info
+
+    async def mock_save(order):
+        return order
+
+    mock_dependencies["order_repository"].save.side_effect = mock_save
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    inventario_id = sample_inventory_info.id
+
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=2)],
+    )
+
+    order = await use_case.execute(input_data)
+
+    # Verify event was published with correct data
+    mock_dependencies["event_publisher"].publish_order_created.assert_called_once()
+    event_data = mock_dependencies["event_publisher"].publish_order_created.call_args[0][0]
+
+    assert event_data["order_id"] == str(order.id)
+    assert event_data["customer_id"] == str(sample_customer.id)
+    assert "items" in event_data
+    assert len(event_data["items"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_create_order_with_zero_quantity_inventory(
+    mock_dependencies, sample_customer
+):
+    """Test order creation with zero available inventory."""
+    mock_dependencies["customer_port"].get_customer.return_value = sample_customer
+
+    inventario_id = uuid4()
+
+    # Inventory with zero available quantity
+    inventory_info = InventoryInfo(
+        id=inventario_id,
+        warehouse_id=uuid4(),
+        available_quantity=0,  # Zero available
+        product_name="Out of Stock Product",
+        product_sku="OOS-001",
+        product_price=Decimal("10.00"),
+        product_category="medicamentos_basicos",
+        warehouse_name="Warehouse",
+        warehouse_city="City",
+        warehouse_country="Country",
+        batch_number="BATCH-001",
+        expiration_date=date.today() + timedelta(days=30),
+    )
+
+    mock_dependencies["inventory_port"].get_inventory.return_value = inventory_info
+
+    use_case = CreateOrderUseCase(**mock_dependencies)
+
+    # Try to order 1 unit when 0 available
+    input_data = CreateOrderInput(
+        customer_id=sample_customer.id,
+        metodo_creacion=CreationMethod.APP_CLIENTE,
+        items=[OrderItemInput(inventario_id=inventario_id, cantidad=1)],
+    )
+
+    with pytest.raises(ValueError, match="Insufficient inventory"):
+        await use_case.execute(input_data)

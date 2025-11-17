@@ -1,7 +1,7 @@
 """Updated unit tests for SQS event handlers with order_creation tests."""
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 from common.sqs.handlers import EventHandlers
 
@@ -13,6 +13,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_publishes_to_mobile_products(self):
         """Test publishes order creation to mobile:products channel."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -37,6 +38,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_handles_missing_customer_id(self):
         """Test handles missing customer_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -57,6 +59,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_handles_missing_order_id(self):
         """Test handles missing order_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -77,6 +80,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_with_uuid_customer_id(self):
         """Test handles UUID format customer_id."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         uuid_customer = "550e8400-e29b-41d4-a716-446655440000"
@@ -102,6 +106,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_includes_order_id_in_data(self):
         """Test that order_id is included in published data."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         order_id = "order-12345"
@@ -120,6 +125,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_publishes_with_correct_event_name(self):
         """Test that event_name is 'order.created'."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -137,6 +143,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_with_null_order_id(self):
         """Test handles None order_id."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -155,6 +162,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_with_extra_fields(self):
         """Test that extra fields in event don't affect processing."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -182,6 +190,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_empty_event_data(self):
         """Test handles empty event data."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {}
@@ -199,6 +208,7 @@ class TestHandleOrderCreationNew:
     async def test_handle_order_creation_with_special_characters_in_ids(self):
         """Test handles special characters in customer_id."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         # IDs might have special characters depending on system
@@ -228,6 +238,7 @@ class TestHandleOrderCreationIntegration:
     async def test_multiple_order_creation_events_sequential(self):
         """Test handling multiple order creation events sequentially."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         # First order
@@ -254,6 +265,7 @@ class TestHandleOrderCreationIntegration:
     async def test_order_creation_handler_with_report_generated(self):
         """Test that order_creation and report handlers can coexist."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         # Handle order creation (publishes to 1 channel)
@@ -281,7 +293,7 @@ class TestHandleOrderCreationIntegration:
         report_channel = calls[1].kwargs["channel"]
 
         assert order_channel == "mobile:products"
-        assert "web:users:" in report_channel
+        assert report_channel == "web:user-123"
 
 
 class TestEventChannelNaming:
@@ -291,6 +303,7 @@ class TestEventChannelNaming:
     async def test_order_creation_channel_format(self):
         """Test that order creation uses mobile:products format."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         customer_id = "cust-xyz-123"
@@ -316,6 +329,7 @@ class TestEventChannelNaming:
     async def test_order_event_name_consistency(self):
         """Test that event_name follows naming conventions."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {

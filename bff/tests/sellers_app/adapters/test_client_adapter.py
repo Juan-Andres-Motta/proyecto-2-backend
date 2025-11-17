@@ -61,9 +61,17 @@ def sample_clients_list_response_data(sample_client_response_data):
         "updated_at": datetime.now().isoformat(),
     }
 
+    # Keep nested format - this is what the microservice returns
     return {
         "clients": [sample_client_response_data, client2_data],
-        "total": 2,
+        "pagination": {
+            "current_page": 1,
+            "page_size": 50,
+            "total_results": 2,
+            "total_pages": 1,
+            "has_next": False,
+            "has_previous": False,
+        }
     }
 
 
@@ -80,15 +88,19 @@ class TestClientAdapterListClients:
         adapter = ClientAdapter(mock_http_client)
         result = await adapter.list_clients(None)
 
-        # Verify HTTP client was called with correct endpoint and no params
-        mock_http_client.get.assert_called_once_with("/client/clients", params={})
+        # Verify HTTP client was called with correct endpoint and params
+        mock_http_client.get.assert_called_once_with("/client/clients", params={"page": 1, "page_size": 50})
 
         # Verify result is properly parsed
         assert isinstance(result, ClientListResponse)
         assert result.total == 2
-        assert len(result.clients) == 2
-        assert result.clients[0].email == "client@example.com"
-        assert result.clients[1].email == "client2@example.com"
+        assert result.page == 1
+        assert result.size == 50
+        assert result.has_next is False
+        assert result.has_previous is False
+        assert len(result.items) == 2
+        assert result.items[0].email == "client@example.com"
+        assert result.items[1].email == "client2@example.com"
 
     @pytest.mark.asyncio
     async def test_list_clients_with_seller_filter(
@@ -96,9 +108,17 @@ class TestClientAdapterListClients:
     ):
         """Test list_clients with seller filter."""
         seller_id = uuid4()
+        # Keep nested format - this is what the microservice returns
         filtered_response = {
             "clients": [sample_clients_list_response_data["clients"][0]],
-            "total": 1,
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 1,
+                "total_pages": 1,
+                "has_next": False,
+                "has_previous": False,
+            }
         }
         mock_http_client.get = AsyncMock(return_value=filtered_response)
 
@@ -107,22 +127,41 @@ class TestClientAdapterListClients:
 
         # Verify HTTP client was called with filter parameter
         mock_http_client.get.assert_called_once_with(
-            "/client/clients", params={"vendedor_asignado_id": str(seller_id)}
+            "/client/clients", params={"page": 1, "page_size": 50, "vendedor_asignado_id": str(seller_id)}
         )
 
         assert result.total == 1
-        assert len(result.clients) == 1
+        assert result.page == 1
+        assert result.size == 50
+        assert result.has_next is False
+        assert result.has_previous is False
+        assert len(result.items) == 1
 
     @pytest.mark.asyncio
     async def test_list_clients_empty_response(self, mock_http_client):
         """Test list_clients with empty response."""
-        mock_http_client.get = AsyncMock(return_value={"clients": [], "total": 0})
+        # Keep nested format - this is what the microservice returns
+        mock_http_client.get = AsyncMock(return_value={
+            "clients": [],
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False,
+            }
+        })
 
         adapter = ClientAdapter(mock_http_client)
         result = await adapter.list_clients(None)
 
         assert result.total == 0
-        assert len(result.clients) == 0
+        assert result.page == 1
+        assert result.size == 50
+        assert result.has_next is False
+        assert result.has_previous is False
+        assert len(result.items) == 0
 
     @pytest.mark.asyncio
     async def test_list_clients_connection_error(self, mock_http_client):

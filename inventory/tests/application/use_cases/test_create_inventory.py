@@ -34,8 +34,9 @@ async def test_create_inventory_use_case_success():
     )
     mock_warehouse_repo.find_by_id.return_value = warehouse
 
+    product_id = uuid.uuid4()
     inventory_data = {
-        "product_id": uuid.uuid4(),
+        "product_id": product_id,
         "warehouse_id": warehouse.id,
         "total_quantity": 100,
         # reserved_quantity not provided - defaults to 0
@@ -44,6 +45,7 @@ async def test_create_inventory_use_case_success():
         "product_sku": "TEST-SKU-001",
         "product_name": "Test Product",
         "product_price": 100.50,
+        "product_category": "medicamentos_especiales",  # From BFF
     }
 
     created_inventory = Inventory(
@@ -57,8 +59,10 @@ async def test_create_inventory_use_case_success():
         product_sku="TEST-SKU-001",
         product_name="Test Product",
         product_price=Decimal("100.50"),
+        product_category="medicamentos_especiales",
         warehouse_name="test warehouse",
         warehouse_city="Miami",
+        warehouse_country="Colombia",
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
@@ -322,3 +326,5 @@ async def test_create_inventory_expiration_date_timezone_naive():
         await use_case.execute(inventory_data)
 
     mock_inventory_repo.create.assert_not_called()
+
+

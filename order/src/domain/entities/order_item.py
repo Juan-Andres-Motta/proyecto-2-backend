@@ -3,22 +3,21 @@
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
 
 
 @dataclass
 class OrderItem:
     """
-    Order item entity representing one allocation from inventory.
+    Order item entity representing one inventory entry.
 
-    Each order item represents a single batch allocation.
-    If a product order requires multiple batches (FEFO), there will be
-    multiple OrderItem records for the same product_id.
+    Each order item maps to exactly one inventory entry (inventario_id).
+    Client provides the inventario_id, no FEFO allocation.
     """
 
     id: UUID
     pedido_id: UUID
-    producto_id: UUID
     inventario_id: UUID
 
     cantidad: int
@@ -28,6 +27,7 @@ class OrderItem:
     # Denormalized product data (for historical accuracy)
     product_name: str
     product_sku: str
+    product_category: Optional[str]
 
     # Denormalized warehouse data (for traceability)
     warehouse_id: UUID

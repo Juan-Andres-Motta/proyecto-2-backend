@@ -50,13 +50,13 @@ def sample_order_entity():
     item = OrderItemEntity(
         id=uuid.uuid4(),
         pedido_id=order.id,
-        producto_id=uuid.uuid4(),
         inventario_id=uuid.uuid4(),
         cantidad=5,
         precio_unitario=Decimal("20.00"),
         precio_total=Decimal("100.00"),
         product_name="Test Product",
         product_sku="TEST-SKU",
+        product_category="medicamentos_generales",
         warehouse_id=uuid.uuid4(),
         warehouse_name="Test Warehouse",
         warehouse_city="Test City",
@@ -91,13 +91,13 @@ def sample_order_model():
     item_model = OrderItemModel(
         id=uuid.uuid4(),
         pedido_id=order_model.id,
-        producto_id=uuid.uuid4(),
         inventario_id=uuid.uuid4(),
         cantidad=5,
         precio_unitario=Decimal("20.00"),
         precio_total=Decimal("100.00"),
         product_name="Test Product",
         product_sku="TEST-SKU",
+        product_category="medicamentos_generales",
         warehouse_id=uuid.uuid4(),
         warehouse_name="Test Warehouse",
         warehouse_city="Test City",
@@ -138,20 +138,6 @@ class TestOrderRepositoryToEntity:
         assert entity.metodo_creacion == CreationMethod.APP_VENDEDOR
         assert isinstance(entity.metodo_creacion, CreationMethod)
 
-    def test_converts_visita_vendedor_metodo_creacion_correctly(
-        self, order_repository, sample_order_model
-    ):
-        """Test that metodo_creacion is converted from string to enum correctly for visita_vendedor."""
-        sample_order_model.metodo_creacion = "visita_vendedor"
-        sample_order_model.seller_id = uuid.uuid4()
-        sample_order_model.visit_id = uuid.uuid4()
-        sample_order_model.seller_name = "Test Seller"
-        sample_order_model.seller_email = "seller@example.com"
-
-        entity = order_repository._to_entity(sample_order_model)
-
-        assert entity.metodo_creacion == CreationMethod.VISITA_VENDEDOR
-        assert isinstance(entity.metodo_creacion, CreationMethod)
 
     def test_converts_all_order_fields_correctly(
         self, order_repository, sample_order_model
@@ -183,7 +169,6 @@ class TestOrderRepositoryToEntity:
 
         assert item.id == item_model.id
         assert item.pedido_id == item_model.pedido_id
-        assert item.producto_id == item_model.producto_id
         assert item.inventario_id == item_model.inventario_id
         assert item.cantidad == item_model.cantidad
         assert item.precio_unitario == item_model.precio_unitario
@@ -211,7 +196,6 @@ class TestOrderRepositoryToEntity:
         assert entity.seller_id is None
         assert entity.seller_name is None
         assert entity.seller_email is None
-        assert entity.visit_id is None
 
     def test_handles_optional_route_field(
         self, order_repository, sample_order_model
@@ -272,13 +256,13 @@ class TestOrderRepositorySave:
         item2 = OrderItemEntity(
             id=uuid.uuid4(),
             pedido_id=sample_order_entity.id,
-            producto_id=uuid.uuid4(),
             inventario_id=uuid.uuid4(),
             cantidad=3,
             precio_unitario=Decimal("30.00"),
             precio_total=Decimal("90.00"),
             product_name="Test Product 2",
             product_sku="TEST-SKU-2",
+            product_category="medicamentos_generales",
             warehouse_id=uuid.uuid4(),
             warehouse_name="Test Warehouse",
             warehouse_city="Test City",
@@ -296,7 +280,6 @@ class TestOrderRepositorySave:
         item_model2 = OrderItemModel(
             id=item2.id,
             pedido_id=sample_order_model.id,
-            producto_id=item2.producto_id,
             inventario_id=item2.inventario_id,
             cantidad=item2.cantidad,
             precio_unitario=item2.precio_unitario,

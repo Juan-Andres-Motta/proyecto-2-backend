@@ -33,29 +33,56 @@ class ClientAdapter(ClientPort):
         """
         self.client = http_client
 
-    async def list_clients(self, vendedor_asignado_id: UUID | None = None) -> ClientListResponse:
+    async def list_clients(
+        self,
+        vendedor_asignado_id: UUID | None = None,
+        client_name: str | None = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> ClientListResponse:
         """
         List clients, optionally filtered by assigned seller.
 
         Args:
             vendedor_asignado_id: Optional seller ID to filter clients
+            client_name: Optional institution name filter (partial match)
+            page: Page number (1-indexed)
+            page_size: Number of items per page
 
         Returns:
-            List of clients
+            List of clients with pagination metadata
 
         Raises:
             MicroserviceConnectionError: If unable to connect to client service
             MicroserviceHTTPError: If client service returns an error
         """
-        logger.info(f"Listing clients (sellers app): vendedor_asignado_id={vendedor_asignado_id}")
+        logger.info(
+            f"Listing clients (sellers app): vendedor_asignado_id={vendedor_asignado_id}, "
+            f"client_name={client_name}, page={page}, page_size={page_size}"
+        )
 
-        params = {}
+        params = {
+            "page": page,
+            "page_size": page_size
+        }
         if vendedor_asignado_id:
             params["vendedor_asignado_id"] = str(vendedor_asignado_id)
+        if client_name:
+            params["client_name"] = client_name
 
         response_data = await self.client.get("/client/clients", params=params)
 
-        return ClientListResponse(**response_data)
+        # Transform nested pagination to flat pattern
+        pagination_metadata = response_data.get("pagination", {})
+
+        return ClientListResponse(
+            items=[ClientResponse(**client) for client in response_data.get("clients", [])],
+            total=pagination_metadata.get("total_results", 0),
+            page=pagination_metadata.get("current_page", page),
+            size=pagination_metadata.get("page_size", page_size),
+            has_next=pagination_metadata.get("has_next", False),
+            has_previous=pagination_metadata.get("has_previous", False),
+        )
 
     async def get_client_by_id(self, client_id: UUID) -> ClientResponse:
         """

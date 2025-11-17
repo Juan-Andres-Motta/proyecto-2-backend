@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 import pycountry
-from pydantic import BaseModel, field_serializer, field_validator
+from pydantic import BaseModel, computed_field, field_serializer, field_validator
 
 from .examples import inventory_create_example, warehouse_create_example
 
@@ -75,6 +75,7 @@ class InventoryCreate(BaseModel):
     product_sku: str
     product_name: str
     product_price: float
+    product_category: Optional[str] = None
 
     model_config = {"json_schema_extra": {"examples": [inventory_create_example]}}
 
@@ -103,10 +104,18 @@ class InventoryResponse(BaseModel):
     product_sku: str
     product_name: str
     product_price: float
+    product_category: Optional[str] = None
     warehouse_name: str
     warehouse_city: str
+    warehouse_country: str
     created_at: datetime
     updated_at: datetime
+
+    @computed_field
+    @property
+    def available_quantity(self) -> int:
+        """Computed field: available quantity = total - reserved."""
+        return self.total_quantity - self.reserved_quantity
 
 
 class PaginatedInventoriesResponse(BaseModel):
@@ -161,3 +170,25 @@ class PaginatedReportsResponse(BaseModel):
     size: int
     has_next: bool
     has_previous: bool
+
+
+class InventoryReserveRequest(BaseModel):
+    """Request to update reserved quantity on inventory."""
+
+    quantity_delta: int
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"quantity_delta": 10},
+                {"quantity_delta": -5},
+            ]
+        }
+    }
+
+    @field_validator("quantity_delta")
+    @classmethod
+    def validate_quantity_delta(cls, v: int) -> int:
+        if v == 0:
+            raise ValueError("quantity_delta cannot be zero")
+        return v

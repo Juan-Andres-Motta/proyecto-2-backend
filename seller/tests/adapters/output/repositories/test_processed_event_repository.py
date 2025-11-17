@@ -242,6 +242,99 @@ class TestGetByEventId:
         assert result.processed_at is not None
 
 
+class TestHasBeenProcessedExceptionHandling:
+    """Tests for exception handling in has_been_processed() method."""
+
+    @pytest.mark.asyncio
+    async def test_has_been_processed_raises_on_database_error(self, processed_event_repository):
+        """Test that database errors are raised and not silently caught."""
+        from unittest.mock import AsyncMock
+
+        # Mock the session to raise an error
+        mock_session = AsyncMock()
+        mock_session.execute.side_effect = Exception("Database connection error")
+
+        repository = ProcessedEventRepository(session=mock_session)
+
+        with pytest.raises(Exception) as exc_info:
+            await repository.has_been_processed("evt-error-123")
+
+        assert "Database connection error" in str(exc_info.value)
+
+
+class TestMarkAsProcessedExceptionHandling:
+    """Tests for exception handling in mark_as_processed() method."""
+
+    @pytest.mark.asyncio
+    async def test_mark_as_processed_handles_integrity_error_rollback(
+        self, processed_event_repository, sample_processed_event, db_session
+    ):
+        """Test that IntegrityError causes rollback and is raised."""
+        # Save first event
+        await processed_event_repository.mark_as_processed(sample_processed_event)
+
+        # Create duplicate with same event_id
+        duplicate = ProcessedEvent.create_new(
+            event_id=sample_processed_event.event_id,  # Same event_id
+            event_type="order_updated",
+            microservice="order",
+            payload_snapshot='{"duplicate": true}',
+        )
+
+        # Should raise IntegrityError and rollback
+        with pytest.raises(IntegrityError):
+            await processed_event_repository.mark_as_processed(duplicate)
+
+        # Verify only original event is in database
+        result = await processed_event_repository.get_by_event_id(
+            sample_processed_event.event_id
+        )
+        assert result.event_type == "order_created"  # Original, not duplicate
+
+    @pytest.mark.asyncio
+    async def test_mark_as_processed_handles_generic_exception_rollback(
+        self, processed_event_repository, sample_processed_event
+    ):
+        """Test that generic exceptions cause rollback and are raised."""
+        from unittest.mock import AsyncMock
+
+        # Mock session to raise a generic error during commit
+        mock_session = AsyncMock()
+        mock_session.commit.side_effect = Exception("Unexpected database error")
+
+        repository = ProcessedEventRepository(session=mock_session)
+
+        # Should raise the exception
+        with pytest.raises(Exception) as exc_info:
+            await repository.mark_as_processed(sample_processed_event)
+
+        assert "Unexpected database error" in str(exc_info.value)
+        # Verify rollback was called
+        mock_session.rollback.assert_called_once()
+
+
+class TestGetByEventIdExceptionHandling:
+    """Tests for exception handling in get_by_event_id() method."""
+
+    @pytest.mark.asyncio
+    async def test_get_by_event_id_raises_on_database_error(
+        self, processed_event_repository
+    ):
+        """Test that database errors are raised and not silently caught."""
+        from unittest.mock import AsyncMock
+
+        # Mock the session to raise an error
+        mock_session = AsyncMock()
+        mock_session.execute.side_effect = Exception("Database query failed")
+
+        repository = ProcessedEventRepository(session=mock_session)
+
+        with pytest.raises(Exception) as exc_info:
+            await repository.get_by_event_id("evt-error-123")
+
+        assert "Database query failed" in str(exc_info.value)
+
+
 class TestProcessedEventRepositoryIntegration:
     """Integration tests for repository operations."""
 

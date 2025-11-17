@@ -41,7 +41,6 @@ def sample_event_data():
         "metodo_creacion": "app_cliente",
         "items": [
             {
-                "producto_id": str(uuid4()),
                 "cantidad": 5,
                 "precio_unitario": Decimal("250.10"),
             }
@@ -526,12 +525,10 @@ class TestEventPublishingWithDifferentPayloads:
             "monto_total": Decimal("2500.00"),
             "items": [
                 {
-                    "producto_id": str(uuid4()),
                     "cantidad": 5,
                     "precio_unitario": Decimal("250.10"),
                 },
                 {
-                    "producto_id": str(uuid4()),
                     "cantidad": 3,
                     "precio_unitario": Decimal("400.00"),
                 },

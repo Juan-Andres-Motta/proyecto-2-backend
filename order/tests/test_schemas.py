@@ -9,7 +9,7 @@ from src.adapters.input.schemas import OrderItemInput, OrderCreateInput
 def test_order_item_invalid_cantidad_zero():
     """Test OrderItemInput with cantidad = 0 (covers line 22)."""
     data = {
-        "producto_id": str(uuid4()),
+        "inventario_id": str(uuid4()),
         "cantidad": 0  # Invalid: must be > 0
     }
 
@@ -22,7 +22,7 @@ def test_order_item_invalid_cantidad_zero():
 def test_order_item_invalid_cantidad_negative():
     """Test OrderItemInput with negative cantidad."""
     data = {
-        "producto_id": str(uuid4()),
+        "inventario_id": str(uuid4()),
         "cantidad": -5  # Invalid: must be > 0
     }
 
@@ -53,7 +53,7 @@ def test_order_create_invalid_metodo_creacion():
         "metodo_creacion": "invalid_method",
         "items": [
             {
-                "producto_id": str(uuid4()),
+                "inventario_id": str(uuid4()),
                 "cantidad": 5
             }
         ]

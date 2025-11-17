@@ -1,6 +1,6 @@
 """HTTP adapter for visit operations (BFF → Seller Service)."""
 import logging
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from common.http_client import HttpClient
@@ -13,6 +13,7 @@ from sellers_app.schemas.visit_schemas import (
     VisitResponseBFF,
     PreSignedUploadURLResponseBFF,
     ListVisitsResponseBFF,
+    VisitStatusFilter,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,25 +92,63 @@ class VisitAdapter(VisitPort):
         return VisitResponseBFF(**response_data)
 
     async def list_visits(
-        self, seller_id: UUID, date: datetime
-    ) -> ListVisitsResponseBFF:
-        """List visits for a specific date via Seller Service.
+        self,
+        seller_id: UUID,
+        status: VisitStatusFilter,
+        page: int,
+        page_size: int,
+        client_name: str | None = None
+    ) -> dict:
+        """List visits by temporal status with pagination.
+
+        Translates status to date ranges:
+        - TODAY: date_from=today, date_to=today
+        - PAST: date_from=None, date_to=yesterday
+        - FUTURE: date_from=tomorrow, date_to=None
 
         Args:
             seller_id: ID of authenticated seller
-            date: Date to query
+            status: Temporal status filter
+            page: Page number (1-indexed)
+            page_size: Number of items per page
+            client_name: Optional filter by client institution name (partial match)
 
         Returns:
-            List of visits response
+            Dictionary with 'visits' and 'pagination' keys
         """
+        today = date.today()
+
+        # Translate status to date ranges
+        if status == VisitStatusFilter.TODAY:
+            date_from = today
+            date_to = today
+        elif status == VisitStatusFilter.PAST:
+            date_from = None
+            date_to = today - timedelta(days=1)
+        else:  # FUTURE
+            date_from = today + timedelta(days=1)
+            date_to = None
+
+        # Build params for seller service
         params = {
             "seller_id": str(seller_id),
-            "date": date.isoformat(),
+            "page": page,
+            "page_size": page_size
         }
+        if date_from:
+            params["date_from"] = date_from.isoformat()
+        if date_to:
+            params["date_to"] = date_to.isoformat()
+        if client_name:
+            params["client_name"] = client_name
 
-        logger.info(f"Listing visits for seller {seller_id} on {date.date()}")
+        logger.info(
+            f"Listing visits for seller {seller_id} with status={status.value}, "
+            f"page={page}, page_size={page_size}, date_from={date_from}, date_to={date_to}, "
+            f"client_name={client_name}"
+        )
         response_data = await self.client.get("/seller/visits", params=params)
-        return ListVisitsResponseBFF(**response_data)
+        return response_data
 
     async def generate_evidence_upload_url(
         self, visit_id: UUID, seller_id: UUID, request: GenerateEvidenceUploadURLRequestBFF

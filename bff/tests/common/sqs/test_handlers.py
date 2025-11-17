@@ -1,7 +1,7 @@
 """Unit tests for SQS event handlers."""
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 from common.sqs.handlers import EventHandlers
 
@@ -13,6 +13,8 @@ class TestHandleWebReportGenerated:
     async def test_publishes_to_user_channel(self):
         """Test publishes to correct user channel."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -24,7 +26,7 @@ class TestHandleWebReportGenerated:
         await handlers.handle_web_report_generated(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="web:users:user-123",
+            channel="web:user-123",
             event_name="report.generated",
             data={"report_id": "report-456"},
         )
@@ -33,6 +35,7 @@ class TestHandleWebReportGenerated:
     async def test_handles_missing_user_id(self, caplog):
         """Test logs warning when user_id missing."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {"event_type": "web_report_generated", "report_id": "report-456"}
@@ -46,6 +49,8 @@ class TestHandleWebReportGenerated:
     async def test_handles_missing_report_id(self):
         """Test handles missing report_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {"event_type": "web_report_generated", "user_id": "user-123"}
@@ -53,7 +58,7 @@ class TestHandleWebReportGenerated:
         await handlers.handle_web_report_generated(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="web:users:user-123",
+            channel="web:user-123",
             event_name="report.generated",
             data=None,
         )
@@ -63,37 +68,25 @@ class TestHandleWebDeliveryRoutes:
     """Tests for handle_web_delivery_routes."""
 
     @pytest.mark.asyncio
-    async def test_publishes_to_user_channel(self):
-        """Test publishes to correct user channel."""
+    async def test_publishes_to_broadcasts_channel(self):
+        """Test publishes to web:broadcasts channel for all users."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
             "event_type": "web_delivery_routes",
-            "user_id": "user-123",
             "route_id": "route-456",
         }
 
         await handlers.handle_web_delivery_routes(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="web:users:user-123",
-            event_name="delivery_routes.generated",
+            channel="web:broadcasts",
+            event_name="routes.generated",
             data={"route_id": "route-456"},
         )
-
-    @pytest.mark.asyncio
-    async def test_handles_missing_user_id(self, caplog):
-        """Test logs warning when user_id missing."""
-        publisher = Mock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {"event_type": "web_delivery_routes"}
-
-        await handlers.handle_web_delivery_routes(event_data)
-
-        assert "missing user_id" in caplog.text
-        publisher.publish.assert_not_called()
 
 
 class TestHandleMobileSellerVisitRoutes:
@@ -103,6 +96,8 @@ class TestHandleMobileSellerVisitRoutes:
     async def test_publishes_to_seller_channel(self):
         """Test publishes to correct seller channel."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -123,6 +118,7 @@ class TestHandleMobileSellerVisitRoutes:
     async def test_handles_missing_seller_id(self, caplog):
         """Test logs warning when seller_id missing."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {"event_type": "mobile_seller_visit_routes"}
@@ -140,6 +136,7 @@ class TestHandleOrderCreation:
     async def test_publishes_to_mobile_products_channel(self):
         """Test publishes to mobile:products channel."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -164,6 +161,7 @@ class TestHandleOrderCreation:
     async def test_publishes_with_order_and_customer_data(self):
         """Test publishes to mobile:products channel with order data."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -184,6 +182,7 @@ class TestHandleOrderCreation:
     async def test_handles_missing_order_id(self):
         """Test handles missing order_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -204,6 +203,7 @@ class TestHandleOrderCreation:
     async def test_handles_missing_customer_id(self):
         """Test handles missing customer_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -228,6 +228,7 @@ class TestHandleReportGenerated:
     async def test_publishes_to_user_report_channel(self):
         """Test publishes to correct user report channel."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -238,7 +239,7 @@ class TestHandleReportGenerated:
         await handlers.handle_report_generated(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="web:users:user-123:report",
+            channel="web:user-123",
             event_name="report.generated",
             data=None,
         )
@@ -247,6 +248,7 @@ class TestHandleReportGenerated:
     async def test_handles_missing_user_id(self, caplog):
         """Test logs warning when user_id missing."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {"event_type": "report_generated"}
@@ -260,6 +262,7 @@ class TestHandleReportGenerated:
     async def test_sends_no_data_to_client(self):
         """Test that no data is sent to client (client should refetch)."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {
@@ -281,6 +284,7 @@ class TestEventHandlersIntegration:
     async def test_multiple_event_types_with_same_publisher(self):
         """Test handling multiple event types with same publisher instance."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         # Handle first event
@@ -300,15 +304,16 @@ class TestEventHandlersIntegration:
     async def test_web_delivery_routes_handles_missing_route_id(self):
         """Test web_delivery_routes handles missing route_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
-        event_data = {"event_type": "web_delivery_routes", "user_id": "user-123"}
+        event_data = {"event_type": "web_delivery_routes"}
 
         await handlers.handle_web_delivery_routes(event_data)
 
         publisher.publish.assert_called_once_with(
-            channel="web:users:user-123",
-            event_name="delivery_routes.generated",
+            channel="web:broadcasts",
+            event_name="routes.generated",
             data=None,
         )
 
@@ -316,6 +321,7 @@ class TestEventHandlersIntegration:
     async def test_mobile_seller_visit_routes_handles_missing_route_id(self):
         """Test mobile_seller_visit_routes handles missing route_id gracefully."""
         publisher = Mock()
+        publisher.publish = AsyncMock()
         handlers = EventHandlers(publisher)
 
         event_data = {"event_type": "mobile_seller_visit_routes", "seller_id": "seller-123"}

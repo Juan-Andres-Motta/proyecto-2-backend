@@ -1,9 +1,20 @@
 """Pydantic schemas for visit operations in BFF."""
 from datetime import datetime
-from typing import Optional
+from enum import Enum
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+
+# ========== Enums ==========
+
+
+class VisitStatusFilter(str, Enum):
+    """Temporal status filter for visits."""
+    TODAY = "today"
+    PAST = "past"
+    FUTURE = "future"
 
 
 # ========== Request Schemas ==========
@@ -75,5 +86,10 @@ class PreSignedUploadURLResponseBFF(BaseModel):
 class ListVisitsResponseBFF(BaseModel):
     """Response schema for listing visits (BFF)."""
 
-    visits: list[VisitResponseBFF]
-    count: int
+    status: VisitStatusFilter = Field(..., description="Temporal status filter applied")
+    items: List[VisitResponseBFF] = Field(..., description="List of visits")
+    total: int = Field(..., description="Total number of results across all pages")
+    page: int = Field(..., description="Current page number (1-indexed)")
+    size: int = Field(..., description="Number of items per page")
+    has_next: bool = Field(..., description="Whether there is a next page")
+    has_previous: bool = Field(..., description="Whether there is a previous page")

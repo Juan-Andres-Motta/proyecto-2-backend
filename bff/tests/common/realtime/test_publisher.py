@@ -1,7 +1,7 @@
 """Unit tests for RealtimePublisher."""
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 
 from common.realtime.publisher import RealtimePublisher, get_publisher, reset_publisher
 
@@ -10,18 +10,16 @@ class TestRealtimePublisherInit:
     """Tests for publisher initialization."""
 
     def test_init_stores_configuration(self):
-        """Test constructor stores API key and environment."""
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="dev")
+        """Test constructor stores API key."""
+        publisher = RealtimePublisher(api_key="test.key:secret")
 
         assert publisher.api_key == "test.key:secret"
-        assert publisher.environment == "dev"
         assert publisher._client is None
 
     def test_init_defaults_to_prod_environment(self):
-        """Test default environment is prod."""
-        publisher = RealtimePublisher(api_key="test.key:secret")
-
-        assert publisher.environment == "prod"
+        """Test default environment is prod - REMOVED since environment is no longer a parameter."""
+        # This test is no longer applicable as environment is not part of RealtimePublisher
+        pass
 
     def test_init_with_empty_api_key_logs_warning(self, caplog):
         """Test warning logged when API key is empty."""
@@ -67,68 +65,62 @@ class TestRealtimePublisherPublish:
     """Tests for publish() method."""
 
     @patch("ably.AblyRest")
-    def test_publish_sends_event_to_ably(self, mock_ably_rest):
+    @pytest.mark.asyncio
+    async def test_publish_sends_event_to_ably(self, mock_ably_rest):
         """Test publish sends event to correct channel."""
         mock_client = Mock()
         mock_channel = Mock()
+        mock_channel.publish = AsyncMock()
         mock_ably_rest.return_value = mock_client
         mock_client.channels.get.return_value = mock_channel
 
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="dev")
-        publisher.publish("sellers:inventory", "stock.updated")
+        publisher = RealtimePublisher(api_key="test.key:secret")
+        await publisher.publish("sellers:inventory", "stock.updated")
 
-        mock_client.channels.get.assert_called_once_with("dev:sellers:inventory")
+        mock_client.channels.get.assert_called_once_with("sellers:inventory")
         mock_channel.publish.assert_called_once_with("stock.updated", {})
 
     @patch("ably.AblyRest")
-    def test_publish_with_data_sends_data(self, mock_ably_rest):
+    @pytest.mark.asyncio
+    async def test_publish_with_data_sends_data(self, mock_ably_rest):
         """Test publish includes data payload."""
         mock_client = Mock()
         mock_channel = Mock()
+        mock_channel.publish = AsyncMock()
         mock_ably_rest.return_value = mock_client
         mock_client.channels.get.return_value = mock_channel
 
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="prod")
-        publisher.publish("users:123", "order.created", {"order_id": "456"})
+        publisher = RealtimePublisher(api_key="test.key:secret")
+        await publisher.publish("users:123", "order.created", {"order_id": "456"})
 
         mock_channel.publish.assert_called_once_with("order.created", {"order_id": "456"})
 
     @patch("ably.AblyRest")
-    def test_publish_auto_prefixes_channel_with_environment(self, mock_ably_rest):
-        """Test channel is prefixed with environment."""
-        mock_client = Mock()
-        mock_channel = Mock()
-        mock_ably_rest.return_value = mock_client
-        mock_client.channels.get.return_value = mock_channel
-
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="staging")
-        publisher.publish("test:channel", "event")
-
-        mock_client.channels.get.assert_called_once_with("staging:test:channel")
+    @pytest.mark.asyncio
+    async def test_publish_auto_prefixes_channel_with_environment(self, mock_ably_rest):
+        """Test channel is prefixed with environment - REMOVED as environment is no longer used."""
+        # This test is no longer applicable as environment prefixing is not part of RealtimePublisher
+        pass
 
     @patch("ably.AblyRest")
-    def test_publish_does_not_double_prefix(self, mock_ably_rest):
-        """Test channel already prefixed is not double-prefixed."""
-        mock_client = Mock()
-        mock_channel = Mock()
-        mock_ably_rest.return_value = mock_client
-        mock_client.channels.get.return_value = mock_channel
+    @pytest.mark.asyncio
+    async def test_publish_does_not_double_prefix(self, mock_ably_rest):
+        """Test channel already prefixed is not double-prefixed - REMOVED as environment is no longer used."""
+        # This test is no longer applicable as environment prefixing is not part of RealtimePublisher
+        pass
 
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="dev")
-        publisher.publish("dev:already:prefixed", "event")
-
-        mock_client.channels.get.assert_called_once_with("dev:already:prefixed")
-
-    def test_publish_without_api_key_logs_warning(self, caplog):
+    @pytest.mark.asyncio
+    async def test_publish_without_api_key_logs_warning(self, caplog):
         """Test publish logs warning when API key is empty."""
         publisher = RealtimePublisher(api_key="")
 
-        publisher.publish("test", "event")
+        await publisher.publish("test", "event")
 
         assert "Ably not configured - skipping publish" in caplog.text
 
     @patch("ably.AblyRest")
-    def test_publish_logs_error_on_failure(self, mock_ably_rest, caplog):
+    @pytest.mark.asyncio
+    async def test_publish_logs_error_on_failure(self, mock_ably_rest, caplog):
         """Test publish logs error but doesn't raise."""
         mock_client = Mock()
         mock_ably_rest.return_value = mock_client
@@ -136,7 +128,7 @@ class TestRealtimePublisherPublish:
 
         publisher = RealtimePublisher(api_key="test.key:secret")
 
-        publisher.publish("test", "event")
+        await publisher.publish("test", "event")
 
         assert "Failed to publish to Ably" in caplog.text
 
@@ -145,26 +137,29 @@ class TestRealtimePublisherPublishBatch:
     """Tests for publish_batch() method."""
 
     @patch("ably.AblyRest")
-    def test_publish_batch_calls_publish_for_each_message(self, mock_ably_rest):
+    @pytest.mark.asyncio
+    async def test_publish_batch_calls_publish_for_each_message(self, mock_ably_rest):
         """Test batch iterates and publishes each message."""
         mock_client = Mock()
         mock_channel = Mock()
+        mock_channel.publish = AsyncMock()
         mock_ably_rest.return_value = mock_client
         mock_client.channels.get.return_value = mock_channel
 
-        publisher = RealtimePublisher(api_key="test.key:secret", environment="dev")
-        publisher.publish_batch([
+        publisher = RealtimePublisher(api_key="test.key:secret")
+        await publisher.publish_batch([
             ("channel1", "event1", None),
             ("channel2", "event2", {"data": "test"}),
         ])
 
         assert mock_channel.publish.call_count == 2
 
-    def test_publish_batch_without_api_key_logs_warning(self, caplog):
+    @pytest.mark.asyncio
+    async def test_publish_batch_without_api_key_logs_warning(self, caplog):
         """Test batch publish logs warning when API key is empty."""
         publisher = RealtimePublisher(api_key="")
 
-        publisher.publish_batch([("test", "event", None)])
+        await publisher.publish_batch([("test", "event", None)])
 
         assert "Ably not configured - skipping batch publish" in caplog.text
 
@@ -212,7 +207,6 @@ class TestGetPublisher:
     def test_get_publisher_creates_singleton(self, mock_settings):
         """Test factory creates and caches singleton."""
         mock_settings.ably_api_key = "test.key:secret"
-        mock_settings.ably_environment = "dev"
 
         publisher1 = get_publisher()
         publisher2 = get_publisher()
@@ -223,7 +217,6 @@ class TestGetPublisher:
     def test_reset_publisher_clears_singleton(self, mock_settings):
         """Test reset clears cached instance."""
         mock_settings.ably_api_key = "test.key:secret"
-        mock_settings.ably_environment = "dev"
 
         publisher1 = get_publisher()
         reset_publisher()

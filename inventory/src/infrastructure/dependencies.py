@@ -14,12 +14,17 @@ from src.application.use_cases.create_inventory import CreateInventoryUseCase
 from src.application.use_cases.create_report import CreateReportUseCase
 from src.application.use_cases.create_warehouse import CreateWarehouseUseCase
 from src.application.use_cases.generate_report import GenerateReportUseCase
+from src.application.use_cases.get_inventory import GetInventoryUseCase
 from src.application.use_cases.get_report import GetReportUseCase
 from src.application.use_cases.list_inventories import ListInventoriesUseCase
 from src.application.use_cases.list_reports import ListReportsUseCase
 from src.application.use_cases.list_warehouses import ListWarehousesUseCase
+from src.application.use_cases.update_reserved_quantity import (
+    UpdateReservedQuantityUseCase,
+)
 from src.domain.services.s3_service import S3Service
 from src.domain.services.sqs_publisher import SQSPublisher
+from src.infrastructure.config.settings import settings
 from src.infrastructure.database.config import get_db
 
 
@@ -67,6 +72,20 @@ def get_list_inventories_use_case(
 ) -> ListInventoriesUseCase:
     """Get list inventories use case with injected dependencies."""
     return ListInventoriesUseCase(repo)
+
+
+def get_get_inventory_use_case(
+    repo: InventoryRepositoryPort = Depends(get_inventory_repository),
+) -> GetInventoryUseCase:
+    """Get single inventory use case with injected dependencies."""
+    return GetInventoryUseCase(repo)
+
+
+def get_update_reserved_quantity_use_case(
+    repo: InventoryRepositoryPort = Depends(get_inventory_repository),
+) -> UpdateReservedQuantityUseCase:
+    """Get update reserved quantity use case with injected dependencies."""
+    return UpdateReservedQuantityUseCase(repo)
 
 
 # Repository providers - Report

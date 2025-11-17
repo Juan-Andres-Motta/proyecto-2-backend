@@ -18,12 +18,6 @@ from src.adapters.input.schemas import (
     OrderResponse,
     PaginatedOrdersResponse,
 )
-from src.adapters.output.adapters import (
-    MockCustomerAdapter,
-    MockInventoryAdapter,
-    MockSellerAdapter,
-)
-from src.adapters.output.adapters.sns_event_publisher import SNSEventPublisher
 from src.adapters.output.repositories.order_repository import OrderRepository
 from src.application.use_cases import (
     CreateOrderInput,
@@ -35,8 +29,8 @@ from src.application.use_cases import (
 from src.application.use_cases.list_customer_orders import ListCustomerOrdersUseCase
 from src.domain.entities import Order as OrderEntity
 from src.domain.value_objects import CreationMethod
-from src.infrastructure.config.settings import settings
 from src.infrastructure.database.config import get_db
+from src.infrastructure.dependencies import get_create_order_use_case
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["orders"])
@@ -56,7 +50,6 @@ def _entity_to_response(order_entity: OrderEntity) -> OrderResponse:
         id=order_entity.id,
         customer_id=order_entity.customer_id,
         seller_id=order_entity.seller_id,
-        visit_id=order_entity.visit_id,
         route_id=order_entity.route_id,
         fecha_pedido=order_entity.fecha_pedido,
         fecha_entrega_estimada=order_entity.fecha_entrega_estimada,
@@ -76,13 +69,13 @@ def _entity_to_response(order_entity: OrderEntity) -> OrderResponse:
             OrderItemResponse(
                 id=item.id,
                 pedido_id=item.pedido_id,
-                producto_id=item.producto_id,
                 inventario_id=item.inventario_id,
                 cantidad=item.cantidad,
                 precio_unitario=item.precio_unitario,
                 precio_total=item.precio_total,
                 product_name=item.product_name,
                 product_sku=item.product_sku,
+                product_category=item.product_category,
                 warehouse_id=item.warehouse_id,
                 warehouse_name=item.warehouse_name,
                 warehouse_city=item.warehouse_city,
@@ -109,21 +102,22 @@ def _entity_to_response(order_entity: OrderEntity) -> OrderResponse:
     },
 )
 async def create_order(
-    order_input: OrderCreateInput, db: AsyncSession = Depends(get_db)
+    order_input: OrderCreateInput,
+    use_case: CreateOrderUseCase = Depends(get_create_order_use_case),
 ):
     """
     Create a new order.
 
     This endpoint:
-    1. Validates customer, seller, visit (based on creation method)
-    2. Allocates inventory using FEFO logic
+    1. Validates customer and seller (based on creation method)
+    2. Validates inventory availability (client provides inventario_id)
     3. Applies 30% markup to product prices
-    4. Creates order with denormalized data
+    4. Creates order with denormalized data (including seller_name and seller_email if provided)
     5. Publishes order_created event (fire-and-forget)
 
     Args:
         order_input: Order creation input
-        db: Database session
+        use_case: CreateOrderUseCase injected via dependency injection
 
     Returns:
         OrderCreateResponse with order ID
@@ -134,39 +128,20 @@ async def create_order(
     logger.info(f"Creating order for customer {order_input.customer_id}")
 
     try:
-        # Initialize repository and adapters
-        repository = OrderRepository(db)
-        customer_adapter = MockCustomerAdapter()
-        seller_adapter = MockSellerAdapter()
-        inventory_adapter = MockInventoryAdapter()
-        # Use SNS for event publishing (fanout pattern to multiple consumers)
-        event_publisher = SNSEventPublisher(
-            topic_arn=settings.sns_order_events_topic_arn,
-            aws_region=settings.aws_region,
-            endpoint_url=settings.aws_endpoint_url,
-        )
-
-        # Initialize use case
-        use_case = CreateOrderUseCase(
-            order_repository=repository,
-            customer_port=customer_adapter,
-            seller_port=seller_adapter,
-            inventory_port=inventory_adapter,
-            event_publisher=event_publisher,
-        )
-
         # Convert schema to use case input
         use_case_input = CreateOrderInput(
             customer_id=order_input.customer_id,
             metodo_creacion=CreationMethod(order_input.metodo_creacion),
             items=[
                 UseCaseOrderItemInput(
-                    producto_id=item.producto_id, cantidad=item.cantidad
+                    inventario_id=item.inventario_id,
+                    cantidad=item.cantidad,
                 )
                 for item in order_input.items
             ],
             seller_id=order_input.seller_id,
-            visit_id=order_input.visit_id,
+            seller_name=order_input.seller_name,
+            seller_email=order_input.seller_email,
         )
 
         # Execute use case

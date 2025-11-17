@@ -12,9 +12,8 @@ TData = TypeVar('TData', bound=Dict[str, Any])
 class RealtimePublisher(Generic[TData]):
     """Real-time publisher using Ably. Generic over event data types."""
 
-    def __init__(self, api_key: str, environment: str = "prod"):
+    def __init__(self, api_key: str):
         self.api_key = api_key
-        self.environment = environment
         self._client: Optional[Any] = None
 
         if not api_key:
@@ -35,7 +34,7 @@ class RealtimePublisher(Generic[TData]):
 
         return self._client
 
-    def publish(
+    async def publish(
         self,
         channel: str,
         event_name: str,
@@ -46,24 +45,19 @@ class RealtimePublisher(Generic[TData]):
             logger.warning(f"Ably not configured - skipping publish: {channel}:{event_name}")
             return
 
-        full_channel = (
-            channel if channel.startswith(f"{self.environment}:")
-            else f"{self.environment}:{channel}"
-        )
-
         try:
             client = self._get_client()
-            channel_obj = client.channels.get(full_channel)
-            channel_obj.publish(event_name, data or {})
+            channel_obj = client.channels.get(channel)
+            await channel_obj.publish(event_name, data or {})
 
             logger.info(
-                f"Published to Ably: {full_channel}:{event_name}",
-                extra={"channel": full_channel, "event": event_name, "has_data": data is not None},
+                f"Published to Ably: {channel}:{event_name}",
+                extra={"channel": channel, "event": event_name, "has_data": data is not None},
             )
         except Exception as e:
-            logger.error(f"Failed to publish to Ably: {full_channel}:{event_name} - {e}", exc_info=True)
+            logger.error(f"Failed to publish to Ably: {channel}:{event_name} - {e}", exc_info=True)
 
-    def publish_batch(
+    async def publish_batch(
         self,
         messages: list[tuple[str, str, Optional[TData]]],
     ) -> None:
@@ -75,7 +69,7 @@ class RealtimePublisher(Generic[TData]):
         logger.info(f"Publishing batch of {len(messages)} messages to Ably")
 
         for channel, event_name, data in messages:
-            self.publish(channel, event_name, data)
+            await self.publish(channel, event_name, data)
 
     def health_check(self) -> bool:
         """Check if Ably service is reachable."""
@@ -103,7 +97,6 @@ def get_publisher() -> RealtimePublisher:
 
         _publisher_instance = RealtimePublisher(
             api_key=settings.ably_api_key,
-            environment=settings.ably_environment,
         )
         logger.info("Initialized Ably publisher")
 

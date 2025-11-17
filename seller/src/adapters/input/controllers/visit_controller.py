@@ -1,6 +1,7 @@
 """FastAPI controller for visit endpoints."""
 import logging
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -14,6 +15,7 @@ from src.adapters.input.schemas import (
     VisitResponse,
     PreSignedUploadURLResponse,
     ListVisitsResponse,
+    PaginationMetadata,
 )
 from src.application.use_cases.create_visit import CreateVisitUseCase
 from src.application.use_cases.update_visit_status import UpdateVisitStatusUseCase
@@ -218,25 +220,53 @@ async def update_visit_status(
 @router.get(
     "",
     response_model=ListVisitsResponse,
-    summary="List visits for a date",
-    description="Retrieves all visits for authenticated seller on specified date, "
-    "ordered chronologically.",
+    summary="List visits with optional date range",
+    description="Retrieves visits for seller with optional date filtering and pagination. "
+    "Use date_from/date_to to filter by temporal status (TODAY/PAST/FUTURE).",
 )
 async def list_visits(
-    date: datetime,
     seller_id: UUID = Query(..., description="Seller ID from BFF authentication"),
+    date_from: date | None = Query(None, description="Start date (inclusive)"),
+    date_to: date | None = Query(None, description="End date (inclusive)"),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(50, ge=1, le=100, description="Results per page (max 100)"),
+    client_name: Optional[str] = Query(None, description="Filter by client institution name (partial match)"),
     use_case: ListVisitsUseCase = Depends(get_list_visits_use_case),
     session: AsyncSession = Depends(get_db),
 ):
-    """List visits for a specific date.
+    """List visits with optional date range and pagination.
 
     The seller_id is provided as a query parameter by the BFF after JWT authentication.
+
+    Temporal filtering examples:
+    - TODAY: date_from=2025-11-16, date_to=2025-11-16
+    - PAST: date_to=2025-11-15 (no date_from)
+    - FUTURE: date_from=2025-11-17 (no date_to)
+    - ALL: No date filters
+
+    Results are ordered:
+    - PAST: Most recent first (DESC)
+    - TODAY/FUTURE: Nearest first (ASC)
     """
-    visits = await use_case.execute(seller_id=seller_id, date=date, session=session)
+    logger.info(
+        f"GET /visits: seller_id={seller_id}, date_from={date_from}, "
+        f"date_to={date_to}, page={page}, page_size={page_size}, client_name={client_name}"
+    )
+
+    visits, pagination_metadata = await use_case.execute(
+        seller_id=seller_id,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        page_size=page_size,
+        session=session,
+        client_name=client_name,
+    )
 
     return ListVisitsResponse(
         visits=[VisitResponse.model_validate(v) for v in visits],
-        count=len(visits),
+        count=pagination_metadata["total_results"],  # Backward compatibility
+        pagination=PaginationMetadata(**pagination_metadata),
     )
 
 

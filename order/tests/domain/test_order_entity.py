@@ -12,48 +12,15 @@ from src.domain.value_objects import CreationMethod
 class TestOrderEntityValidation:
     """Test Order entity business rule validation."""
 
-    def test_order_with_visita_vendedor_requires_seller_and_visit(self):
-        """Test that visita_vendedor requires both seller_id and visit_id."""
-        with pytest.raises(ValueError, match="seller_id is required"):
-            Order(
-                id=uuid4(),
-                customer_id=uuid4(),
-                seller_id=None,  # Missing
-                visit_id=uuid4(),
-                fecha_pedido=datetime.now(),
-                fecha_entrega_estimada=date.today() + timedelta(days=1),
-                metodo_creacion=CreationMethod.VISITA_VENDEDOR,
-                direccion_entrega="123 Main St",
-                ciudad_entrega="City",
-                pais_entrega="Country",
-                customer_name="John Doe",
-            )
-
-        with pytest.raises(ValueError, match="visit_id is required"):
-            Order(
-                id=uuid4(),
-                customer_id=uuid4(),
-                seller_id=uuid4(),
-                visit_id=None,  # Missing
-                fecha_pedido=datetime.now(),
-                fecha_entrega_estimada=date.today() + timedelta(days=1),
-                metodo_creacion=CreationMethod.VISITA_VENDEDOR,
-                direccion_entrega="123 Main St",
-                ciudad_entrega="City",
-                pais_entrega="Country",
-                customer_name="John Doe",
-                seller_name="Seller Name",
-            )
 
     def test_order_with_app_vendedor_requires_seller_only(self):
-        """Test that app_vendedor requires seller_id, visit_id is optional."""
+        """Test that app_vendedor requires seller_id."""
         # Test that seller_id is required
         with pytest.raises(ValueError, match="seller_id is required"):
             Order(
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,  # Missing
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_VENDEDOR,
@@ -63,12 +30,11 @@ class TestOrderEntityValidation:
                 customer_name="John Doe",
             )
 
-        # Test that visit_id is optional (can be present)
-        order_with_visit = Order(
+        # Test successful creation with seller_id and seller_name
+        order = Order(
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=uuid4(),
-            visit_id=uuid4(),  # Optional, allowed
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_VENDEDOR,
@@ -78,31 +44,15 @@ class TestOrderEntityValidation:
             customer_name="John Doe",
             seller_name="Seller Name",
         )
-        assert order_with_visit.visit_id is not None
+        assert order.seller_id is not None
 
-    def test_order_with_app_cliente_requires_no_seller_or_visit(self):
-        """Test that app_cliente requires neither seller_id nor visit_id."""
+    def test_order_with_app_cliente_requires_no_seller(self):
+        """Test that app_cliente requires seller_id to be None."""
         with pytest.raises(ValueError, match="seller_id must be None"):
             Order(
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=uuid4(),  # Should be None
-                visit_id=None,
-                fecha_pedido=datetime.now(),
-                fecha_entrega_estimada=date.today() + timedelta(days=1),
-                metodo_creacion=CreationMethod.APP_CLIENTE,
-                direccion_entrega="123 Main St",
-                ciudad_entrega="City",
-                pais_entrega="Country",
-                customer_name="John Doe",
-            )
-
-        with pytest.raises(ValueError, match="visit_id must be None"):
-            Order(
-                id=uuid4(),
-                customer_id=uuid4(),
-                seller_id=None,
-                visit_id=uuid4(),  # Should be None
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -119,7 +69,6 @@ class TestOrderEntityValidation:
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -136,7 +85,6 @@ class TestOrderEntityValidation:
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -153,7 +101,6 @@ class TestOrderEntityValidation:
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=None,
-            visit_id=None,
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -180,7 +127,6 @@ class TestOrderEntityItems:
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=None,
-            visit_id=None,
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -195,13 +141,13 @@ class TestOrderEntityItems:
         item1 = OrderItem(
             id=uuid4(),
             pedido_id=order.id,
-            producto_id=uuid4(),
             inventario_id=uuid4(),
             cantidad=2,
             precio_unitario=Decimal("10.00"),
             precio_total=Decimal("20.00"),
             product_name="Product 1",
             product_sku="SKU1",
+            product_category="medicamentos_generales",
             warehouse_id=uuid4(),
             warehouse_name="Warehouse",
             warehouse_city="City",
@@ -217,13 +163,13 @@ class TestOrderEntityItems:
         item2 = OrderItem(
             id=uuid4(),
             pedido_id=order.id,
-            producto_id=uuid4(),
             inventario_id=uuid4(),
             cantidad=3,
             precio_unitario=Decimal("15.00"),
             precio_total=Decimal("45.00"),
             product_name="Product 2",
             product_sku="SKU2",
+            product_category="medicamentos_generales",
             warehouse_id=uuid4(),
             warehouse_name="Warehouse",
             warehouse_city="City",
@@ -242,7 +188,6 @@ class TestOrderEntityItems:
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=None,
-            visit_id=None,
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -255,13 +200,13 @@ class TestOrderEntityItems:
         wrong_item = OrderItem(
             id=uuid4(),
             pedido_id=uuid4(),  # Different ID
-            producto_id=uuid4(),
             inventario_id=uuid4(),
             cantidad=1,
             precio_unitario=Decimal("10.00"),
             precio_total=Decimal("10.00"),
             product_name="Product",
             product_sku="SKU",
+            product_category="medicamentos_generales",
             warehouse_id=uuid4(),
             warehouse_name="Warehouse",
             warehouse_city="City",
@@ -279,7 +224,6 @@ class TestOrderEntityItems:
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=None,
-            visit_id=None,
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -302,7 +246,6 @@ class TestOrderEntityItems:
             id=uuid4(),
             customer_id=uuid4(),
             seller_id=None,
-            visit_id=None,
             fecha_pedido=datetime.now(),
             fecha_entrega_estimada=date.today() + timedelta(days=1),
             metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -315,13 +258,13 @@ class TestOrderEntityItems:
         item1 = OrderItem(
             id=uuid4(),
             pedido_id=order.id,
-            producto_id=uuid4(),
             inventario_id=uuid4(),
             cantidad=5,
             precio_unitario=Decimal("10.00"),
             precio_total=Decimal("50.00"),
             product_name="Product 1",
             product_sku="SKU1",
+            product_category="medicamentos_generales",
             warehouse_id=uuid4(),
             warehouse_name="Warehouse",
             warehouse_city="City",
@@ -333,13 +276,13 @@ class TestOrderEntityItems:
         item2 = OrderItem(
             id=uuid4(),
             pedido_id=order.id,
-            producto_id=uuid4(),
             inventario_id=uuid4(),
             cantidad=3,
             precio_unitario=Decimal("15.00"),
             precio_total=Decimal("45.00"),
             product_name="Product 2",
             product_sku="SKU2",
+            product_category="medicamentos_generales",
             warehouse_id=uuid4(),
             warehouse_name="Warehouse",
             warehouse_city="City",
@@ -360,7 +303,6 @@ class TestOrderEntityItems:
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=None,  # Missing
@@ -370,41 +312,23 @@ class TestOrderEntityItems:
                 customer_name="John Doe",
             )
 
-    def test_order_visita_vendedor_requires_seller_name(self):
-        """Test that seller_name is required for visita_vendedor (covers line 82)."""
-        with pytest.raises(ValueError, match="seller_name is required"):
-            Order(
-                id=uuid4(),
-                customer_id=uuid4(),
-                seller_id=uuid4(),
-                visit_id=uuid4(),
-                fecha_pedido=datetime.now(),
-                fecha_entrega_estimada=date.today() + timedelta(days=1),
-                metodo_creacion=CreationMethod.VISITA_VENDEDOR,
-                direccion_entrega="123 Main St",
-                ciudad_entrega="City",
-                pais_entrega="Country",
-                customer_name="John Doe",
-                seller_name=None,  # Missing
-            )
-
-    def test_order_app_vendedor_requires_seller_name(self):
-        """Test that seller_name is required for app_vendedor (covers line 93)."""
-        with pytest.raises(ValueError, match="seller_name is required"):
-            Order(
-                id=uuid4(),
-                customer_id=uuid4(),
-                seller_id=uuid4(),
-                visit_id=None,
-                fecha_pedido=datetime.now(),
-                fecha_entrega_estimada=date.today() + timedelta(days=1),
-                metodo_creacion=CreationMethod.APP_VENDEDOR,
-                direccion_entrega="123 Main St",
-                ciudad_entrega="City",
-                pais_entrega="Country",
-                customer_name="John Doe",
-                seller_name=None,  # Missing
-            )
+    def test_order_app_vendedor_seller_name_optional(self):
+        """Test that seller_name is optional for app_vendedor."""
+        # Should succeed without seller_name
+        order = Order(
+            id=uuid4(),
+            customer_id=uuid4(),
+            seller_id=uuid4(),
+            fecha_pedido=datetime.now(),
+            fecha_entrega_estimada=date.today() + timedelta(days=1),
+            metodo_creacion=CreationMethod.APP_VENDEDOR,
+            direccion_entrega="123 Main St",
+            ciudad_entrega="City",
+            pais_entrega="Country",
+            customer_name="John Doe",
+            seller_name=None,  # Optional
+        )
+        assert order.seller_name is None
 
     def test_order_requires_ciudad_entrega(self):
         """Test that ciudad_entrega is required (covers line 115)."""
@@ -413,7 +337,6 @@ class TestOrderEntityItems:
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_CLIENTE,
@@ -430,7 +353,6 @@ class TestOrderEntityItems:
                 id=uuid4(),
                 customer_id=uuid4(),
                 seller_id=None,
-                visit_id=None,
                 fecha_pedido=datetime.now(),
                 fecha_entrega_estimada=date.today() + timedelta(days=1),
                 metodo_creacion=CreationMethod.APP_CLIENTE,

@@ -35,6 +35,7 @@ async def sample_inventory_data(db_session: AsyncSession):
             "product_price": Decimal("50.00"),
             "warehouse_name": "Warehouse A",
             "warehouse_city": "City A",
+        "warehouse_country": "Colombia",
         }
         inv = await inventory_repo.create(inventory_data)
         inventories.append(inv)
@@ -53,6 +54,7 @@ async def sample_inventory_data(db_session: AsyncSession):
             "product_price": Decimal("100.00"),
             "warehouse_name": "Warehouse B",
             "warehouse_city": "City B",
+        "warehouse_country": "Colombia",
         }
         inv = await inventory_repo.create(inventory_data)
         inventories.append(inv)
@@ -70,6 +72,7 @@ async def sample_inventory_data(db_session: AsyncSession):
         "product_price": Decimal("75.00"),
         "warehouse_name": "Warehouse A",
         "warehouse_city": "City A",
+        "warehouse_country": "Colombia",
     }
     critical = await inventory_repo.create(critical_data)
     inventories.append(critical)
@@ -167,6 +170,7 @@ async def test_generate_low_stock_report_no_low_stock_items(db_session: AsyncSes
             "product_price": Decimal("100.00"),
             "warehouse_name": "Warehouse",
             "warehouse_city": "City",
+        "warehouse_country": "Colombia",
         }
         await inventory_repo.create(inventory_data)
 
@@ -254,6 +258,7 @@ async def test_generate_low_stock_report_available_quantity_calculation(
         "product_price": Decimal("50.00"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
     }
     await inventory_repo.create(inventory_data)
 

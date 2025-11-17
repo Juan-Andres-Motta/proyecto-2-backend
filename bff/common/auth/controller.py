@@ -22,6 +22,7 @@ from .schemas import (
     RefreshTokenResponse,
     SignupRequest,
     SignupResponse,
+    UserMeResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -157,31 +158,112 @@ async def signup(
     )
 
 
+def _determine_user_type(user: Dict) -> str | None:
+    """
+    Determine user type from JWT claims.
+
+    Tries to extract user type from custom:user_type attribute first,
+    then falls back to cognito:groups.
+
+    Args:
+        user: JWT claims dictionary
+
+    Returns:
+        User type: "web", "seller", or "client", or None if cannot be determined
+    """
+    # First try custom attribute
+    user_type = user.get("custom:user_type")
+    if user_type:
+        logger.debug(f"User type from custom attribute: {user_type}")
+        return user_type
+
+    # Fall back to groups
+    groups = user.get("cognito:groups", [])
+
+    if "web_users" in groups:
+        return "web"
+    elif "seller_users" in groups:
+        return "seller"
+    elif "client_users" in groups:
+        return "client"
+    else:
+        logger.warning(
+            f"Unable to determine user type for user {user.get('sub')}. "
+            f"Groups: {groups}"
+        )
+        return None
+
+
 @router.get(
     "/me",
-    response_model=Dict,
+    response_model=UserMeResponse,
     responses={
-        200: {"description": "Current user information"},
+        200: {"description": "Current user information with details"},
         401: {"description": "Invalid or missing token", "model": ErrorResponse},
     },
 )
 async def get_me(user: Dict = Depends(get_current_user)):
     """
-    Get current authenticated user information.
+    Get current authenticated user information with complete user details.
 
     Requires valid JWT ID token in Authorization header (not access token).
     The ID token contains user profile information like email, name, and custom attributes.
+
+    This endpoint also fetches additional user details from the appropriate microservice:
+    - For sellers: Returns seller profile data (name, email, phone, city, etc.)
+    - For clients: Returns client profile data (name, institution, NIT, address, etc.)
+    - For web users: Returns only JWT claims
 
     Args:
         user: Current user from JWT token
 
     Returns:
-        User claims from JWT token
+        UserMeResponse with user claims and optional user_details from microservices
     """
-    return {
-        "user_id": user.get("sub"),
-        "name": user.get("name"),
-        "email": user.get("email"),
-        "groups": user.get("cognito:groups", []),
-        "user_type": user.get("custom:user_type"),
-    }
+    user_id = user.get("sub")
+    name = user.get("name", "")
+    email = user.get("email", "")
+    groups = user.get("cognito:groups", [])
+    user_type = _determine_user_type(user)
+
+    user_details = None
+
+    # Fetch user details based on user type
+    if user_type == "seller":
+        # Get seller details from seller microservice
+        from dependencies import get_seller_app_seller_port
+        seller_adapter = get_seller_app_seller_port()
+        try:
+            seller_data = await seller_adapter.get_seller_by_cognito_user_id(user_id)
+            if seller_data:
+                user_details = seller_data
+                logger.info(f"Fetched seller details for user {user_id}")
+        except Exception as e:
+            logger.warning(
+                f"Failed to fetch seller details for user {user_id}: {e}",
+                exc_info=True
+            )
+
+    elif user_type == "client":
+        # Get client details from client microservice
+        from dependencies import get_client_app_client_port
+        client_adapter = get_client_app_client_port()
+        try:
+            client_data = await client_adapter.get_client_by_cognito_user_id(user_id)
+            if client_data:
+                user_details = client_data
+                logger.info(f"Fetched client details for user {user_id}")
+        except Exception as e:
+            logger.warning(
+                f"Failed to fetch client details for user {user_id}: {e}",
+                exc_info=True
+            )
+
+    return UserMeResponse(
+        user_id=user_id,
+        name=name,
+        email=email,
+        groups=groups,
+        user_type=user_type,
+        user_details=user_details,
+    )

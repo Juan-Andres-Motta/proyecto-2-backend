@@ -52,7 +52,7 @@ async def create_order(
     1. Gets the Cognito User ID from the authenticated user (JWT sub claim)
     2. Looks up the client record using cognito_user_id to get customer_id
     3. Validates that the client exists (404 if not found)
-    4. Accepts items (producto_id, cantidad)
+    4. Accepts items (inventario_id, cantidad)
     5. Forwards request to Order Service with metodo_creacion='app_cliente'
     6. No seller_id or visit_id required (client app orders)
 

@@ -1,8 +1,8 @@
-"""2025_10_02_add provider and product models
+"""2025_11_15_Auto migration
 
-Revision ID: 764ec00c6ce9
+Revision ID: bb3e2f8e0d0b
 Revises: 
-Create Date: 2025-10-02 21:10:59.590107
+Create Date: 2025-11-15 11:07:32.621130
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '764ec00c6ce9'
+revision: str = 'bb3e2f8e0d0b'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,13 +39,13 @@ def upgrade() -> None:
     sa.Column('provider_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('category', sa.String(length=100), nullable=False),
-    sa.Column('description', sa.String(length=1000), nullable=False),
+    sa.Column('sku', sa.String(length=100), nullable=False),
     sa.Column('price', sa.DECIMAL(precision=10, scale=2), nullable=False),
-    sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['provider_id'], ['providers.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('sku')
     )
     # ### end Alembic commands ###
 

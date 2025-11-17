@@ -11,6 +11,7 @@ from sellers_app.schemas.visit_schemas import (
     VisitResponseBFF,
     PreSignedUploadURLResponseBFF,
     ListVisitsResponseBFF,
+    VisitStatusFilter,
 )
 
 
@@ -39,9 +40,25 @@ class VisitPort(ABC):
 
     @abstractmethod
     async def list_visits(
-        self, seller_id: UUID, date: datetime
-    ) -> ListVisitsResponseBFF:
-        """List visits for a specific date."""
+        self,
+        seller_id: UUID,
+        status: VisitStatusFilter,
+        page: int,
+        page_size: int,
+        client_name: str | None = None
+    ) -> dict:
+        """List visits by temporal status with pagination.
+
+        Args:
+            seller_id: ID of the seller
+            status: Temporal status filter (today, past, future)
+            page: Page number (1-indexed)
+            page_size: Number of items per page
+            client_name: Optional filter by client institution name (partial match)
+
+        Returns:
+            Dictionary with 'visits' and 'pagination' keys
+        """
         pass  # pragma: no cover
 
     @abstractmethod

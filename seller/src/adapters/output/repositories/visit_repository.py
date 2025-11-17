@@ -1,6 +1,6 @@
 """Visit repository implementation for PostgreSQL."""
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
@@ -146,6 +146,188 @@ class VisitRepository(VisitRepositoryPort):
                 f"DB: Check conflicting visit failed: seller_id={seller_id}, "
                 f"fecha_visita={fecha_visita}, error={e}"
             )
+            raise
+
+    async def find_by_seller_and_date_range(
+        self,
+        seller_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        page: int,
+        page_size: int,
+        session: AsyncSession,
+        client_name: Optional[str] = None,
+    ) -> List[DomainVisit]:
+        """Find visits by seller within optional date range with pagination.
+
+        Ordering:
+        - If date_to only (PAST): descending by fecha_visita (most recent first)
+        - Otherwise (TODAY/FUTURE): ascending by fecha_visita (nearest first)
+
+        Args:
+            seller_id: UUID of the seller
+            date_from: Start date (inclusive), None for no lower bound
+            date_to: End date (inclusive), None for no upper bound
+            page: Page number (1-indexed)
+            page_size: Number of results per page
+            session: Database session
+
+        Returns:
+            List of Visit domain entities with applied ordering and pagination
+        """
+        logger.debug(
+            f"DB: Finding visits by date range: seller_id={seller_id}, "
+            f"date_from={date_from}, date_to={date_to}, page={page}, page_size={page_size}"
+        )
+
+        try:
+            # Build query with seller filter
+            stmt = select(ORMVisit).where(ORMVisit.seller_id == seller_id)
+
+            # Apply date filters
+            if date_from is not None:
+                stmt = stmt.where(func.date(ORMVisit.fecha_visita) >= date_from)
+            if date_to is not None:
+                stmt = stmt.where(func.date(ORMVisit.fecha_visita) <= date_to)
+
+            # Apply client name filter
+            if client_name:
+                stmt = stmt.where(ORMVisit.client_nombre_institucion.ilike(f"%{client_name}%"))
+
+            # Apply multi-column ordering based on temporal group
+            # PAST (date_to only, no date_from): DESC (most recent first)
+            # TODAY/FUTURE: ASC (nearest first)
+            # Secondary sort by client name (alphabetical), tertiary by ID for stability
+            if date_to is not None and date_from is None:
+                stmt = stmt.order_by(
+                    ORMVisit.fecha_visita.desc(),
+                    ORMVisit.client_nombre_institucion.asc(),
+                    ORMVisit.id.asc()
+                )
+            else:
+                stmt = stmt.order_by(
+                    ORMVisit.fecha_visita.asc(),
+                    ORMVisit.client_nombre_institucion.asc(),
+                    ORMVisit.id.asc()
+                )
+
+            # Apply pagination
+            offset = (page - 1) * page_size
+            stmt = stmt.limit(page_size).offset(offset)
+
+            # Execute query
+            result = await session.execute(stmt)
+            orm_visits = result.scalars().all()
+
+            logger.debug(
+                f"DB: Successfully retrieved visits: seller_id={seller_id}, "
+                f"date_from={date_from}, date_to={date_to}, "
+                f"count={len(orm_visits)}, page={page}"
+            )
+            return [self._to_domain(orm_visit) for orm_visit in orm_visits]
+        except Exception as e:
+            logger.error(
+                f"DB: Find visits by date range failed: seller_id={seller_id}, "
+                f"date_from={date_from}, date_to={date_to}, error={e}"
+            )
+            raise
+
+    async def count_by_seller_and_date_range(
+        self,
+        seller_id: UUID,
+        date_from: date | None,
+        date_to: date | None,
+        session: AsyncSession,
+        client_name: Optional[str] = None,
+    ) -> int:
+        """Count visits matching seller and date range.
+
+        Args:
+            seller_id: UUID of the seller
+            date_from: Start date (inclusive), None for no lower bound
+            date_to: End date (inclusive), None for no upper bound
+            session: Database session
+
+        Returns:
+            Total count of matching visits
+        """
+        logger.debug(
+            f"DB: Counting visits by date range: seller_id={seller_id}, "
+            f"date_from={date_from}, date_to={date_to}"
+        )
+
+        try:
+            # Build count query with seller filter
+            stmt = select(func.count()).select_from(ORMVisit).where(
+                ORMVisit.seller_id == seller_id
+            )
+
+            # Apply date filters
+            if date_from is not None:
+                stmt = stmt.where(func.date(ORMVisit.fecha_visita) >= date_from)
+            if date_to is not None:
+                stmt = stmt.where(func.date(ORMVisit.fecha_visita) <= date_to)
+
+            # Apply client name filter
+            if client_name:
+                stmt = stmt.where(ORMVisit.client_nombre_institucion.ilike(f"%{client_name}%"))
+
+            # Execute query
+            result = await session.execute(stmt)
+            count = result.scalar() or 0
+
+            logger.debug(
+                f"DB: Successfully counted visits: seller_id={seller_id}, "
+                f"date_from={date_from}, date_to={date_to}, count={count}"
+            )
+            return count
+        except Exception as e:
+            logger.error(
+                f"DB: Count visits by date range failed: seller_id={seller_id}, "
+                f"date_from={date_from}, date_to={date_to}, error={e}"
+            )
+            raise
+
+    async def update(
+        self, visit: DomainVisit, session: AsyncSession
+    ) -> DomainVisit:
+        """Update an existing visit.
+
+        Args:
+            visit: Domain visit entity with updated fields
+            session: Database session
+
+        Returns:
+            Updated domain visit entity
+        """
+        logger.debug(f"DB: Updating visit: visit_id={visit.id}")
+
+        try:
+            # Fetch the ORM object (tracked by session)
+            stmt = select(ORMVisit).where(ORMVisit.id == visit.id)
+            result = await session.execute(stmt)
+            orm_visit = result.scalars().first()
+
+            if orm_visit is None:
+                logger.error(f"DB: Cannot update - visit not found: visit_id={visit.id}")
+                raise ValueError(f"Visit {visit.id} not found")
+
+            # Update ORM object fields
+            orm_visit.status = visit.status.value
+            orm_visit.recomendaciones = visit.recomendaciones
+            orm_visit.archivos_evidencia = visit.archivos_evidencia
+            orm_visit.notas_visita = visit.notas_visita
+            orm_visit.updated_at = visit.updated_at
+
+            # Flush changes to DB
+            await session.flush()
+            await session.refresh(orm_visit)
+
+            logger.debug(f"DB: Successfully updated visit: visit_id={visit.id}, status={orm_visit.status}")
+            return self._to_domain(orm_visit)
+
+        except Exception as e:
+            logger.error(f"DB: Update visit failed: visit_id={visit.id}, error={e}")
             raise
 
     @staticmethod

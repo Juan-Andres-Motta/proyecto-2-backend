@@ -334,13 +334,28 @@ class TestListVisitsController:
     @pytest.mark.asyncio
     async def test_list_visits_success(self, mock_session, seller_id, visit_entity):
         """Test successful visit listing."""
-        date = datetime.now(timezone.utc)
+        from datetime import date
+        test_date = date.today()
+
+        pagination_metadata = {
+            "current_page": 1,
+            "page_size": 50,
+            "total_results": 1,
+            "total_pages": 1,
+            "has_next": False,
+            "has_previous": False,
+        }
+
         mock_use_case = AsyncMock()
-        mock_use_case.execute.return_value = [visit_entity]
+        mock_use_case.execute.return_value = ([visit_entity], pagination_metadata)
 
         response = await list_visits(
-            date=date,
             seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            client_name=None,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -351,13 +366,28 @@ class TestListVisitsController:
     @pytest.mark.asyncio
     async def test_list_visits_empty(self, mock_session, seller_id):
         """Test listing visits returns empty list."""
-        date = datetime.now(timezone.utc)
+        from datetime import date
+        test_date = date.today()
+
+        pagination_metadata = {
+            "current_page": 1,
+            "page_size": 50,
+            "total_results": 0,
+            "total_pages": 0,
+            "has_next": False,
+            "has_previous": False,
+        }
+
         mock_use_case = AsyncMock()
-        mock_use_case.execute.return_value = []
+        mock_use_case.execute.return_value = ([], pagination_metadata)
 
         response = await list_visits(
-            date=date,
             seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            client_name=None,
             use_case=mock_use_case,
             session=mock_session,
         )
@@ -631,14 +661,16 @@ class TestListVisitsControllerEdgeCases:
     @pytest.mark.asyncio
     async def test_list_visits_with_multiple_visits(self, mock_session, seller_id):
         """Test listing multiple visits on same date."""
-        date = datetime.now(timezone.utc)
+        from datetime import date as date_type
+        test_date = date_type.today()
+        now = datetime.now(timezone.utc)
 
         visits = [
             Visit(
                 id=uuid4(),
                 seller_id=seller_id,
                 client_id=uuid4(),
-                fecha_visita=date + timedelta(hours=i),
+                fecha_visita=now + timedelta(hours=i),
                 status=VisitStatus.PROGRAMADA,
                 notas_visita=f"Visit {i}",
                 recomendaciones=None,
@@ -653,12 +685,25 @@ class TestListVisitsControllerEdgeCases:
             for i in range(3)
         ]
 
+        pagination_metadata = {
+            "current_page": 1,
+            "page_size": 50,
+            "total_results": 3,
+            "total_pages": 1,
+            "has_next": False,
+            "has_previous": False,
+        }
+
         mock_use_case = AsyncMock()
-        mock_use_case.execute.return_value = visits
+        mock_use_case.execute.return_value = (visits, pagination_metadata)
 
         response = await list_visits(
-            date=date,
             seller_id=seller_id,
+            date_from=test_date,
+            date_to=test_date,
+            page=1,
+            page_size=50,
+            client_name=None,
             use_case=mock_use_case,
             session=mock_session,
         )
