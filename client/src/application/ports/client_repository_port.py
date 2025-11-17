@@ -62,11 +62,12 @@ class ClientRepositoryPort(ABC):
         ...  # pragma: no cover
 
     @abstractmethod
-    async def list_by_seller(self, vendedor_asignado_id: UUID) -> list[Client]:
+    async def list_by_seller(self, vendedor_asignado_id: UUID, client_name: Optional[str] = None) -> list[Client]:
         """List all clients assigned to a specific seller.
 
         Args:
             vendedor_asignado_id: UUID of the seller
+            client_name: Optional filter by institution name (partial match)
 
         Returns:
             List of client domain entities
@@ -74,8 +75,11 @@ class ClientRepositoryPort(ABC):
         ...  # pragma: no cover
 
     @abstractmethod
-    async def list_all(self) -> list[Client]:
+    async def list_all(self, client_name: Optional[str] = None) -> list[Client]:
         """List all clients.
+
+        Args:
+            client_name: Optional filter by institution name (partial match)
 
         Returns:
             List of all client domain entities

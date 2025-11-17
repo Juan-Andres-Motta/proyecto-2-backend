@@ -12,7 +12,7 @@ from .examples import order_create_example
 class OrderItemInput(BaseModel):
     """Input schema for creating an order item."""
 
-    producto_id: UUID
+    inventario_id: UUID
     cantidad: int
 
     @field_validator("cantidad")
@@ -28,26 +28,26 @@ class OrderCreateInput(BaseModel):
     Input schema for creating an order.
 
     Business rules enforced:
-    - metodo_creacion is ALWAYS required
-    - If metodo_creacion is 'visita_vendedor': seller_id and visit_id are required
-    - If metodo_creacion is 'app_vendedor': seller_id is required, visit_id must be None
-    - If metodo_creacion is 'app_cliente': seller_id and visit_id must be None
+    - metodo_creacion is ALWAYS required and must be one of: app_cliente, app_vendedor
+    - If metodo_creacion is 'app_vendedor': seller_id is required, seller_name and seller_email are optional
+    - If metodo_creacion is 'app_cliente': seller_id, seller_name, and seller_email must be None
     """
 
     customer_id: UUID
-    metodo_creacion: str  # visita_vendedor, app_cliente, app_vendedor
+    metodo_creacion: str  # app_cliente, app_vendedor
     items: List[OrderItemInput]
 
     # Optional fields (depending on creation method)
     seller_id: Optional[UUID] = None
-    visit_id: Optional[UUID] = None
+    seller_name: Optional[str] = None
+    seller_email: Optional[str] = None
 
     model_config = {"json_schema_extra": {"examples": [order_create_example]}}
 
     @field_validator("metodo_creacion")
     @classmethod
     def validate_metodo_creacion(cls, v: str) -> str:
-        valid_methods = ["visita_vendedor", "app_cliente", "app_vendedor"]
+        valid_methods = ["app_cliente", "app_vendedor"]
         if v not in valid_methods:
             raise ValueError(
                 f"metodo_creacion must be one of {valid_methods}, got '{v}'"
@@ -67,7 +67,6 @@ class OrderItemResponse(BaseModel):
 
     id: UUID
     pedido_id: UUID
-    producto_id: UUID
     inventario_id: UUID
     cantidad: int
     precio_unitario: float
@@ -76,6 +75,7 @@ class OrderItemResponse(BaseModel):
     # Denormalized product data
     product_name: str
     product_sku: str
+    product_category: Optional[str]
 
     # Denormalized warehouse data
     warehouse_id: UUID
@@ -97,7 +97,6 @@ class OrderResponse(BaseModel):
     id: UUID
     customer_id: UUID
     seller_id: Optional[UUID]
-    visit_id: Optional[UUID]
     route_id: Optional[UUID]
 
     fecha_pedido: datetime

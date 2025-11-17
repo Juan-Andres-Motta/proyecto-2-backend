@@ -66,9 +66,9 @@ class ConfirmEvidenceUploadUseCase:
         visit.archivos_evidencia = s3_url
         visit.updated_at = datetime.now(timezone.utc)
 
-        # Step 3: Persist changes
-        await session.flush()
+        # Step 3: Persist changes via repository
+        updated_visit = await self.visit_repository.update(visit, session)
 
         logger.info(f"Evidence upload confirmed for visit {visit_id}")
 
-        return visit
+        return updated_visit

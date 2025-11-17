@@ -1,5 +1,6 @@
 """Domain exceptions with error codes for the inventory domain."""
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 
@@ -97,6 +98,38 @@ class ExpiredInventoryException(ValidationException):
         super().__init__(
             message=f"Cannot create inventory with expired date: {expiration_date.isoformat()}",
             error_code="EXPIRED_INVENTORY",
+        )
+
+
+class InsufficientInventoryException(BusinessRuleException):
+    """Not enough inventory available for reservation."""
+
+    def __init__(self, inventory_id: UUID, requested: int, available: int, product_sku: Optional[str] = None):
+        self.inventory_id = inventory_id
+        self.requested = requested
+        self.available = available
+        self.product_sku = product_sku
+
+        message = f"Insufficient inventory {inventory_id}"
+        if product_sku:
+            message += f" (SKU: {product_sku})"
+        message += f": requested {requested}, available {available}"
+
+        super().__init__(
+            message=message,
+            error_code="INSUFFICIENT_INVENTORY",
+        )
+
+
+class InvalidReservationReleaseException(BusinessRuleException):
+    """Cannot release more units than currently reserved."""
+
+    def __init__(self, requested_release: int, currently_reserved: int):
+        self.requested_release = requested_release
+        self.currently_reserved = currently_reserved
+        super().__init__(
+            message=f"Cannot release {requested_release} units: only {currently_reserved} currently reserved",
+            error_code="INVALID_RESERVATION_RELEASE"
         )
 
 

@@ -59,6 +59,7 @@ async def test_generate_report_success(
         "product_price": Decimal("50.00"),
         "warehouse_name": "Test Warehouse",
         "warehouse_city": "Test City",
+        "warehouse_country": "Colombia",
     }
     await inventory_repository.create(inventory_data)
 

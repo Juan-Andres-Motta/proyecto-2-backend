@@ -4,9 +4,10 @@ from fastapi import APIRouter
 
 from config import settings
 
+from .controllers import router as inventories_router
 from .health_service import HealthService
 
-router = APIRouter(tags=["common"])
+router = APIRouter(prefix="/bff", tags=["common"])
 
 
 @router.get("/")
@@ -32,3 +33,7 @@ async def check_all_services() -> List[Dict[str, str]]:
     """
     health_service = HealthService()
     return await health_service.check_all_services()
+
+
+# Include inventories controller
+router.include_router(inventories_router)

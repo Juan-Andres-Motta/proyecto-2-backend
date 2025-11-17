@@ -34,9 +34,15 @@ async def test_list_all_clients(db_session):
         )
         await repo.create(client)
 
-    clients = await use_case.execute()
+    clients, pagination_metadata = await use_case.execute()
 
     assert len(clients) == 3
+    assert pagination_metadata["total_results"] == 3
+    assert pagination_metadata["current_page"] == 1
+    assert pagination_metadata["page_size"] == 50
+    assert pagination_metadata["total_pages"] == 1
+    assert pagination_metadata["has_next"] is False
+    assert pagination_metadata["has_previous"] is False
 
 
 @pytest.mark.asyncio
@@ -87,11 +93,17 @@ async def test_list_clients_by_seller(db_session):
     )
     await repo.create(other_client)
 
-    clients = await use_case.execute(vendedor_asignado_id=seller_id)
+    clients, pagination_metadata = await use_case.execute(vendedor_asignado_id=seller_id)
 
     assert len(clients) == 2
     for client in clients:
         assert client.vendedor_asignado_id == seller_id
+    assert pagination_metadata["total_results"] == 2
+    assert pagination_metadata["current_page"] == 1
+    assert pagination_metadata["page_size"] == 50
+    assert pagination_metadata["total_pages"] == 1
+    assert pagination_metadata["has_next"] is False
+    assert pagination_metadata["has_previous"] is False
 
 
 @pytest.mark.asyncio
@@ -100,6 +112,12 @@ async def test_list_clients_empty(db_session):
     repo = ClientRepository(db_session)
     use_case = ListClientsUseCase(repo)
 
-    clients = await use_case.execute()
+    clients, pagination_metadata = await use_case.execute()
 
     assert clients == []
+    assert pagination_metadata["total_results"] == 0
+    assert pagination_metadata["current_page"] == 1
+    assert pagination_metadata["page_size"] == 50
+    assert pagination_metadata["total_pages"] == 0
+    assert pagination_metadata["has_next"] is False
+    assert pagination_metadata["has_previous"] is False

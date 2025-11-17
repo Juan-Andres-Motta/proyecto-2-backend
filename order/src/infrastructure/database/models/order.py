@@ -31,6 +31,8 @@ class Order(Base):
     seller_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
+    # Legacy field - no longer used by application logic
+    # Kept for backward compatibility with existing data
     visit_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

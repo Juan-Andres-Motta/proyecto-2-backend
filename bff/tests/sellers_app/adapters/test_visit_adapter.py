@@ -211,18 +211,31 @@ class TestVisitAdapterListVisits:
     @pytest.mark.asyncio
     async def test_list_visits_success(self, visit_adapter, mock_http_client, sample_visit_response_data):
         """Test listing visits successfully."""
+        from sellers_app.schemas.visit_schemas import VisitStatusFilter
+
         seller_id = uuid4()
-        date = datetime.now()
+        status = VisitStatusFilter.TODAY
+        page = 1
+        page_size = 50
 
         response_data = {
             "visits": [sample_visit_response_data],
-            "count": 1,
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 1,
+                "total_pages": 1,
+                "has_next": False,
+                "has_previous": False,
+            }
         }
         mock_http_client.get = AsyncMock(return_value=response_data)
 
         result = await visit_adapter.list_visits(
             seller_id=seller_id,
-            date=date,
+            status=status,
+            page=page,
+            page_size=page_size,
         )
 
         # Verify HTTP client was called
@@ -234,28 +247,46 @@ class TestVisitAdapterListVisits:
         params = call_args[1]["params"]
         assert params["seller_id"] == str(seller_id)
 
-        # Verify response
-        assert isinstance(result, ListVisitsResponseBFF)
+        # Verify response is a dict (adapter returns dict, not ListVisitsResponseBFF)
+        assert isinstance(result, dict)
+        assert "visits" in result
+        assert "pagination" in result
+        assert len(result["visits"]) == 1
 
     @pytest.mark.asyncio
     async def test_list_visits_empty(self, visit_adapter, mock_http_client):
         """Test listing visits returns empty list."""
+        from sellers_app.schemas.visit_schemas import VisitStatusFilter
+
         seller_id = uuid4()
-        date = datetime.now()
+        status = VisitStatusFilter.TODAY
+        page = 1
+        page_size = 50
 
         response_data = {
             "visits": [],
-            "count": 0,
+            "pagination": {
+                "current_page": 1,
+                "page_size": 50,
+                "total_results": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False,
+            }
         }
         mock_http_client.get = AsyncMock(return_value=response_data)
 
         result = await visit_adapter.list_visits(
             seller_id=seller_id,
-            date=date,
+            status=status,
+            page=page,
+            page_size=page_size,
         )
 
-        assert result.count == 0
-        assert len(result.visits) == 0
+        # Verify response is a dict
+        assert isinstance(result, dict)
+        assert len(result["visits"]) == 0
+        assert result["pagination"]["total_results"] == 0
 
 
 class TestVisitAdapterGenerateEvidenceUploadUrl:

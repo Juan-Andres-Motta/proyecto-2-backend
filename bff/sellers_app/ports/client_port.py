@@ -18,15 +18,24 @@ class ClientPort(ABC):
     """
 
     @abstractmethod
-    async def list_clients(self, vendedor_asignado_id: UUID | None = None) -> ClientListResponse:
+    async def list_clients(
+        self,
+        vendedor_asignado_id: UUID | None = None,
+        client_name: str | None = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> ClientListResponse:
         """
         List clients, optionally filtered by assigned seller.
 
         Args:
             vendedor_asignado_id: Optional seller ID to filter clients
+            client_name: Optional institution name filter (partial match)
+            page: Page number (1-indexed)
+            page_size: Number of items per page
 
         Returns:
-            List of clients
+            List of clients with pagination metadata
         """
         pass
 

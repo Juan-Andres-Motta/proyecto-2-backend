@@ -7,6 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.ports.inventory_repository_port import InventoryRepositoryPort
 from src.domain.entities.inventory import Inventory as DomainInventory
+from src.domain.exceptions import (
+    InsufficientInventoryException,
+    InvalidReservationReleaseException,
+    InventoryNotFoundException,
+)
 from src.infrastructure.database.models import Inventory as ORMInventory
 
 logger = logging.getLogger(__name__)
@@ -20,7 +25,9 @@ class InventoryRepository(InventoryRepositoryPort):
 
     async def create(self, inventory_data: dict) -> DomainInventory:
         """Create an inventory and return domain entity."""
-        logger.debug(f"DB: Creating inventory with data: product_id={inventory_data.get('product_id')}, warehouse_id={inventory_data.get('warehouse_id')}")
+        logger.debug(
+            f"DB: Creating inventory with data: product_id={inventory_data.get('product_id')}, warehouse_id={inventory_data.get('warehouse_id')}"
+        )
         try:
             orm_inventory = ORMInventory(**inventory_data)
             self.session.add(orm_inventory)
@@ -55,9 +62,13 @@ class InventoryRepository(InventoryRepositoryPort):
         product_id: Optional[UUID] = None,
         warehouse_id: Optional[UUID] = None,
         sku: Optional[str] = None,
+        category: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> Tuple[List[DomainInventory], int]:
         """List inventories with pagination and filters, return domain entities."""
-        logger.debug(f"DB: Listing inventories with limit={limit}, offset={offset}, product_id={product_id}, warehouse_id={warehouse_id}, sku={sku}")
+        logger.debug(
+            f"DB: Listing inventories with limit={limit}, offset={offset}, product_id={product_id}, warehouse_id={warehouse_id}, sku={sku}, category={category}, name={name}"
+        )
         try:
             # Build base query
             query = select(ORMInventory)
@@ -72,26 +83,95 @@ class InventoryRepository(InventoryRepositoryPort):
             if warehouse_id:
                 logger.debug(f"DB: Applying warehouse_id filter: {warehouse_id}")
                 query = query.where(ORMInventory.warehouse_id == warehouse_id)
-                count_query = count_query.where(ORMInventory.warehouse_id == warehouse_id)
+                count_query = count_query.where(
+                    ORMInventory.warehouse_id == warehouse_id
+                )
 
             if sku:
                 logger.debug(f"DB: Applying sku filter: {sku}")
-                query = query.where(ORMInventory.product_sku == sku)
-                count_query = count_query.where(ORMInventory.product_sku == sku)
+                query = query.where(ORMInventory.product_sku.ilike(f"%{sku}%"))
+                count_query = count_query.where(ORMInventory.product_sku.ilike(f"%{sku}%"))
+
+            if category:
+                logger.debug(f"DB: Applying category filter: {category}")
+                query = query.where(ORMInventory.product_category == category)
+                count_query = count_query.where(
+                    ORMInventory.product_category == category
+                )
+
+            if name:
+                logger.debug(f"DB: Applying name filter: {name}")
+                query = query.where(ORMInventory.product_name.ilike(f"%{name}%"))
+                count_query = count_query.where(
+                    ORMInventory.product_name.ilike(f"%{name}%")
+                )
 
             # Get total count with filters
             count_result = await self.session.execute(count_query)
             total = count_result.scalar()
 
-            # Get paginated data with filters
-            query = query.limit(limit).offset(offset)
+            # Get paginated data with filters, ordered by product name
+            query = query.order_by(ORMInventory.product_name).limit(limit).offset(offset)
             result = await self.session.execute(query)
             orm_inventories = result.scalars().all()
 
-            logger.debug(f"DB: Successfully listed inventories: count={len(orm_inventories)}, total={total}")
+            logger.debug(
+                f"DB: Successfully listed inventories: count={len(orm_inventories)}, total={total}"
+            )
             return [self._to_domain(i) for i in orm_inventories], total
         except Exception as e:
             logger.error(f"DB: List inventories failed: {e}")
+            raise
+
+    async def update_reserved_quantity(
+        self, inventory_id: UUID, quantity_delta: int
+    ) -> DomainInventory:
+        """Update reserved quantity atomically with SELECT FOR UPDATE."""
+        logger.debug(
+            f"DB: Updating reserved quantity: inventory_id={inventory_id}, quantity_delta={quantity_delta}"
+        )
+
+        try:
+            # SELECT FOR UPDATE to lock the row
+            stmt = (
+                select(ORMInventory)
+                .where(ORMInventory.id == inventory_id)
+                .with_for_update()
+            )
+            result = await self.session.execute(stmt)
+            orm_inventory = result.scalars().first()
+
+            if orm_inventory is None:
+                raise InventoryNotFoundException(inventory_id)
+
+            # Convert to domain entity
+            domain_inventory = self._to_domain(orm_inventory)
+
+            # Apply business logic (validates constraints)
+            domain_inventory.adjust_reservation(quantity_delta)
+
+            # Update ORM model
+            orm_inventory.reserved_quantity = domain_inventory.reserved_quantity
+
+            # Commit transaction
+            await self.session.commit()
+            await self.session.refresh(orm_inventory)
+
+            logger.debug(
+                f"DB: Successfully updated: new_reserved={orm_inventory.reserved_quantity}"
+            )
+
+            return self._to_domain(orm_inventory)
+
+        except (
+            InventoryNotFoundException,
+            InsufficientInventoryException,
+            InvalidReservationReleaseException,
+        ):
+            raise
+        except Exception as e:
+            logger.error(f"DB: Update failed: {e}")
+            await self.session.rollback()
             raise
 
     @staticmethod
@@ -108,8 +188,10 @@ class InventoryRepository(InventoryRepositoryPort):
             product_sku=orm_inventory.product_sku,
             product_name=orm_inventory.product_name,
             product_price=orm_inventory.product_price,
+            product_category=orm_inventory.product_category,
             warehouse_name=orm_inventory.warehouse_name,
             warehouse_city=orm_inventory.warehouse_city,
+            warehouse_country=orm_inventory.warehouse_country,
             created_at=orm_inventory.created_at,
             updated_at=orm_inventory.updated_at,
         )

@@ -23,6 +23,8 @@ class CreateInventoryUseCase:
     2. Reserved quantity must be 0 at creation
     3. Reserved quantity <= total quantity
     4. Expiration date must not be in the past
+
+    Note: Product category is provided by BFF (denormalized from Catalog Service)
     """
 
     def __init__(
@@ -39,6 +41,7 @@ class CreateInventoryUseCase:
         logger.debug(f"Inventory data: {inventory_data}")
 
         warehouse_id = inventory_data.get("warehouse_id")
+        product_id = inventory_data.get("product_id")
         # Reserved quantity defaults to 0 at creation - clients don't provide it
         reserved_quantity = inventory_data.get("reserved_quantity", 0)
         inventory_data["reserved_quantity"] = reserved_quantity
@@ -68,9 +71,13 @@ class CreateInventoryUseCase:
             raise WarehouseNotFoundException(warehouse_id)
 
         # Denormalize warehouse data
-        logger.debug(f"Denormalizing warehouse data: name={warehouse.name}, city={warehouse.city}")
+        logger.debug(f"Denormalizing warehouse data: name={warehouse.name}, city={warehouse.city}, country={warehouse.country}")
         inventory_data["warehouse_name"] = warehouse.name
         inventory_data["warehouse_city"] = warehouse.city
+        inventory_data["warehouse_country"] = warehouse.country
+
+        # product_category is provided by BFF (denormalized from Catalog)
+        # No validation needed - it's optional/nullable until backfill is complete
 
         # Validation 2: Reserved quantity must be 0 at creation (now enforced by default)
         logger.debug(f"Reserved quantity set to: {reserved_quantity}")

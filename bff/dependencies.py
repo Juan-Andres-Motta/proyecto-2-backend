@@ -286,6 +286,22 @@ def get_realtime_publisher() -> RealtimePublisher:
     return get_publisher()
 
 
+def get_common_inventory_port():
+    """
+    Factory for common InventoryPort implementation.
+
+    This provides inventory access for shared/common endpoints accessible to all users.
+
+    Returns:
+        InventoryPort implementation for common endpoints (CommonInventoryAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from common.adapters.inventory_adapter import InventoryAdapter
+
+    client = get_inventory_http_client()
+    return InventoryAdapter(client)
+
+
 # Cleanup function for testing
 def clear_dependency_cache():
     """

@@ -93,6 +93,7 @@ async def create_inventory(
         product_sku=product.sku,
         product_name=product.name,
         product_price=float(product.price),
+        product_category=product.category,
     )
 
     return await inventory.create_inventory(enriched_inventory)

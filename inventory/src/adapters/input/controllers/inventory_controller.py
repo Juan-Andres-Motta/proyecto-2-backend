@@ -16,14 +16,21 @@ from src.adapters.input.examples import (
 )
 from src.adapters.input.schemas import (
     InventoryCreate,
+    InventoryReserveRequest,
     InventoryResponse,
     PaginatedInventoriesResponse,
 )
 from src.application.use_cases.create_inventory import CreateInventoryUseCase
+from src.application.use_cases.get_inventory import GetInventoryUseCase
 from src.application.use_cases.list_inventories import ListInventoriesUseCase
+from src.application.use_cases.update_reserved_quantity import (
+    UpdateReservedQuantityUseCase,
+)
 from src.infrastructure.dependencies import (
     get_create_inventory_use_case,
+    get_get_inventory_use_case,
     get_list_inventories_use_case,
+    get_update_reserved_quantity_use_case,
 )
 
 router = APIRouter(tags=["inventories"])
@@ -76,6 +83,8 @@ async def list_inventories(
     product_id: Optional[UUID] = Query(None),
     warehouse_id: Optional[UUID] = Query(None),
     sku: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    name: Optional[str] = Query(None),
     use_case: ListInventoriesUseCase = Depends(get_list_inventories_use_case),
 ):
     """List inventories with optional filters - THIN controller."""
@@ -86,6 +95,8 @@ async def list_inventories(
         product_id=product_id,
         warehouse_id=warehouse_id,
         sku=sku,
+        category=category,
+        name=name,
     )
 
     page = (offset // limit) + 1
@@ -103,3 +114,69 @@ async def list_inventories(
         has_next=has_next,
         has_previous=has_previous,
     )
+
+
+@router.get(
+    "/inventory/{inventory_id}",
+    response_model=InventoryResponse,
+    responses={
+        200: {
+            "description": "Inventory details retrieved successfully",
+        },
+        404: {
+            "description": "Inventory not found",
+            "model": ValidationErrorResponse,
+        },
+    },
+)
+async def get_inventory(
+    inventory_id: UUID,
+    use_case: GetInventoryUseCase = Depends(get_get_inventory_use_case),
+):
+    """Get a single inventory entry by ID.
+
+    This endpoint allows clients to:
+    - Fetch specific inventory details for validation
+    - View available quantity (total_quantity - reserved_quantity)
+    - Get all denormalized product and warehouse information
+    """
+    # Delegate to use case - no try/catch, exceptions bubble up
+    inventory = await use_case.execute(inventory_id)
+
+    # Convert domain entity to response schema
+    return InventoryResponse.model_validate(inventory, from_attributes=True)
+
+
+@router.patch(
+    "/inventory/{inventory_id}/reserve",
+    response_model=InventoryResponse,
+    responses={
+        200: {"description": "Reservation updated successfully"},
+        404: {"description": "Inventory not found", "model": ValidationErrorResponse},
+        409: {
+            "description": "Insufficient inventory or invalid release",
+            "model": ValidationErrorResponse,
+        },
+        422: {"description": "Invalid request data", "model": ValidationErrorResponse},
+    },
+)
+async def update_reserved_quantity(
+    inventory_id: UUID,
+    request: InventoryReserveRequest,
+    use_case: UpdateReservedQuantityUseCase = Depends(
+        get_update_reserved_quantity_use_case
+    ),
+):
+    """
+    Update reserved quantity on inventory (reserve or release units).
+
+    - Reserve units: positive quantity_delta (e.g., {"quantity_delta": 10})
+    - Release units: negative quantity_delta (e.g., {"quantity_delta": -5})
+
+    Validations:
+    - Cannot reserve more than available
+    - Cannot release more than currently reserved
+    - Uses row-level locking to prevent race conditions
+    """
+    inventory = await use_case.execute(inventory_id, request.quantity_delta)
+    return InventoryResponse.model_validate(inventory, from_attributes=True)

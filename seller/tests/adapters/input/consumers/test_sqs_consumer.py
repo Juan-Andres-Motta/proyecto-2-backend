@@ -603,6 +603,177 @@ class TestDeleteMessage:
         assert "Error deleting message" in caplog.text
 
 
+class TestPollMessagesIntegration:
+    """Tests for _poll_messages real implementation coverage."""
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_stops_when_running_flag_false(self, sqs_consumer, caplog):
+        """Test that _poll_messages stops when _running is False."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        mock_sqs = AsyncMock()
+        mock_sqs.receive_message = AsyncMock(return_value={"Messages": []})
+
+        sqs_consumer._session = MagicMock()
+        sqs_consumer._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer._running = False  # Start with False so it exits immediately
+
+        await sqs_consumer._poll_messages()
+
+        # Should not call receive_message if not running
+        assert not mock_sqs.receive_message.called
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_receives_messages(self, sqs_consumer, caplog):
+        """Test that _poll_messages calls receive_message in a loop."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        mock_sqs = AsyncMock()
+        call_count = [0]
+
+        async def receive_with_break(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                sqs_consumer._running = False
+                return {"Messages": []}
+            return {"Messages": []}
+
+        mock_sqs.receive_message = AsyncMock(side_effect=receive_with_break)
+
+        sqs_consumer._session = MagicMock()
+        sqs_consumer._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer._running = True
+
+        await sqs_consumer._poll_messages()
+
+        # Should call receive_message at least once
+        assert mock_sqs.receive_message.called
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_handles_client_error_and_sleeps(self, sqs_consumer, caplog):
+        """Test that _poll_messages handles ClientError, logs, and backs off."""
+        from botocore.exceptions import ClientError
+        import logging
+        caplog.set_level(logging.ERROR)
+
+        mock_sqs = AsyncMock()
+        call_count = [0]
+
+        async def receive_with_error(*args, **kwargs):
+            call_count[0] += 1
+            sqs_consumer._running = False
+            raise ClientError(
+                {"Error": {"Code": "InvalidQueue", "Message": "Queue not found"}},
+                "ReceiveMessage",
+            )
+
+        mock_sqs.receive_message = AsyncMock(side_effect=receive_with_error)
+
+        sqs_consumer._session = MagicMock()
+        sqs_consumer._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer._running = True
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await sqs_consumer._poll_messages()
+
+        # Should log ClientError
+        assert "SQS client error" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_handles_generic_error_and_sleeps(self, sqs_consumer, caplog):
+        """Test that _poll_messages handles generic Exception, logs, and backs off."""
+        import logging
+        caplog.set_level(logging.ERROR)
+
+        mock_sqs = AsyncMock()
+        call_count = [0]
+
+        async def receive_with_error(*args, **kwargs):
+            call_count[0] += 1
+            sqs_consumer._running = False
+            raise Exception("Connection timeout")
+
+        mock_sqs.receive_message = AsyncMock(side_effect=receive_with_error)
+
+        sqs_consumer._session = MagicMock()
+        sqs_consumer._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer._running = True
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await sqs_consumer._poll_messages()
+
+        # Should log error
+        assert "Error polling SQS" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_with_endpoint_url_logging(self, sqs_consumer_with_endpoint, caplog):
+        """Test that endpoint URL is logged when provided."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        mock_sqs = AsyncMock()
+        call_count = [0]
+
+        async def receive_with_break(*args, **kwargs):
+            call_count[0] += 1
+            sqs_consumer_with_endpoint._running = False
+            return {"Messages": []}
+
+        mock_sqs.receive_message = AsyncMock(side_effect=receive_with_break)
+
+        sqs_consumer_with_endpoint._session = MagicMock()
+        sqs_consumer_with_endpoint._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer_with_endpoint._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer_with_endpoint._running = True
+
+        await sqs_consumer_with_endpoint._poll_messages()
+
+        # Should log endpoint usage
+        assert "Using SQS endpoint" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_poll_messages_calls_process_messages(self, sqs_consumer, caplog):
+        """Test that _poll_messages calls _process_messages when messages arrive."""
+        import logging
+        caplog.set_level(logging.INFO)
+
+        messages = [
+            {"MessageId": "msg-1", "Body": '{"event_type": "order_created"}', "ReceiptHandle": "rh-1"},
+        ]
+
+        mock_sqs = AsyncMock()
+        call_count = [0]
+
+        async def receive_with_messages(*args, **kwargs):
+            call_count[0] += 1
+            sqs_consumer._running = False
+            return {"Messages": messages}
+
+        mock_sqs.receive_message = AsyncMock(side_effect=receive_with_messages)
+
+        sqs_consumer._session = MagicMock()
+        sqs_consumer._session.client.return_value.__aenter__.return_value = mock_sqs
+        sqs_consumer._session.client.return_value.__aexit__.return_value = None
+
+        sqs_consumer._running = True
+
+        with patch.object(sqs_consumer, "_process_messages", new_callable=AsyncMock) as mock_process:
+            await sqs_consumer._poll_messages()
+            mock_process.assert_called_once()
+            assert "Received 1 messages from SQS" in caplog.text
+
+
 class TestConsumerIntegration:
     """Integration tests for consumer workflow."""
 

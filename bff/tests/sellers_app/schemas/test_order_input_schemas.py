@@ -13,17 +13,17 @@ class TestOrderItemInput:
     def test_valid_order_item(self):
         """Test creating valid order item."""
         item = OrderItemInput(
-            producto_id=uuid4(),
+            inventario_id=uuid4(),
             cantidad=5
         )
         assert item.cantidad == 5
-        assert isinstance(item.producto_id, type(uuid4()))
+        assert isinstance(item.inventario_id, type(uuid4()))
 
     def test_invalid_cantidad_zero(self):
         """Test that cantidad must be greater than 0."""
         with pytest.raises(ValidationError) as exc_info:
             OrderItemInput(
-                producto_id=uuid4(),
+                inventario_id=uuid4(),
                 cantidad=0
             )
         assert "cantidad must be greater than 0" in str(exc_info.value)
@@ -32,7 +32,7 @@ class TestOrderItemInput:
         """Test that cantidad cannot be negative."""
         with pytest.raises(ValidationError) as exc_info:
             OrderItemInput(
-                producto_id=uuid4(),
+                inventario_id=uuid4(),
                 cantidad=-5
             )
         assert "cantidad must be greater than 0" in str(exc_info.value)
@@ -40,7 +40,7 @@ class TestOrderItemInput:
     def test_valid_large_cantidad(self):
         """Test valid large cantidad."""
         item = OrderItemInput(
-            producto_id=uuid4(),
+            inventario_id=uuid4(),
             cantidad=10000
         )
         assert item.cantidad == 10000
@@ -53,7 +53,7 @@ class TestOrderCreateInput:
         """Test creating order with single item."""
         order = OrderCreateInput(
             customer_id=uuid4(),
-            items=[OrderItemInput(producto_id=uuid4(), cantidad=1)]
+            items=[OrderItemInput(inventario_id=uuid4(), cantidad=1)]
         )
         assert len(order.items) == 1
         assert order.visit_id is None
@@ -63,9 +63,9 @@ class TestOrderCreateInput:
         order = OrderCreateInput(
             customer_id=uuid4(),
             items=[
-                OrderItemInput(producto_id=uuid4(), cantidad=2),
-                OrderItemInput(producto_id=uuid4(), cantidad=3),
-                OrderItemInput(producto_id=uuid4(), cantidad=1),
+                OrderItemInput(inventario_id=uuid4(), cantidad=2),
+                OrderItemInput(inventario_id=uuid4(), cantidad=3),
+                OrderItemInput(inventario_id=uuid4(), cantidad=1),
             ]
         )
         assert len(order.items) == 3
@@ -75,7 +75,7 @@ class TestOrderCreateInput:
         visit_id = uuid4()
         order = OrderCreateInput(
             customer_id=uuid4(),
-            items=[OrderItemInput(producto_id=uuid4(), cantidad=1)],
+            items=[OrderItemInput(inventario_id=uuid4(), cantidad=1)],
             visit_id=visit_id
         )
         assert order.visit_id == visit_id
@@ -91,7 +91,7 @@ class TestOrderCreateInput:
 
     def test_valid_order_with_max_items(self):
         """Test creating order with many items."""
-        items = [OrderItemInput(producto_id=uuid4(), cantidad=1) for _ in range(100)]
+        items = [OrderItemInput(inventario_id=uuid4(), cantidad=1) for _ in range(100)]
         order = OrderCreateInput(
             customer_id=uuid4(),
             items=items

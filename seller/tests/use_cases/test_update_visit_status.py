@@ -3,6 +3,7 @@ import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 from unittest.mock import AsyncMock
+from dataclasses import replace
 
 from src.application.use_cases.update_visit_status import UpdateVisitStatusUseCase
 from src.domain.entities.visit import Visit, VisitStatus
@@ -57,15 +58,24 @@ class TestUpdateVisitStatusSuccess:
         """Test updating status from programada to completada."""
         mock_visit_repository.find_by_id.return_value = programmed_visit
 
+        # Mock the update method to return the updated visit
+        updated_visit = replace(
+            programmed_visit,
+            status=VisitStatus.COMPLETADA,
+            recomendaciones="Recommend Product X",
+        )
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=programmed_visit.id,            new_status=VisitStatus.COMPLETADA,
+            visit_id=programmed_visit.id,
+            new_status=VisitStatus.COMPLETADA,
             recomendaciones="Recommend Product X",
             session=mock_session,
         )
 
         assert result.status == VisitStatus.COMPLETADA
         assert result.recomendaciones == "Recommend Product X"
-        mock_session.flush.assert_called_once()
+        mock_visit_repository.update.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_update_status_programada_to_cancelada(
@@ -74,14 +84,19 @@ class TestUpdateVisitStatusSuccess:
         """Test updating status from programada to cancelada."""
         mock_visit_repository.find_by_id.return_value = programmed_visit
 
+        # Mock the update method to return the updated visit
+        updated_visit = replace(programmed_visit, status=VisitStatus.CANCELADA)
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=programmed_visit.id,            new_status=VisitStatus.CANCELADA,
+            visit_id=programmed_visit.id,
+            new_status=VisitStatus.CANCELADA,
             recomendaciones=None,
             session=mock_session,
         )
 
         assert result.status == VisitStatus.CANCELADA
-        mock_session.flush.assert_called_once()
+        mock_visit_repository.update.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_update_status_with_no_recommendations(
@@ -90,8 +105,13 @@ class TestUpdateVisitStatusSuccess:
         """Test updating status without providing recommendations."""
         mock_visit_repository.find_by_id.return_value = programmed_visit
 
+        # Mock the update method to return the updated visit
+        updated_visit = replace(programmed_visit, status=VisitStatus.COMPLETADA)
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=programmed_visit.id,            new_status=VisitStatus.COMPLETADA,
+            visit_id=programmed_visit.id,
+            new_status=VisitStatus.COMPLETADA,
             recomendaciones=None,
             session=mock_session,
         )
@@ -106,15 +126,20 @@ class TestUpdateVisitStatusSuccess:
         """Test updating status to the same status (no-op)."""
         mock_visit_repository.find_by_id.return_value = programmed_visit
 
+        # Mock the update method to return the same visit
+        updated_visit = replace(programmed_visit)
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=programmed_visit.id,            new_status=VisitStatus.PROGRAMADA,
+            visit_id=programmed_visit.id,
+            new_status=VisitStatus.PROGRAMADA,
             recomendaciones=None,
             session=mock_session,
         )
 
         # Should succeed (no-op)
         assert result.status == VisitStatus.PROGRAMADA
-        mock_session.flush.assert_called_once()
+        mock_visit_repository.update.assert_called_once()
 
 class TestUpdateVisitStatusFailures:
     """Test failure scenarios."""
@@ -205,11 +230,23 @@ class TestUpdateVisitStatusTimestampUpdate:
         self, use_case, mock_visit_repository, mock_session, programmed_visit
     ):
         """Test that updated_at timestamp is modified."""
+        from dataclasses import replace
+
         original_updated_at = programmed_visit.updated_at
         mock_visit_repository.find_by_id.return_value = programmed_visit
 
+        # Mock the update method to return the updated visit with new timestamp
+        updated_visit = replace(
+            programmed_visit,
+            status=VisitStatus.COMPLETADA,
+            recomendaciones="Test",
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_visit_repository.update.return_value = updated_visit
+
         result = await use_case.execute(
-            visit_id=programmed_visit.id,            new_status=VisitStatus.COMPLETADA,
+            visit_id=programmed_visit.id,
+            new_status=VisitStatus.COMPLETADA,
             recomendaciones="Test",
             session=mock_session,
         )

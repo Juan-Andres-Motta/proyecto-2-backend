@@ -53,5 +53,19 @@ class Settings(BaseSettings):
         description="AWS endpoint URL (for LocalStack in development, None for real AWS)"
     )
 
+    # Service URLs for HTTP adapters
+    inventory_service_url: str = Field(
+        default="http://inventory:8000",
+        description="Base URL for Inventory Service"
+    )
+    customer_service_url: str = Field(
+        default="http://client:8000",
+        description="Base URL for Customer Service"
+    )
+    seller_service_url: str = Field(
+        default="http://seller:8000",
+        description="Base URL for Seller Service"
+    )
+
 
 settings = Settings()

@@ -58,9 +58,21 @@ class ClientResponse(BaseModel):
         )
 
 
+class PaginationMetadata(BaseModel):
+    """Pagination metadata for list responses."""
+
+    current_page: int = Field(..., description="Current page number (1-indexed)")
+    page_size: int = Field(..., description="Number of results per page")
+    total_results: int = Field(..., description="Total number of results across all pages")
+    total_pages: int = Field(..., description="Total number of pages")
+    has_next: bool = Field(..., description="Whether there is a next page")
+    has_previous: bool = Field(..., description="Whether there is a previous page")
+
+
 class ClientListResponse(BaseModel):
     clients: list[ClientResponse]
-    total: int
+    total: int = Field(..., description="Total number of clients (backward compatibility)")
+    pagination: PaginationMetadata = Field(..., description="Pagination metadata")
 
 
 class AssignSellerRequest(BaseModel):

@@ -67,18 +67,18 @@ class UpdateVisitStatusUseCase:
             current_status=visit.status, new_status=new_status
         )
 
-        # Step 4: Update visit fields
+        # Step 3: Update visit fields
         visit.status = new_status
         if recomendaciones is not None:
             visit.recomendaciones = recomendaciones
         visit.updated_at = datetime.now(timezone.utc)
 
-        # Step 5: Persist changes
-        await session.flush()
+        # Step 4: Persist changes via repository
+        updated_visit = await self.visit_repository.update(visit, session)
 
         logger.info(
             f"Visit status updated successfully: visit_id={visit_id}, "
             f"status={new_status.value}"
         )
 
-        return visit
+        return updated_visit

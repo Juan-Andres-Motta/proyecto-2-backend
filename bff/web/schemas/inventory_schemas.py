@@ -56,6 +56,7 @@ class InventoryCreate(BaseModel):
     product_sku: str
     product_name: str
     product_price: float
+    product_category: Optional[str] = None
 
 
 class InventoryCreateResponse(BaseModel):
@@ -75,6 +76,7 @@ class InventoryResponse(BaseModel):
     product_sku: str
     product_name: str
     product_price: float
+    product_category: Optional[str] = None
     warehouse_name: str
     warehouse_city: str
     created_at: datetime
