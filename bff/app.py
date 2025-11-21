@@ -47,8 +47,6 @@ async def lifespan(app: FastAPI):
         )
 
         reports_consumer.register_handler("web_report_generated", handlers.handle_web_report_generated)
-        reports_consumer.register_handler("web_delivery_routes", handlers.handle_web_delivery_routes)
-        reports_consumer.register_handler("mobile_seller_visit_routes", handlers.handle_mobile_seller_visit_routes)
 
         task = asyncio.create_task(reports_consumer.start())
         consumer_tasks.append((reports_consumer, task))
@@ -75,6 +73,26 @@ async def lifespan(app: FastAPI):
         app.state.sqs_order_consumer = order_consumer
     else:
         logger.info("SQS order events queue URL not configured - skipping order events consumer startup")
+
+    # Start delivery routes queue consumer
+    delivery_routes_queue = getattr(settings, 'sqs_delivery_routes_queue_url', None)
+    if delivery_routes_queue:
+        logger.info(f"Starting SQS delivery routes consumer for {delivery_routes_queue}...")
+
+        delivery_consumer = SQSConsumer(
+            queue_url=delivery_routes_queue,
+            aws_region=settings.sqs_region,
+            max_messages=settings.sqs_max_messages,
+            wait_time_seconds=settings.sqs_wait_time_seconds,
+        )
+
+        delivery_consumer.register_handler("delivery_routes_generated", handlers.handle_delivery_routes_generated)
+
+        task = asyncio.create_task(delivery_consumer.start())
+        consumer_tasks.append((delivery_consumer, task))
+        app.state.sqs_delivery_consumer = delivery_consumer
+    else:
+        logger.info("SQS delivery routes queue URL not configured - skipping delivery routes consumer startup")
 
     yield
 

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from client_app.schemas.shipment_schemas import ShipmentInfo
+
 
 class OrderItemInput(BaseModel):
     """Input schema for a single order item."""
@@ -91,6 +93,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse]
+    shipment: Optional[ShipmentInfo] = None
 
 
 class PaginatedOrdersResponse(BaseModel):

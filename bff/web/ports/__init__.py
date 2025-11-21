@@ -6,11 +6,13 @@ specifying implementation details.
 """
 
 from .catalog_port import CatalogPort
+from .delivery_port import DeliveryPort
 from .inventory_port import InventoryPort
 from .seller_port import SellerPort
 
 __all__ = [
     "CatalogPort",
-    "SellerPort",
+    "DeliveryPort",
     "InventoryPort",
+    "SellerPort",
 ]

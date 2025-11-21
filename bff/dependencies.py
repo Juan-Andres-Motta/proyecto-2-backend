@@ -12,6 +12,7 @@ from config.settings import settings
 
 # Import ports and adapters directly from their modules to avoid triggering web.__init__.py
 from web.ports.catalog_port import CatalogPort
+from web.ports.delivery_port import DeliveryPort
 from web.ports.inventory_port import InventoryPort
 from web.ports.seller_port import SellerPort
 from common.realtime import RealtimePublisher, get_publisher
@@ -96,6 +97,21 @@ def get_client_http_client() -> HttpClient:
     )
 
 
+@lru_cache()
+def get_delivery_http_client() -> HttpClient:
+    """
+    Factory for delivery HTTP client.
+
+    Returns:
+        Configured HttpClient for the delivery service
+    """
+    return HttpClient(
+        base_url=settings.delivery_url,
+        timeout=settings.service_timeout,
+        service_name="delivery",
+    )
+
+
 # Port/Adapter Factories
 # These can be used with FastAPI's Depends() for dependency injection
 
@@ -157,6 +173,19 @@ def get_inventory_port() -> InventoryPort:
     return InventoryAdapter(client)
 
 
+def get_web_delivery_port() -> DeliveryPort:
+    """
+    Factory for Web App DeliveryPort implementation.
+
+    Returns:
+        DeliveryPort implementation for web app (DeliveryAdapter)
+    """
+    from web.adapters.delivery_adapter import DeliveryAdapter
+
+    client = get_delivery_http_client()
+    return DeliveryAdapter(client)
+
+
 def get_client_order_port():
     """
     Factory for Client App OrderPort implementation.
@@ -197,6 +226,20 @@ def get_client_app_client_port():
 
     client = get_client_http_client()
     return ClientAdapter(client)
+
+
+def get_delivery_port():
+    """
+    Factory for Client App DeliveryPort implementation.
+
+    Returns:
+        DeliveryPort implementation for client app (DeliveryAdapter)
+    """
+    # Import here to avoid circular dependencies
+    from client_app.adapters.delivery_adapter import DeliveryAdapter
+
+    client = get_delivery_http_client()
+    return DeliveryAdapter(client)
 
 
 def get_auth_client_port():
@@ -314,3 +357,4 @@ def clear_dependency_cache():
     get_inventory_http_client.cache_clear()
     get_order_http_client.cache_clear()
     get_client_http_client.cache_clear()
+    get_delivery_http_client.cache_clear()

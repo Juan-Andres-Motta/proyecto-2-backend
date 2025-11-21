@@ -6,11 +6,13 @@ with external services.
 """
 
 from .catalog_adapter import CatalogAdapter
+from .delivery_adapter import DeliveryAdapter
 from .inventory_adapter import InventoryAdapter
 from .seller_adapter import SellerAdapter
 
 __all__ = [
     "CatalogAdapter",
-    "SellerAdapter",
+    "DeliveryAdapter",
     "InventoryAdapter",
+    "SellerAdapter",
 ]

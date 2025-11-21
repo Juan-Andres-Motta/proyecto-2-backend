@@ -1,91 +1,43 @@
-from fastapi import APIRouter, FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError as PydanticValidationError
+
+import logging
+
+from fastapi import FastAPI
+
+from src.adapters.input.controllers.common_controller import router as common_router
+from src.adapters.input.controllers.route_controller import router as route_router
+from src.adapters.input.controllers.shipment_controller import (
+    router as shipment_router,
+)
+from src.adapters.input.controllers.vehicle_controller import router as vehicle_router
+from src.infrastructure.api.exception_handlers import register_exception_handlers
+from src.infrastructure.config.logger import setup_logging
+from src.infrastructure.config.settings import settings
+
+# Setup logging
+setup_logging()
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Delivery Service",
-    docs_url="/delivery/docs",
-    redoc_url="/delivery/redoc",
-    openapi_url="/delivery/openapi.json",
+    title=settings.app_name,
+    description=settings.app_description,
+    version=settings.app_version,
+    contact={
+        "name": settings.app_contact_name,
+        "email": settings.app_contact_email,
+    },
+    docs_url=settings.docs_url,
+    redoc_url=settings.redoc_url,
+    openapi_url=settings.openapi_url,
 )
 
+logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-# Exception handlers
-@app.exception_handler(RequestValidationError)
-async def handle_request_validation_error(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
-    """Handle FastAPI/Pydantic validation errors (422)."""
-    errors = exc.errors()
-    if errors:
-        first_error = errors[0]
-        field = ".".join(str(loc) for loc in first_error["loc"][1:])  # Skip 'body'
-        message = f"{field}: {first_error['msg']}" if field else first_error['msg']
-    else:
-        message = "Validation error"
+# Register exception handlers
+register_exception_handlers(app)
 
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error_code": "VALIDATION_ERROR",
-            "message": message,
-            "type": "validation_error"
-        }
-    )
-
-
-@app.exception_handler(PydanticValidationError)
-async def handle_pydantic_validation_error(
-    request: Request, exc: PydanticValidationError
-) -> JSONResponse:
-    """Handle Pydantic validation errors (422)."""
-    errors = exc.errors()
-    if errors:
-        first_error = errors[0]
-        field = ".".join(str(loc) for loc in first_error["loc"])
-        message = f"{field}: {first_error['msg']}"
-    else:
-        message = "Validation error"
-
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error_code": "VALIDATION_ERROR",
-            "message": message,
-            "type": "validation_error"
-        }
-    )
-
-
-@app.exception_handler(Exception)
-async def handle_unexpected_exception(
-    request: Request, exc: Exception
-) -> JSONResponse:
-    """Handle unexpected exceptions (500)."""
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error_code": "INTERNAL_SERVER_ERROR",
-            "message": "An unexpected error occurred",
-            "type": "system_error",
-        },
-    )
-
-
-# Create router with /delivery prefix
-router = APIRouter(prefix="/delivery", tags=["delivery"])
-
-
-@router.get("/")
-async def read_root():
-    return {"name": "Delivery Service"}
-
-
-@router.get("/health")
-async def read_health():
-    return {"status": "ok"}
-
-
-# Include router
-app.include_router(router)
+app.include_router(common_router, prefix="/delivery")
+app.include_router(route_router, prefix="/delivery")
+app.include_router(shipment_router, prefix="/delivery")
+app.include_router(vehicle_router, prefix="/delivery")

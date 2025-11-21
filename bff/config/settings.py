@@ -63,5 +63,11 @@ class Settings(BaseSettings):
         description="SQS queue URL for consuming order events (BFF-specific queue)"
     )
 
+    # SQS Delivery Routes Queue - for delivery route generation notifications
+    sqs_delivery_routes_queue_url: str = Field(
+        default="",
+        description="SQS queue URL for consuming delivery route events"
+    )
+
 
 settings = Settings()

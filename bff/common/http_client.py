@@ -318,3 +318,173 @@ class HttpClient:
             raise MicroserviceHTTPError(
                 self.service_name, status_code, response_text
             ) from e
+
+    async def put(
+        self,
+        path: str,
+        json: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Send a PUT request to the microservice.
+
+        Args:
+            path: API endpoint path (relative to base_url)
+            json: JSON payload to send
+            **kwargs: Additional arguments to pass to httpx
+
+        Returns:
+            JSON response from the service
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect
+            MicroserviceTimeoutError: If request times out
+            MicroserviceValidationError: If validation fails (400-level errors)
+            MicroserviceHTTPError: For other HTTP errors
+        """
+        url = f"{self.base_url}/{path.lstrip('/')}"
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                logger.debug(f"PUT {url}", extra={"service": self.service_name})
+
+                response = await client.put(url, json=json, **kwargs)
+
+                # Log the response
+                logger.debug(
+                    f"Response {response.status_code} from {self.service_name}",
+                    extra={"status_code": response.status_code, "url": url},
+                )
+
+                # Raise for HTTP errors
+                response.raise_for_status()
+
+                return response.json()
+
+        except httpx.TimeoutException as e:
+            logger.error(
+                f"Timeout connecting to {self.service_name}",
+                extra={"url": url, "timeout": self.timeout},
+            )
+            raise MicroserviceTimeoutError(self.service_name, self.timeout) from e
+
+        except httpx.ConnectError as e:
+            logger.error(
+                f"Connection error to {self.service_name}",
+                extra={"url": url, "error": str(e)},
+            )
+            raise MicroserviceConnectionError(self.service_name, str(e)) from e
+
+        except httpx.HTTPStatusError as e:
+            # Map HTTP status codes to appropriate exceptions
+            status_code = e.response.status_code
+            response_text = e.response.text
+
+            logger.warning(
+                f"HTTP {status_code} from {self.service_name}",
+                extra={
+                    "status_code": status_code,
+                    "url": url,
+                    "response": response_text,
+                },
+            )
+
+            # Validation errors (400-level)
+            if 400 <= status_code < 500:
+                if status_code == 422:
+                    raise MicroserviceValidationError(
+                        self.service_name,
+                        "Validation error",
+                        status_code=422,
+                        details={"response": response_text},
+                    ) from e
+                elif status_code == 400:
+                    raise MicroserviceValidationError(
+                        self.service_name,
+                        "Bad request",
+                        details={"response": response_text},
+                    ) from e
+                elif status_code == 404:
+                    raise MicroserviceHTTPError(
+                        self.service_name, status_code, response_text
+                    ) from e
+                else:
+                    raise MicroserviceHTTPError(
+                        self.service_name, status_code, response_text
+                    ) from e
+
+            # Server errors (500-level)
+            raise MicroserviceHTTPError(
+                self.service_name, status_code, response_text
+            ) from e
+
+    async def delete(
+        self,
+        path: str,
+        **kwargs
+    ) -> None:
+        """
+        Send a DELETE request to the microservice.
+
+        Args:
+            path: API endpoint path (relative to base_url)
+            **kwargs: Additional arguments to pass to httpx
+
+        Returns:
+            None (DELETE typically returns 204 No Content)
+
+        Raises:
+            MicroserviceConnectionError: If unable to connect
+            MicroserviceTimeoutError: If request times out
+            MicroserviceHTTPError: For HTTP errors
+        """
+        url = f"{self.base_url}/{path.lstrip('/')}"
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                logger.debug(f"DELETE {url}", extra={"service": self.service_name})
+
+                response = await client.delete(url, **kwargs)
+
+                # Log the response
+                logger.debug(
+                    f"Response {response.status_code} from {self.service_name}",
+                    extra={"status_code": response.status_code, "url": url},
+                )
+
+                # Raise for HTTP errors
+                response.raise_for_status()
+
+                # DELETE typically returns 204 No Content, but handle other success codes
+                return None
+
+        except httpx.TimeoutException as e:
+            logger.error(
+                f"Timeout connecting to {self.service_name}",
+                extra={"url": url, "timeout": self.timeout},
+            )
+            raise MicroserviceTimeoutError(self.service_name, self.timeout) from e
+
+        except httpx.ConnectError as e:
+            logger.error(
+                f"Connection error to {self.service_name}",
+                extra={"url": url, "error": str(e)},
+            )
+            raise MicroserviceConnectionError(self.service_name, str(e)) from e
+
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            response_text = e.response.text
+
+            logger.warning(
+                f"HTTP {status_code} from {self.service_name}",
+                extra={
+                    "status_code": status_code,
+                    "url": url,
+                    "response": response_text,
+                },
+            )
+
+            raise MicroserviceHTTPError(
+                self.service_name, status_code, response_text
+            ) from e

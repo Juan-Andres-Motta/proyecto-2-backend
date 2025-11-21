@@ -8,6 +8,7 @@ from .order_schemas import (
     OrderResponse,
     PaginatedOrdersResponse,
 )
+from .shipment_schemas import ShipmentInfo
 
 __all__ = [
     "OrderCreateInput",
@@ -16,4 +17,5 @@ __all__ = [
     "OrderItemResponse",
     "OrderResponse",
     "PaginatedOrdersResponse",
+    "ShipmentInfo",
 ]

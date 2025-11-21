@@ -1,3 +1,4 @@
+from .delivery_controller import router as delivery_router
 from .inventories_controller import router as inventories_router
 from .products_controller import router as products_router
 from .providers_controller import router as providers_router
@@ -7,6 +8,7 @@ from .warehouses_controller import router as warehouses_router
 from . import reports_controller
 
 __all__ = [
+    "delivery_router",
     "providers_router",
     "products_router",
     "warehouses_router",

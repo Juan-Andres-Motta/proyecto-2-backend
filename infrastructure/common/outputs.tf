@@ -116,6 +116,28 @@ output "sqs_order_events_queue_arn" {
   value       = module.sqs_order_events_queue.queue_arn
 }
 
+# SQS Order Events Queue Outputs - Delivery Consumer
+output "sqs_order_events_delivery_queue_url" {
+  description = "SQS queue URL for order events (Delivery service consumer)"
+  value       = module.sqs_order_events_delivery_queue.queue_url
+}
+
+output "sqs_order_events_delivery_queue_arn" {
+  description = "SQS queue ARN for order events (Delivery service consumer)"
+  value       = module.sqs_order_events_delivery_queue.queue_arn
+}
+
+# SQS Delivery Routes Generated Queue Outputs - BFF Consumer
+output "sqs_delivery_routes_generated_queue_url" {
+  description = "SQS queue URL for delivery routes generated events (BFF service consumer)"
+  value       = module.sqs_delivery_routes_generated_queue.queue_url
+}
+
+output "sqs_delivery_routes_generated_queue_arn" {
+  description = "SQS queue ARN for delivery routes generated events (BFF service consumer)"
+  value       = module.sqs_delivery_routes_generated_queue.queue_arn
+}
+
 # IAM CI/CD User Outputs
 output "cicd_user_name" {
   description = "IAM user name for CI/CD ECR push operations"
