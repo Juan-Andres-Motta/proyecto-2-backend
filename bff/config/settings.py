@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO")
 
+    # Testing mode (adds delays for LocalStack initialization)
+    test_mode: bool = Field(default=False)
+
     # Microservices URLs
     catalog_url: str = Field(default="http://catalog:8000/catalog")
     client_url: str = Field(default="http://client:8000/client")

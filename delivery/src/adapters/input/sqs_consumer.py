@@ -90,6 +90,9 @@ class SQSConsumer:
                 await self._delete_message(sqs, receipt_handle)
                 return
 
+            # Log received event data for debugging
+            logger.info(f"Received event data: {json.dumps(event, default=str)}")
+
             # Parse date
             fecha_pedido_str = event.get("fecha_pedido")
             if isinstance(fecha_pedido_str, str):

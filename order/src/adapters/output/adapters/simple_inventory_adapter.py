@@ -78,7 +78,7 @@ class SimpleInventoryAdapter(InventoryPort):
 
         try:
             response = await self.client.get(
-                f"{self.base_url}/inventory/{inventory_id}",
+                f"{self.base_url}/inventory/inventory/{inventory_id}",
                 timeout=self.timeout,
             )
 
@@ -188,7 +188,7 @@ class SimpleInventoryAdapter(InventoryPort):
 
         try:
             response = await self.client.patch(
-                f"{self.base_url}/inventory/{inventory_id}/reserve",
+                f"{self.base_url}/inventory/inventory/{inventory_id}/reserve",
                 json={"quantity_delta": quantity},
                 timeout=self.timeout,
             )

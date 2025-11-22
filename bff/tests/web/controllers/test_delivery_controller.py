@@ -75,7 +75,8 @@ class TestGenerateRoutes:
         response = RouteGenerationResponse(
             message="Route generation job accepted",
             fecha_entrega_estimada=date(2025, 1, 15),
-            vehicle_count=2,
+            num_vehicles=2,
+            num_pending_shipments=5,
         )
 
         mock_delivery_port.generate_routes = AsyncMock(return_value=response)
@@ -83,7 +84,7 @@ class TestGenerateRoutes:
         result = await generate_routes(request_data, mock_delivery_port, mock_web_user)
 
         assert result.message == "Route generation job accepted"
-        assert result.vehicle_count == 2
+        assert result.num_vehicles == 2
         assert result.fecha_entrega_estimada == date(2025, 1, 15)
         mock_delivery_port.generate_routes.assert_called_once_with(request_data)
 

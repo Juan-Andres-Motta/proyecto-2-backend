@@ -31,6 +31,11 @@ async def lifespan(app: FastAPI):
     # Startup
     consumer_tasks = []
 
+    # Wait for LocalStack queues to be ready (CI environment)
+    if settings.test_mode:
+        logger.info("Test mode: Waiting 5 seconds for LocalStack queues to initialize...")
+        await asyncio.sleep(5)
+
     # Get shared publisher and handlers
     publisher = get_publisher()
     handlers = EventHandlers(publisher)

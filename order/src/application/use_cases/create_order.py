@@ -229,6 +229,9 @@ class CreateOrderUseCase:
                 if order.fecha_entrega_estimada
                 else None
             ),
+            "direccion_entrega": order.direccion_entrega,
+            "ciudad_entrega": order.ciudad_entrega,
+            "pais_entrega": order.pais_entrega,
             "monto_total": float(order.monto_total),
             "metodo_creacion": order.metodo_creacion.value,
             "items": [

@@ -24,7 +24,8 @@ class RouteGenerationResponse(BaseModel):
     """Response schema for route generation."""
     message: str
     fecha_entrega_estimada: date
-    vehicle_count: int
+    num_vehicles: int
+    num_pending_shipments: int
 
 
 class RouteStatusUpdateRequest(BaseModel):

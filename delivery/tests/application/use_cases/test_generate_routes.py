@@ -58,6 +58,7 @@ class TestGenerateRoutesUseCase:
         mock_route_repository,
         mock_route_optimizer,
         mock_event_publisher,
+        session,
     ):
         """Create a GenerateRoutesUseCase instance with mocked dependencies."""
         return GenerateRoutesUseCase(
@@ -66,6 +67,7 @@ class TestGenerateRoutesUseCase:
             route_repository=mock_route_repository,
             route_optimizer=mock_route_optimizer,
             event_publisher=mock_event_publisher,
+            session=session,
         )
 
     def _create_shipment(self, order_id=None):

@@ -153,6 +153,7 @@ async def get_generate_routes_use_case(
         route_repository=get_route_repository(session),
         route_optimizer=get_route_optimizer(),
         event_publisher=get_event_publisher(),
+        session=session,
     )
 
 

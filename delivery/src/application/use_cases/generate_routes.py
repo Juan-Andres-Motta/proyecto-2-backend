@@ -4,6 +4,8 @@ from datetime import date
 from typing import List
 from uuid import UUID, uuid4
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.application.ports import (
     RouteOptimizationPort,
     RouteRepositoryPort,
@@ -27,12 +29,14 @@ class GenerateRoutesUseCase:
         route_repository: RouteRepositoryPort,
         route_optimizer: RouteOptimizationPort,
         event_publisher: SQSEventPublisherPort,
+        session: AsyncSession,
     ):
         self._shipment_repo = shipment_repository
         self._vehicle_repo = vehicle_repository
         self._route_repo = route_repository
         self._optimizer = route_optimizer
         self._event_publisher = event_publisher
+        self._session = session
 
     async def execute(
         self,
@@ -99,6 +103,10 @@ class GenerateRoutesUseCase:
 
             routes.append(route)
             total_shipments += len(result.shipments)
+
+        # Commit all routes and shipment updates
+        await self._session.commit()
+        logger.info(f"Committed {len(routes)} routes with {total_shipments} shipments to database")
 
         # Publish void event to trigger BFF refetch
         await self._publish_routes_generated()

@@ -2,9 +2,22 @@ import pytest
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from uuid import uuid4
+from unittest.mock import AsyncMock, MagicMock
 
 from src.domain.entities import Vehicle, Shipment, Route, ProcessedEvent
 from src.domain.value_objects import ShipmentStatus, RouteStatus, GeocodingStatus, Coordinates
+
+
+@pytest.fixture
+def session():
+    """Mock database session for use case tests."""
+    mock_session = MagicMock()
+    mock_session.commit = AsyncMock()
+    mock_session.rollback = AsyncMock()
+    mock_session.close = AsyncMock()
+    mock_session.flush = AsyncMock()
+    mock_session.refresh = AsyncMock()
+    return mock_session
 
 
 @pytest.fixture

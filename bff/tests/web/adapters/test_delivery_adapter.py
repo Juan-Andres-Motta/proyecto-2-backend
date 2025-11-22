@@ -62,7 +62,8 @@ class TestGenerateRoutes:
         response_data = {
             "message": "Route generation job accepted",
             "fecha_entrega_estimada": date(2025, 1, 15),
-            "vehicle_count": 2,
+            "num_vehicles": 2,
+            "num_pending_shipments": 5,
         }
 
         mock_http_client.post = AsyncMock(return_value=response_data)
@@ -74,7 +75,7 @@ class TestGenerateRoutes:
         assert call_args.args[0] == "/delivery/routes/generate"
         assert "json" in call_args.kwargs
         assert isinstance(result, RouteGenerationResponse)
-        assert result.vehicle_count == 2
+        assert result.num_vehicles == 2
 
     @pytest.mark.asyncio
     async def test_request_data_serialization(self, delivery_adapter, mock_http_client):
@@ -90,7 +91,8 @@ class TestGenerateRoutes:
             return_value={
                 "message": "Job accepted",
                 "fecha_entrega_estimada": date(2025, 1, 20),
-                "vehicle_count": 1,
+                "num_vehicles": 1,
+                "num_pending_shipments": 3,
             }
         )
 

@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 from uuid import uuid4
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.application.ports import (
     GeocodingPort,
     ProcessedEventRepositoryPort,
@@ -22,10 +24,12 @@ class ConsumeOrderCreatedUseCase:
         shipment_repository: ShipmentRepositoryPort,
         processed_event_repository: ProcessedEventRepositoryPort,
         geocoding_service: GeocodingPort,
+        session: AsyncSession,
     ):
         self._shipment_repo = shipment_repository
         self._processed_event_repo = processed_event_repository
         self._geocoding_service = geocoding_service
+        self._session = session
 
     async def execute(
         self,
@@ -86,6 +90,10 @@ class ConsumeOrderCreatedUseCase:
             )
         )
 
+        # Commit transaction
+        await self._session.commit()
+        logger.info(f"Committed shipment {saved.id} to database")
+
         # Trigger async geocoding (fire-and-forget)
         asyncio.create_task(self._geocode_shipment(saved))
 
@@ -101,12 +109,15 @@ class ConsumeOrderCreatedUseCase:
             )
             shipment.set_coordinates(latitude, longitude)
             await self._shipment_repo.update(shipment)
+            await self._session.commit()
             logger.info(f"Geocoded shipment {shipment.id}: ({latitude}, {longitude})")
         except GeocodingError as e:
             logger.error(f"Failed to geocode shipment {shipment.id}: {e}")
             shipment.mark_geocoding_failed()
             await self._shipment_repo.update(shipment)
+            await self._session.commit()
         except Exception as e:
             logger.error(f"Unexpected error geocoding shipment {shipment.id}: {e}")
             shipment.mark_geocoding_failed()
             await self._shipment_repo.update(shipment)
+            await self._session.commit()

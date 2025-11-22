@@ -34,12 +34,14 @@ class TestConsumeOrderCreatedUseCase:
         mock_shipment_repository,
         mock_processed_event_repository,
         mock_geocoding_service,
+        session,
     ):
         """Create a ConsumeOrderCreatedUseCase instance with mocked dependencies."""
         return ConsumeOrderCreatedUseCase(
             shipment_repository=mock_shipment_repository,
             processed_event_repository=mock_processed_event_repository,
             geocoding_service=mock_geocoding_service,
+            session=session,
         )
 
     @pytest.mark.asyncio
