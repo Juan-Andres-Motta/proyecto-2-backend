@@ -42,7 +42,7 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src"]
+source = ["."]
 omit = [
     "app.py",
     "main.py",

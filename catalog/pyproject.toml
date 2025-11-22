@@ -52,7 +52,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 
 [tool.coverage.run]
-source = ["src"]
+source = ["."]
 omit = ["app.py", "main.py", 
     "*/tests/*",
     "*/__pycache__/*",
