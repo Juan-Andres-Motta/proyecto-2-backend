@@ -228,35 +228,21 @@ def get_client_app_client_port():
     return ClientAdapter(client)
 
 
-def get_seller_app_seller_port():
+def get_delivery_port():
     """
-    Factory for Sellers App SellerPort implementation.
+    Factory for Client App DeliveryPort implementation.
 
     Returns:
-        SellerPort implementation for sellers app (SellerAdapter)
+        DeliveryPort implementation for client app (DeliveryAdapter)
     """
     # Import here to avoid circular dependencies
-    from sellers_app.adapters.seller_adapter import SellerAdapter
+    from client_app.adapters.delivery_adapter import DeliveryAdapter
 
-    client = get_seller_http_client()
-    return SellerAdapter(client)
-
-
-def get_visit_port():
-    """
-    Factory for Sellers App VisitPort implementation.
-
-    Returns:
-        VisitPort implementation for sellers app (VisitAdapter)
-    """
-    # Import here to avoid circular dependencies
-    from sellers_app.adapters.visit_adapter import VisitAdapter
-
-    client = get_seller_http_client()
-    return VisitAdapter(client)
+    client = get_delivery_http_client()
+    return DeliveryAdapter(client)
 
 
-def get_order_reports_adapter():
+def get_auth_client_port():
     """
     Factory for Auth ClientPort implementation.
 
