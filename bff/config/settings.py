@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO")
 
+    # Testing mode (adds delays for LocalStack initialization)
+    test_mode: bool = Field(default=False)
+
     # Microservices URLs
     catalog_url: str = Field(default="http://catalog:8000/catalog")
     client_url: str = Field(default="http://client:8000/client")
@@ -61,6 +64,12 @@ class Settings(BaseSettings):
     sqs_order_events_queue_url: str = Field(
         default="https://localstack:4566/000000000000/medisupply-order-events-bff-queue",
         description="SQS queue URL for consuming order events (BFF-specific queue)"
+    )
+
+    # SQS Delivery Routes Queue - for delivery route generation notifications
+    sqs_delivery_routes_queue_url: str = Field(
+        default="",
+        description="SQS queue URL for consuming delivery route events"
     )
 
 

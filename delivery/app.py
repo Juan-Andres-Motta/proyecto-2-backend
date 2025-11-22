@@ -1,91 +1,112 @@
-from fastapi import APIRouter, FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError as PydanticValidationError
+
+import asyncio
+import logging
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+from src.adapters.input.controllers.common_controller import router as common_router
+from src.adapters.input.controllers.route_controller import router as route_router
+from src.adapters.input.controllers.shipment_controller import (
+    router as shipment_router,
+)
+from src.adapters.input.controllers.vehicle_controller import router as vehicle_router
+from src.adapters.input.sqs_consumer import SQSConsumer
+from src.application.use_cases.consume_order_created import ConsumeOrderCreatedUseCase
+from src.infrastructure.api.exception_handlers import register_exception_handlers
+from src.infrastructure.config.logger import setup_logging
+from src.infrastructure.config.settings import settings
+from src.infrastructure.database.config import engine
+from src.infrastructure.dependencies import (
+    get_shipment_repository,
+    get_processed_event_repository,
+    get_geocoding_service,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Setup logging
+setup_logging()
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
+
+# Global consumer task
+consumer_task = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI lifespan context manager for startup/shutdown."""
+    global consumer_task
+
+    # Startup: Start SQS consumer
+    logger.info("Starting SQS consumer for order_created events...")
+
+    # Create database session factory and use case
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    # Keep session for the entire lifecycle
+    session = session_maker()
+
+    # Create use case with dependencies
+    use_case = ConsumeOrderCreatedUseCase(
+        shipment_repository=get_shipment_repository(session),
+        processed_event_repository=get_processed_event_repository(session),
+        geocoding_service=get_geocoding_service(),
+        session=session,
+    )
+
+    consumer = SQSConsumer(
+        queue_url=settings.sqs_order_events_queue_url,
+        region=settings.aws_region,
+        access_key_id=settings.aws_access_key_id,
+        secret_access_key=settings.aws_secret_access_key,
+        endpoint_url=settings.aws_endpoint_url,
+        use_case=use_case,
+    )
+
+    consumer_task = asyncio.create_task(consumer.start())
+    logger.info(f"✅ SQS consumer started: {settings.sqs_order_events_queue_url}")
+
+    yield
+
+    # Shutdown: Stop consumer
+    logger.info("Stopping SQS consumer...")
+    await consumer.stop()
+    if consumer_task:
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
+    logger.info("✅ SQS consumer stopped")
+
+    # Close session
+    await session.close()
+    logger.info("✅ Database session closed")
+
 
 app = FastAPI(
-    title="Delivery Service",
-    docs_url="/delivery/docs",
-    redoc_url="/delivery/redoc",
-    openapi_url="/delivery/openapi.json",
+    title=settings.app_name,
+    description=settings.app_description,
+    version=settings.app_version,
+    contact={
+        "name": settings.app_contact_name,
+        "email": settings.app_contact_email,
+    },
+    docs_url=settings.docs_url,
+    redoc_url=settings.redoc_url,
+    openapi_url=settings.openapi_url,
+    lifespan=lifespan,
 )
 
+logger.info(f"Starting {settings.app_name} v{settings.app_version}")
 
-# Exception handlers
-@app.exception_handler(RequestValidationError)
-async def handle_request_validation_error(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
-    """Handle FastAPI/Pydantic validation errors (422)."""
-    errors = exc.errors()
-    if errors:
-        first_error = errors[0]
-        field = ".".join(str(loc) for loc in first_error["loc"][1:])  # Skip 'body'
-        message = f"{field}: {first_error['msg']}" if field else first_error['msg']
-    else:
-        message = "Validation error"
+# Register exception handlers
+register_exception_handlers(app)
 
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error_code": "VALIDATION_ERROR",
-            "message": message,
-            "type": "validation_error"
-        }
-    )
-
-
-@app.exception_handler(PydanticValidationError)
-async def handle_pydantic_validation_error(
-    request: Request, exc: PydanticValidationError
-) -> JSONResponse:
-    """Handle Pydantic validation errors (422)."""
-    errors = exc.errors()
-    if errors:
-        first_error = errors[0]
-        field = ".".join(str(loc) for loc in first_error["loc"])
-        message = f"{field}: {first_error['msg']}"
-    else:
-        message = "Validation error"
-
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error_code": "VALIDATION_ERROR",
-            "message": message,
-            "type": "validation_error"
-        }
-    )
-
-
-@app.exception_handler(Exception)
-async def handle_unexpected_exception(
-    request: Request, exc: Exception
-) -> JSONResponse:
-    """Handle unexpected exceptions (500)."""
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error_code": "INTERNAL_SERVER_ERROR",
-            "message": "An unexpected error occurred",
-            "type": "system_error",
-        },
-    )
-
-
-# Create router with /delivery prefix
-router = APIRouter(prefix="/delivery", tags=["delivery"])
-
-
-@router.get("/")
-async def read_root():
-    return {"name": "Delivery Service"}
-
-
-@router.get("/health")
-async def read_health():
-    return {"status": "ok"}
-
-
-# Include router
-app.include_router(router)
+app.include_router(common_router, prefix="/delivery")
+app.include_router(route_router, prefix="/delivery")
+app.include_router(shipment_router, prefix="/delivery")
+app.include_router(vehicle_router, prefix="/delivery")

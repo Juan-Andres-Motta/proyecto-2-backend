@@ -1,5 +1,4 @@
 from logging.config import fileConfig
-import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -11,9 +10,9 @@ from alembic import context
 config = context.config
 
 # Override sqlalchemy.url with environment-based URL
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+from src.infrastructure.config.settings import settings
+
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -22,14 +21,31 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+from src.infrastructure.database.models import Base
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Filter to only include objects managed by this service.
+    This prevents alembic from trying to manage tables from other microservices.
+    """
+    if type_ == "table":
+        # Only manage tables that belong to the delivery service
+        return name in [
+            "vehicles",
+            "routes",
+            "shipments",
+            "processed_events",
+            "delivery_alembic_version",
+        ]
+    return True
 
 
 def run_migrations_offline() -> None:
@@ -51,6 +67,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         version_table="delivery_alembic_version",
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -75,6 +92,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             version_table="delivery_alembic_version",
+            include_object=include_object,
         )
 
         with context.begin_transaction():

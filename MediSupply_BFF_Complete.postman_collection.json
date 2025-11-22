@@ -18,9 +18,9 @@
               "    pm.environment.set('web_access_token', response.access_token);",
               "    pm.environment.set('web_id_token', response.id_token);",
               "    pm.environment.set('web_refresh_token', response.refresh_token);",
-              "    console.log('✅ Web user tokens saved');",
+              "    console.log('\u2705 Web user tokens saved');",
               "} else {",
-              "    console.log('❌ Web user login failed');",
+              "    console.log('\u274c Web user login failed');",
               "}"
             ],
             "type": "text/javascript"
@@ -111,7 +111,7 @@
               "});",
               "const response = pm.response.json();",
               "pm.environment.set('created_provider_id', response.id);",
-              "console.log('✅ Provider created:', response.id);"
+              "console.log('\u2705 Provider created:', response.id);"
             ],
             "type": "text/javascript"
           }
@@ -167,7 +167,7 @@
               "const response = pm.response.json();",
               "if (response.created && response.created.length > 0) {",
               "    pm.environment.set('created_product_id', response.created[0].id);",
-              "    console.log('✅ Product created:', response.created[0].id);",
+              "    console.log('\u2705 Product created:', response.created[0].id);",
               "}"
             ],
             "type": "text/javascript"
@@ -223,7 +223,7 @@
               "});",
               "const response = pm.response.json();",
               "pm.environment.set('created_warehouse_id', response.id);",
-              "console.log('✅ Warehouse created:', response.id);"
+              "console.log('\u2705 Warehouse created:', response.id);"
             ],
             "type": "text/javascript"
           }
@@ -278,7 +278,7 @@
               "});",
               "const response = pm.response.json();",
               "pm.environment.set('created_inventory_id', response.id);",
-              "console.log('✅ Inventory created:', response.id);"
+              "console.log('\u2705 Inventory created:', response.id);"
             ],
             "type": "text/javascript"
           }
@@ -305,10 +305,10 @@
               "    const cleanName = requestBody.name.replace(/[^a-zA-Z0-9]/g, '');",
               "    const sellerPassword = cleanName + '@Password123';",
               "    pm.environment.set('seller_password', sellerPassword);",
-              "    console.log('✅ Seller created:', requestBody.email);",
+              "    console.log('\u2705 Seller created:', requestBody.email);",
               "    console.log('   Password:', sellerPassword);",
               "} else {",
-              "    console.log('❌ Seller creation failed');",
+              "    console.log('\u274c Seller creation failed');",
               "}"
             ],
             "type": "text/javascript"
@@ -369,9 +369,9 @@
               "    pm.environment.set('seller_access_token', response.access_token);",
               "    pm.environment.set('seller_id_token', response.id_token);",
               "    pm.environment.set('seller_refresh_token', response.refresh_token);",
-              "    console.log('✅ Seller tokens saved');",
+              "    console.log('\u2705 Seller tokens saved');",
               "} else {",
-              "    console.log('❌ Seller login failed');",
+              "    console.log('\u274c Seller login failed');",
               "    console.log('   Email:', pm.environment.get('seller_email'));",
               "    console.log('   Password:', pm.environment.get('seller_password'));",
               "}"
@@ -420,12 +420,12 @@
             "exec": [
               "if (pm.response.code === 201) {",
               "    const response = pm.response.json();",
-              "    console.log('✅ Client created:', response.user_id);",
+              "    console.log('\u2705 Client created:', response.user_id);",
               "    pm.environment.set('new_client_id', response.user_id);",
               "} else if (pm.response.code === 409) {",
-              "    console.log('⚠️  Client already exists, using existing credentials');",
+              "    console.log('\u26a0\ufe0f  Client already exists, using existing credentials');",
               "} else {",
-              "    console.log('❌ Client signup failed');",
+              "    console.log('\u274c Client signup failed');",
               "}"
             ],
             "type": "text/javascript"
@@ -487,21 +487,21 @@
               "",
               "pm.test('Response has clients array', function () {",
               "    const response = pm.response.json();",
-              "    pm.expect(response).to.have.property('clients');",
-              "    pm.expect(response.clients).to.be.an('array');",
+              "    pm.expect(response).to.have.property('items');",
+              "    pm.expect(response.items).to.be.an('array');",
               "});",
               "",
               "// Save first unassigned client ID for testing",
               "const response = pm.response.json();",
-              "if (response.clients && response.clients.length > 0) {",
+              "if (response.items && response.items.length > 0) {",
               "    // Try to find unassigned client first",
-              "    const unassignedClient = response.clients.find(c => !c.vendedor_asignado_id);",
+              "    const unassignedClient = response.items.find(c => !c.vendedor_asignado_id);",
               "    if (unassignedClient) {",
               "        pm.environment.set('test_client_id', unassignedClient.cliente_id);",
-              "        console.log('✅ Found unassigned client:', unassignedClient.cliente_id);",
+              "        console.log('\u2705 Found unassigned client:', unassignedClient.cliente_id);",
               "    } else {",
-              "        pm.environment.set('test_client_id', response.clients[0].cliente_id);",
-              "        console.log('⚠️  Using first client (may be assigned)');",
+              "        pm.environment.set('test_client_id', response.items[0].cliente_id);",
+              "        console.log('\u26a0\ufe0f  Using first client (may be assigned)');",
               "    }",
               "}"
             ],
@@ -553,7 +553,7 @@
               "    pm.expect(response).to.have.property('id');",
               "    pm.expect(response).to.have.property('message');",
               "    pm.environment.set('created_order_id', response.id);",
-              "    console.log('✅ Order created:', response.id);",
+              "    console.log('\u2705 Order created:', response.id);",
               "});"
             ],
             "type": "text/javascript"
@@ -612,7 +612,7 @@
               "if (pm.response.code === 201) {",
               "    const response = pm.response.json();",
               "    pm.environment.set('created_visit_id', response.id);",
-              "    console.log('✅ Visit created:', response.id);",
+              "    console.log('\u2705 Visit created:', response.id);",
               "}",
               "",
               "pm.test('Status code is 201 or 403', function () {",
@@ -625,7 +625,7 @@
               "        pm.expect(response).to.have.property('id');",
               "    });",
               "} else {",
-              "    console.log('⚠️  Client already assigned to another seller');",
+              "    console.log('\u26a0\ufe0f  Client already assigned to another seller');",
               "}"
             ],
             "type": "text/javascript"
@@ -687,7 +687,7 @@
       "response": []
     },
     {
-      "name": "8. Seller - Get Visits by Date",
+      "name": "8. Seller - Get Future Visits",
       "event": [
         {
           "listen": "test",
@@ -699,9 +699,9 @@
               "",
               "pm.test('Response has visits array', function () {",
               "    const response = pm.response.json();",
-              "    pm.expect(response).to.have.property('visits');",
-              "    pm.expect(response.visits).to.be.an('array');",
-              "    console.log('✅ Found', response.visits.length, 'visits');",
+              "    pm.expect(response).to.have.property('items');",
+              "    pm.expect(response.items).to.be.an('array');",
+              "    console.log('\u2705 Found', response.items.length, 'visits');",
               "});"
             ],
             "type": "text/javascript"
@@ -735,7 +735,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{base_url}}/bff/sellers-app/visits?date={{query_date}}",
+          "raw": "{{base_url}}/bff/sellers-app/visits?status=future",
           "host": [
             "{{base_url}}"
           ],
@@ -746,12 +746,12 @@
           ],
           "query": [
             {
-              "key": "date",
-              "value": "{{query_date}}"
+              "key": "status",
+              "value": "future"
             }
           ]
         },
-        "description": "Query visits by date"
+        "description": "Query visits by status (future)"
       },
       "response": []
     },
@@ -765,7 +765,7 @@
               "const visitId = pm.environment.get('created_visit_id');",
               "",
               "if (!visitId) {",
-              "    console.log('⚠️  Skipping - no visit created');",
+              "    console.log('\u26a0\ufe0f  Skipping - no visit created');",
               "    pm.test.skip('Status code is 200');",
               "    pm.test.skip('Visit status updated');",
               "} else {",
@@ -776,7 +776,7 @@
               "    pm.test('Visit status updated', function () {",
               "        const response = pm.response.json();",
               "        pm.expect(response.status).to.equal('completada');",
-              "        console.log('✅ Visit status updated to completada');",
+              "        console.log('\u2705 Visit status updated to completada');",
               "    });",
               "}"
             ],
@@ -838,7 +838,7 @@
               "const visitId = pm.environment.get('created_visit_id');",
               "",
               "if (!visitId) {",
-              "    console.log('⚠️  Skipping - no visit created');",
+              "    console.log('\u26a0\ufe0f  Skipping - no visit created');",
               "    pm.test.skip('Status code is 200');",
               "    pm.test.skip('Response has upload URL');",
               "} else {",
@@ -852,7 +852,7 @@
               "        pm.expect(response).to.have.property('s3_url');",
               "        pm.environment.set('evidence_upload_url', response.upload_url);",
               "        pm.environment.set('evidence_s3_url', response.s3_url);",
-              "        console.log('✅ S3 upload URL generated');",
+              "        console.log('\u2705 S3 upload URL generated');",
               "    });",
               "}"
             ],
@@ -917,9 +917,9 @@
               "    pm.environment.set('client_access_token', response.access_token);",
               "    pm.environment.set('client_id_token', response.id_token);",
               "    pm.environment.set('client_refresh_token', response.refresh_token);",
-              "    console.log('✅ Client tokens saved');",
+              "    console.log('\u2705 Client tokens saved');",
               "} else {",
-              "    console.log('❌ Client login failed');",
+              "    console.log('\u274c Client login failed');",
               "}"
             ],
             "type": "text/javascript"
@@ -973,7 +973,7 @@
               "    pm.expect(response).to.have.property('id');",
               "    pm.expect(response).to.have.property('message');",
               "    pm.environment.set('client_order_id', response.id);",
-              "    console.log('✅ Client order created:', response.id);",
+              "    console.log('\u2705 Client order created:', response.id);",
               "});"
             ],
             "type": "text/javascript"
@@ -1038,7 +1038,7 @@
               "    pm.expect(response).to.have.property('items');",
               "    pm.expect(response.items).to.be.an('array');",
               "    pm.expect(response).to.have.property('total');",
-              "    console.log('✅ Found', response.total, 'orders');",
+              "    console.log('\u2705 Found', response.total, 'orders');",
               "});"
             ],
             "type": "text/javascript"
@@ -1098,7 +1098,7 @@
               "    const response = pm.response.json();",
               "    pm.expect(response).to.have.property('items');",
               "    pm.expect(response.items).to.be.an('array');",
-              "    console.log('✅ Seller accessed common inventories:', response.items.length, 'items');",
+              "    console.log('\u2705 Seller accessed common inventories:', response.items.length, 'items');",
               "});"
             ],
             "type": "text/javascript"
@@ -1157,7 +1157,7 @@
               "    const response = pm.response.json();",
               "    pm.expect(response).to.have.property('items');",
               "    pm.expect(response.items).to.be.an('array');",
-              "    console.log('✅ Client accessed common inventories:', response.items.length, 'items');",
+              "    console.log('\u2705 Client accessed common inventories:', response.items.length, 'items');",
               "});"
             ],
             "type": "text/javascript"
@@ -1217,7 +1217,7 @@
               "    pm.expect(response).to.have.property('detail');",
               "    pm.expect(response.detail).to.include('seller_users');",
               "    pm.expect(response.detail).to.include('client_users');",
-              "    console.log('✅ Web user correctly blocked from common inventories');",
+              "    console.log('\u2705 Web user correctly blocked from common inventories');",
               "});"
             ],
             "type": "text/javascript"
@@ -1307,7 +1307,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Sellers list retrieved');"
+              "console.log('\u2705 Sellers list retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1362,7 +1362,7 @@
               "});",
               "const response = pm.response.json();",
               "pm.environment.set('created_sales_plan_id', response.id);",
-              "console.log('✅ Sales plan created:', response.id);"
+              "console.log('\u2705 Sales plan created:', response.id);"
             ],
             "type": "text/javascript"
           }
@@ -1416,7 +1416,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Sales plans retrieved');"
+              "console.log('\u2705 Sales plans retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1470,7 +1470,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Providers retrieved');"
+              "console.log('\u2705 Providers retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1524,7 +1524,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Products retrieved');"
+              "console.log('\u2705 Products retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1578,7 +1578,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Warehouses retrieved');"
+              "console.log('\u2705 Warehouses retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1632,7 +1632,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Inventories retrieved');"
+              "console.log('\u2705 Inventories retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1687,7 +1687,7 @@
               "});",
               "const response = pm.response.json();",
               "pm.environment.set('created_report_id', response.report_id);",
-              "console.log('✅ Report request created:', response.report_id);"
+              "console.log('\u2705 Report request created:', response.report_id);"
             ],
             "type": "text/javascript"
           }
@@ -1741,7 +1741,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Reports retrieved');"
+              "console.log('\u2705 Reports retrieved');"
             ],
             "type": "text/javascript"
           }
@@ -1787,7 +1787,7 @@
               "pm.test('Status code is 200, 202, or 404', function () {",
               "    pm.expect([200, 202, 404]).to.include(pm.response.code);",
               "});",
-              "console.log('✅ Report details checked');"
+              "console.log('\u2705 Report details checked');"
             ],
             "type": "text/javascript"
           }
@@ -1831,7 +1831,7 @@
               "    pm.response.to.have.status(200);",
               "});",
               "const response = pm.response.json();",
-              "console.log('✅ User info:', response.email);"
+              "console.log('\u2705 User info:', response.email);"
             ],
             "type": "text/javascript"
           }
@@ -1886,13 +1886,13 @@
             "exec": [
               "const visitId = pm.environment.get('created_visit_id');",
               "if (!visitId) {",
-              "    console.log('⚠️  Skipping - no visit created');",
+              "    console.log('\u26a0\ufe0f  Skipping - no visit created');",
               "    pm.test.skip('Status code is 200');",
               "} else {",
               "    pm.test('Status code is 200', function () {",
               "        pm.response.to.have.status(200);",
               "    });",
-              "    console.log('✅ Evidence confirmed');",
+              "    console.log('\u2705 Evidence confirmed');",
               "}"
             ],
             "type": "text/javascript"
@@ -1911,7 +1911,7 @@
               "pm.test('Status code is 200', function () {",
               "    pm.response.to.have.status(200);",
               "});",
-              "console.log('✅ Health check passed');"
+              "console.log('\u2705 Health check passed');"
             ],
             "type": "text/javascript"
           }
@@ -1932,6 +1932,282 @@
         },
         "description": "API health check"
       },
+      "response": []
+    },
+    {
+      "name": "32. Web - Create Vehicle",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"placa\": \"VEH-{{$timestamp}}\",\n    \"driver_name\": \"Newman Test Driver\",\n    \"driver_phone\": \"+573001234567\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/delivery/vehicles",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "delivery",
+            "vehicles"
+          ]
+        },
+        "description": "Create delivery vehicle"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "const response = pm.response.json();",
+              "pm.environment.set(\"created_vehicle_id\", response.id);",
+              "console.log(\"\u2705 Vehicle created:\", response.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "33. Web - Get Vehicles",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/delivery/vehicles",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "delivery",
+            "vehicles"
+          ]
+        },
+        "description": "List all vehicles"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const response = pm.response.json();",
+              "pm.expect(response).to.have.property(\"items\");",
+              "pm.expect(response.items).to.be.an(\"array\");",
+              "console.log(\"\u2705 Found\", response.items.length, \"vehicles\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "34. Web - Wait for Shipments",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Wait 3 seconds for order_created events to be processed",
+              "setTimeout(function() {}, 3000);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "console.log(\"\u2705 Wait completed - shipments should be ready\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "health"
+          ]
+        },
+        "description": "Wait for event processing to complete"
+      },
+      "response": []
+    },
+    {
+      "name": "35. Web - Generate Routes",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"fecha_entrega_estimada\": \"{{estimated_delivery_date}}\",\n    \"vehicle_ids\": [\"{{created_vehicle_id}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/bff/web/delivery/routes/generate",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "delivery",
+            "routes",
+            "generate"
+          ]
+        },
+        "description": "Generate delivery routes for pending shipments"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Calculate delivery date (5 days from now)",
+              "const deliveryDate = new Date();",
+              "deliveryDate.setDate(deliveryDate.getDate() + 5);",
+              "pm.environment.set(\"estimated_delivery_date\", deliveryDate.toISOString().split(\"T\")[0]);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 202 Accepted\", function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "const response = pm.response.json();",
+              "pm.expect(response).to.have.property(\"message\");",
+              "console.log(\"\u2705 Route generation triggered:\", response.message);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "36. Web - Get Routes",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{web_access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/bff/web/delivery/routes?fecha={{estimated_delivery_date}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "bff",
+            "web",
+            "delivery",
+            "routes"
+          ],
+          "query": [
+            {
+              "key": "fecha",
+              "value": "{{estimated_delivery_date}}"
+            }
+          ]
+        },
+        "description": "List generated routes for delivery date"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const response = pm.response.json();",
+              "pm.expect(response).to.have.property(\"items\");",
+              "if (response.items.length > 0) {",
+              "    pm.environment.set(\"created_route_id\", response.items[0].id);",
+              "    console.log(\"\u2705 Found\", response.items.length, \"routes\");",
+              "    console.log(\"   Route ID:\", response.items[0].id);",
+              "    console.log(\"   Total orders:\", response.items[0].total_orders);",
+              "} else {",
+              "    console.log(\"\u26a0\ufe0f  No routes found - may need more time for generation\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
       "response": []
     }
   ],

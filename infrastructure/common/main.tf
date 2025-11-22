@@ -110,6 +110,32 @@ module "sqs_order_events_queue" {
   tags       = merge(local.common_tags, { Status = "deprecated" })
 }
 
+# SQS Queue for Order Events - Delivery Service Consumer
+module "sqs_order_events_delivery_queue" {
+  source = "../modules/sqs-queue"
+
+  queue_name = "${local.name_prefix}-order-events-delivery-queue"
+  tags       = merge(local.common_tags, { Consumer = "delivery" })
+}
+
+# SNS to SQS Subscription - Delivery Queue
+module "sns_to_delivery_subscription" {
+  source = "../modules/sns-sqs-subscription"
+
+  topic_arn            = module.sns_order_events_topic.topic_arn
+  queue_arn            = module.sqs_order_events_delivery_queue.queue_arn
+  queue_url            = module.sqs_order_events_delivery_queue.queue_url
+  raw_message_delivery = true  # Deliver event payload without SNS wrapper
+}
+
+# SQS Queue for Delivery Routes Generated - BFF Service Consumer
+module "sqs_delivery_routes_generated_queue" {
+  source = "../modules/sqs-queue"
+
+  queue_name = "${local.name_prefix}-delivery-routes-generated-queue"
+  tags       = merge(local.common_tags, { Consumer = "bff", Publisher = "delivery" })
+}
+
 # IAM resources including CI/CD user for ECR push
 module "iam" {
   source = "../modules/iam"

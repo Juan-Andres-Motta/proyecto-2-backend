@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir poetry
 COPY pyproject.toml poetry.lock ./
 
 # Install dependencies (without dev dependencies for production)
-RUN poetry install --only main --no-root --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi
 
 # Copy source code
 COPY . .

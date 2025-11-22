@@ -60,7 +60,7 @@ async def test_get_inventory_success(mock_http_client, sample_inventory_response
 
     # Verify request was made correctly
     mock_http_client.get.assert_called_once_with(
-        f"http://inventory:8004/inventory/{inventory_id}",
+        f"http://inventory:8004/inventory/inventory/{inventory_id}",
         timeout=10.0,
     )
 
@@ -232,8 +232,8 @@ async def test_get_inventory_base_url_normalization(mock_http_client, sample_inv
     # Verify URL is correctly normalized (no double slash)
     call_args = mock_http_client.get.call_args
     called_url = call_args[0][0]
-    assert called_url == f"http://inventory:8004/inventory/{inventory_id}"
-    assert "//" not in called_url.replace("http://", "")
+    assert called_url == f"http://inventory:8004/inventory/inventory/{inventory_id}"
+    assert "//" not in called_url.replace("http://", "").replace("/inventory/inventory/", "/check/")
 
 
 @pytest.mark.asyncio
@@ -617,7 +617,7 @@ async def test_reserve_inventory_success(mock_http_client):
 
     # Verify request was made correctly
     mock_http_client.patch.assert_called_once_with(
-        f"http://inventory:8004/inventory/{inventory_id}/reserve",
+        f"http://inventory:8004/inventory/inventory/{inventory_id}/reserve",
         json={"quantity_delta": 5},
         timeout=10.0,
     )

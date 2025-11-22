@@ -30,37 +30,6 @@ class EventHandlers:
             data={"report_id": report_id} if report_id else None,
         )
 
-    async def handle_web_delivery_routes(self, event_data: Dict[str, Any]) -> None:
-        """Handle web_delivery_routes event.
-
-        Notifies ALL web users when delivery routes are generated.
-        """
-        route_id = event_data.get("route_id")
-
-        # Use broadcasts channel to notify all web users
-        channel = "web:broadcasts"
-        await self.publisher.publish(
-            channel=channel,
-            event_name="routes.generated",
-            data={"route_id": route_id} if route_id else None,
-        )
-
-    async def handle_mobile_seller_visit_routes(self, event_data: Dict[str, Any]) -> None:
-        """Handle mobile_seller_visit_routes event."""
-        seller_id = event_data.get("seller_id")
-        route_id = event_data.get("route_id")
-
-        if not seller_id:
-            logger.warning("mobile_seller_visit_routes missing seller_id")
-            return
-
-        channel = f"sellers:{seller_id}"
-        await self.publisher.publish(
-            channel=channel,
-            event_name="visit_routes.generated",
-            data={"route_id": route_id} if route_id else None,
-        )
-
     async def handle_order_creation(self, event_data: Dict[str, Any]) -> None:
         """
         Handle order_creation event.
@@ -97,5 +66,19 @@ class EventHandlers:
         await self.publisher.publish(
             channel=channel,
             event_name="report.generated",
+            data=None,
+        )
+
+    async def handle_delivery_routes_generated(self, event_data: Dict[str, Any]) -> None:
+        """Handle delivery_routes_generated event from delivery microservice.
+
+        Notifies ALL web users when delivery routes are generated.
+        This is a void event - no specific data is sent.
+        """
+        # Use broadcasts channel to notify all web users
+        channel = "web:broadcasts"
+        await self.publisher.publish(
+            channel=channel,
+            event_name="routes.generated",
             data=None,
         )

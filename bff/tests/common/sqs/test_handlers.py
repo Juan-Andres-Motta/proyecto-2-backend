@@ -64,71 +64,6 @@ class TestHandleWebReportGenerated:
         )
 
 
-class TestHandleWebDeliveryRoutes:
-    """Tests for handle_web_delivery_routes."""
-
-    @pytest.mark.asyncio
-    async def test_publishes_to_broadcasts_channel(self):
-        """Test publishes to web:broadcasts channel for all users."""
-        publisher = Mock()
-        publisher.publish = AsyncMock()
-        publisher.publish = AsyncMock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {
-            "event_type": "web_delivery_routes",
-            "route_id": "route-456",
-        }
-
-        await handlers.handle_web_delivery_routes(event_data)
-
-        publisher.publish.assert_called_once_with(
-            channel="web:broadcasts",
-            event_name="routes.generated",
-            data={"route_id": "route-456"},
-        )
-
-
-class TestHandleMobileSellerVisitRoutes:
-    """Tests for handle_mobile_seller_visit_routes."""
-
-    @pytest.mark.asyncio
-    async def test_publishes_to_seller_channel(self):
-        """Test publishes to correct seller channel."""
-        publisher = Mock()
-        publisher.publish = AsyncMock()
-        publisher.publish = AsyncMock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {
-            "event_type": "mobile_seller_visit_routes",
-            "seller_id": "seller-123",
-            "route_id": "route-456",
-        }
-
-        await handlers.handle_mobile_seller_visit_routes(event_data)
-
-        publisher.publish.assert_called_once_with(
-            channel="sellers:seller-123",
-            event_name="visit_routes.generated",
-            data={"route_id": "route-456"},
-        )
-
-    @pytest.mark.asyncio
-    async def test_handles_missing_seller_id(self, caplog):
-        """Test logs warning when seller_id missing."""
-        publisher = Mock()
-        publisher.publish = AsyncMock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {"event_type": "mobile_seller_visit_routes"}
-
-        await handlers.handle_mobile_seller_visit_routes(event_data)
-
-        assert "missing seller_id" in caplog.text
-        publisher.publish.assert_not_called()
-
-
 class TestHandleOrderCreation:
     """Tests for handle_order_creation."""
 
@@ -300,36 +235,3 @@ class TestEventHandlersIntegration:
         # Total: 1 from web_report + 1 from order_creation = 2
         assert publisher.publish.call_count == 2
 
-    @pytest.mark.asyncio
-    async def test_web_delivery_routes_handles_missing_route_id(self):
-        """Test web_delivery_routes handles missing route_id gracefully."""
-        publisher = Mock()
-        publisher.publish = AsyncMock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {"event_type": "web_delivery_routes"}
-
-        await handlers.handle_web_delivery_routes(event_data)
-
-        publisher.publish.assert_called_once_with(
-            channel="web:broadcasts",
-            event_name="routes.generated",
-            data=None,
-        )
-
-    @pytest.mark.asyncio
-    async def test_mobile_seller_visit_routes_handles_missing_route_id(self):
-        """Test mobile_seller_visit_routes handles missing route_id gracefully."""
-        publisher = Mock()
-        publisher.publish = AsyncMock()
-        handlers = EventHandlers(publisher)
-
-        event_data = {"event_type": "mobile_seller_visit_routes", "seller_id": "seller-123"}
-
-        await handlers.handle_mobile_seller_visit_routes(event_data)
-
-        publisher.publish.assert_called_once_with(
-            channel="sellers:seller-123",
-            event_name="visit_routes.generated",
-            data=None,
-        )

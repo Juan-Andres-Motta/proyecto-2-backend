@@ -5,25 +5,81 @@ This controller handles order creation for mobile client app users.
 Orders created through this endpoint automatically have metodo_creacion='app_cliente'.
 """
 
+import asyncio
 import logging
-from typing import Dict
+from typing import Dict, List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from common.auth.dependencies import require_client_user
 from client_app.ports import OrderPort
 from client_app.ports.client_port import ClientPort
+from client_app.ports.delivery_port import DeliveryPort
 from client_app.schemas import OrderCreateInput, OrderCreateResponse, PaginatedOrdersResponse
+from client_app.schemas.order_schemas import OrderResponse
+from client_app.schemas.shipment_schemas import ShipmentInfo
 from common.exceptions import (
     MicroserviceConnectionError,
     MicroserviceHTTPError,
     MicroserviceValidationError,
 )
-from dependencies import get_client_order_port, get_client_app_client_port
+from dependencies import get_client_order_port, get_client_app_client_port, get_delivery_port
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _fetch_shipment_safe(
+    delivery_port: DeliveryPort, order_id: UUID
+) -> Optional[ShipmentInfo]:
+    """
+    Safely fetch shipment information for an order.
+
+    Catches any errors and returns None to avoid breaking the order listing.
+
+    Args:
+        delivery_port: DeliveryPort for fetching shipment info
+        order_id: The order UUID to fetch shipment for
+
+    Returns:
+        ShipmentInfo if available, None otherwise
+    """
+    try:
+        return await delivery_port.get_shipment_by_order(order_id)
+    except Exception as e:
+        logger.warning(f"Failed to fetch shipment for order {order_id}: {e}")
+        return None
+
+
+async def _enrich_orders_with_shipments(
+    orders: List[OrderResponse], delivery_port: DeliveryPort
+) -> List[OrderResponse]:
+    """
+    Enrich orders with shipment information fetched in parallel.
+
+    Args:
+        orders: List of OrderResponse objects to enrich
+        delivery_port: DeliveryPort for fetching shipment info
+
+    Returns:
+        List of OrderResponse objects with shipment info populated
+    """
+    if not orders:
+        return orders
+
+    # Fetch all shipments in parallel
+    shipment_tasks = [
+        _fetch_shipment_safe(delivery_port, order.id) for order in orders
+    ]
+    shipments = await asyncio.gather(*shipment_tasks)
+
+    # Attach shipments to orders
+    for order, shipment in zip(orders, shipments):
+        order.shipment = shipment
+
+    return orders
 
 
 @router.post(
@@ -132,6 +188,7 @@ async def list_my_orders(
     offset: int = Query(0, ge=0, description="Number of orders to skip"),
     order_port: OrderPort = Depends(get_client_order_port),
     client_port: ClientPort = Depends(get_client_app_client_port),
+    delivery_port: DeliveryPort = Depends(get_delivery_port),
     user: Dict = Depends(require_client_user),
 ):
     """
@@ -141,6 +198,7 @@ async def list_my_orders(
     1. Gets the Cognito User ID from the authenticated user (JWT sub claim)
     2. Looks up the client record using cognito_user_id
     3. Fetches orders for that client (customer_id = cliente_id)
+    4. Enriches orders with shipment information from delivery service
 
     Requires client_users group authentication.
 
@@ -149,10 +207,11 @@ async def list_my_orders(
         offset: Number of orders to skip
         order_port: Order port for service communication
         client_port: Client port for service communication
+        delivery_port: Delivery port for fetching shipment info
         user: Authenticated client user
 
     Returns:
-        PaginatedOrdersResponse with user's orders
+        PaginatedOrdersResponse with user's orders and shipment info
 
     Raises:
         HTTPException: If client not found or order fetching fails
@@ -174,9 +233,17 @@ async def list_my_orders(
         logger.info(f"Found client: cliente_id={cliente_id}")
 
         # Fetch orders for this client
-        return await order_port.list_customer_orders(
+        paginated_orders = await order_port.list_customer_orders(
             customer_id=cliente_id, limit=limit, offset=offset
         )
+
+        # Enrich orders with shipment information
+        enriched_orders = await _enrich_orders_with_shipments(
+            paginated_orders.items, delivery_port
+        )
+        paginated_orders.items = enriched_orders
+
+        return paginated_orders
 
     except HTTPException:
         raise
