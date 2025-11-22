@@ -44,7 +44,7 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src"]
+source = ["."]
 omit = [
     "app.py",
     "main.py",
@@ -58,7 +58,10 @@ omit = [
     "*/infrastructure/dependencies.py",
     "*/domain/exceptions.py",
     "*/adapters/input/sqs_consumer.py",
-    "*/infrastructure/api/exception_handlers.py"
+    "*/infrastructure/api/exception_handlers.py",
+    "tests/*",
+    ".venv/*",
+    "alembic/*"
 ]
 relative_files = true
 concurrency = ["thread", "greenlet"]
