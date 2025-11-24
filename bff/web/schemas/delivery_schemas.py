@@ -48,7 +48,7 @@ class ShipmentInRoute(BaseModel):
     id: UUID
     order_id: UUID
     shipment_status: str
-    delivery_sequence: int
+    sequence_in_route: int
 
 
 class VehicleInRoute(BaseModel):
