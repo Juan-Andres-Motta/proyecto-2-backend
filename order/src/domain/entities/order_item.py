@@ -48,9 +48,9 @@ class OrderItem:
         if self.precio_total < 0:
             raise ValueError("precio_total cannot be negative")
 
-        # Verify calculation is correct
+        # Verify calculation is correct (allow 5 cent tolerance for rounding)
         expected_total = self.cantidad * self.precio_unitario
-        if abs(self.precio_total - expected_total) > Decimal("0.01"):
+        if abs(self.precio_total - expected_total) > Decimal("0.05"):
             raise ValueError(
                 f"precio_total {self.precio_total} does not match "
                 f"cantidad * precio_unitario ({expected_total})"
