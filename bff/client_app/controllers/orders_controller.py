@@ -75,9 +75,12 @@ async def _enrich_orders_with_shipments(
     ]
     shipments = await asyncio.gather(*shipment_tasks)
 
-    # Attach shipments to orders
+    # Attach shipments to orders and override fecha_entrega_estimada from shipment
     for order, shipment in zip(orders, shipments):
         order.shipment = shipment
+        if shipment and shipment.fecha_entrega_estimada:
+            # Shipment is the source of truth for fecha_entrega_estimada
+            order.fecha_entrega_estimada = shipment.fecha_entrega_estimada
 
     return orders
 

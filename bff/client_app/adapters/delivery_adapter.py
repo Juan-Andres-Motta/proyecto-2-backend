@@ -51,7 +51,7 @@ class DeliveryAdapter(DeliveryPort):
         logger.info(f"Fetching shipment for order {order_id}")
 
         try:
-            response_data = await self.client.get(f"/delivery/orders/{order_id}/shipment")
+            response_data = await self.client.get(f"/delivery/shipments/{order_id}")
             return ShipmentInfo(**response_data)
 
         except MicroserviceHTTPError as e:

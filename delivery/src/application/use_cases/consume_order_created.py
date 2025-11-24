@@ -100,8 +100,9 @@ class ConsumeOrderCreatedUseCase:
         return saved
 
     async def _geocode_shipment(self, shipment: Shipment) -> None:
-        """Geocode shipment address asynchronously."""
+        """Geocode shipment address asynchronously with city fallback."""
         try:
+            # Try full address first
             latitude, longitude = await self._geocoding_service.geocode_address(
                 shipment.direccion_entrega,
                 shipment.ciudad_entrega,
@@ -112,10 +113,29 @@ class ConsumeOrderCreatedUseCase:
             await self._session.commit()
             logger.info(f"Geocoded shipment {shipment.id}: ({latitude}, {longitude})")
         except GeocodingError as e:
-            logger.error(f"Failed to geocode shipment {shipment.id}: {e}")
-            shipment.mark_geocoding_failed()
-            await self._shipment_repo.update(shipment)
-            await self._session.commit()
+            # Fallback: try geocoding just the city
+            logger.warning(f"Full address geocoding failed for shipment {shipment.id}: {e}")
+            logger.info(f"Attempting city-level fallback for {shipment.ciudad_entrega}, {shipment.pais_entrega}")
+            try:
+                latitude, longitude = await self._geocoding_service.geocode_address(
+                    "",  # Empty address - geocode city only
+                    shipment.ciudad_entrega,
+                    shipment.pais_entrega,
+                )
+                shipment.set_coordinates(latitude, longitude)
+                await self._shipment_repo.update(shipment)
+                await self._session.commit()
+                logger.info(f"Geocoded shipment {shipment.id} using city fallback: ({latitude}, {longitude})")
+            except GeocodingError as city_error:
+                logger.error(f"City-level geocoding also failed for shipment {shipment.id}: {city_error}")
+                shipment.mark_geocoding_failed()
+                await self._shipment_repo.update(shipment)
+                await self._session.commit()
+            except Exception as city_ex:
+                logger.error(f"Unexpected error in city fallback for shipment {shipment.id}: {city_ex}")
+                shipment.mark_geocoding_failed()
+                await self._shipment_repo.update(shipment)
+                await self._session.commit()
         except Exception as e:
             logger.error(f"Unexpected error geocoding shipment {shipment.id}: {e}")
             shipment.mark_geocoding_failed()

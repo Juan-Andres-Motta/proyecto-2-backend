@@ -29,6 +29,8 @@ services:
       - "8003:8000"
     env_file:
       - .env.staging
+    environment:
+      - SQS_ORDER_EVENTS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/889966880047/medisupply-order-events-delivery-queue
     networks:
       - medisupply
 
@@ -62,6 +64,8 @@ services:
       - "8006:8000"
     env_file:
       - .env.staging
+    environment:
+      - SQS_ORDER_EVENTS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/889966880047/medisupply-order-events-seller-queue
     networks:
       - medisupply
 
